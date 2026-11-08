@@ -1,0 +1,56 @@
+name: Bug report
+description: Report a reproducible problem in PRISMA.
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include passwords, API tokens, service-role keys, player personal data, or private server access details.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected component
+      options:
+        - Telegram bot
+        - Participant website
+        - Staff dashboard
+        - Minecraft plugin
+        - Supabase / migrations
+        - Shared contracts / packages
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: PRISMA version / commit
+      placeholder: 2.1.0 / commit SHA
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized logs or screenshots
+      description: Remove tokens, personal data, private IPs, and player identifiers.
+    validations:
+      required: false

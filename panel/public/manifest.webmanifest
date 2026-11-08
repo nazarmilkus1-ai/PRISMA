@@ -1,0 +1,20 @@
+{
+  "name": "PRISMA — Admin Panel",
+  "short_name": "PRISMA",
+  "description": "Админ-панель экосистемы PRISMA",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b0c10",
+  "theme_color": "#0b0c10",
+  "lang": "uk",
+  "icons": [
+    {
+      "src": "/prisma-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities"]
+}

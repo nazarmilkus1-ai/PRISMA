@@ -1,0 +1,1130 @@
+/*
+ * PRISMA Liquid Glass — shared visual system.
+ *
+ * Change the variables below to retune the whole web UI without touching pages.
+ * Keep semantic colors outside this file; this layer only controls glass behavior.
+ */
+:root {
+  --lg-bg: rgba(255, 255, 255, 0.012);
+  --lg-bg-strong: rgba(255, 255, 255, 0.022);
+  --lg-bg-soft: rgba(255, 255, 255, 0.006);
+  --lg-bg-hover: rgba(255, 255, 255, 0.045);
+
+  --lg-border: rgba(255, 255, 255, 0.11);
+  --lg-border-top: rgba(255, 255, 255, 0.24);
+  --lg-border-left: rgba(255, 255, 255, 0.17);
+  --lg-border-hover: rgba(255, 255, 255, 0.30);
+
+  --lg-blur: 35px;
+  --lg-control-blur: 20px;
+  --lg-saturate: 1.55;
+
+  --lg-radius-card: 24px;
+  --lg-radius-control: 14px;
+
+  --lg-shadow:
+    0 24px 70px -18px rgba(0, 0, 0, 0.52),
+    0 12px 30px -18px rgba(0, 0, 0, 0.42),
+    inset 0 1px 2px rgba(255, 255, 255, 0.20),
+    inset 0 -12px 24px rgba(255, 255, 255, 0.018);
+
+  --lg-shadow-hover:
+    0 28px 80px -18px rgba(0, 0, 0, 0.56),
+    0 0 30px rgba(255, 255, 255, 0.07),
+    inset 0 1px 2px rgba(255, 255, 255, 0.24);
+
+  --lg-highlight: rgba(255, 255, 255, 0.20);
+  --lg-specular: rgba(255, 255, 255, 0.075);
+  --lg-noise-opacity: 0.035;
+
+  --lg-tilt: 4deg;
+  --lg-tilt-lift: -2px;
+
+  --lg-orb-1: rgba(255, 60, 120, 0.24);
+  --lg-orb-2: rgba(70, 210, 255, 0.22);
+  --lg-orb-3: rgba(170, 80, 255, 0.22);
+  --lg-orb-blur: 105px;
+}
+
+.prisma-liquid-bg {
+  position: relative;
+  isolation: isolate;
+  overflow-x: clip;
+}
+
+.prisma-liquid-bg::before {
+  content: "";
+  position: fixed;
+  inset: -18%;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 18% 8%, var(--lg-orb-1) 0 10%, transparent 27%),
+    radial-gradient(circle at 82% 88%, var(--lg-orb-2) 0 12%, transparent 30%),
+    radial-gradient(circle at 58% 46%, var(--lg-orb-3) 0 8%, transparent 24%);
+  filter: blur(var(--lg-orb-blur)) saturate(1.35);
+  animation: prisma-liquid-float 20s ease-in-out infinite alternate;
+  transform: translate3d(0, 0, 0) scale(1.05);
+  opacity: 0.95;
+}
+
+.prisma-liquid-bg::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: var(--lg-noise-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+}
+
+@keyframes prisma-liquid-float {
+  0% {
+    transform: translate3d(-2%, 1%, 0) scale(1.05) rotate(-1deg);
+  }
+  50% {
+    transform: translate3d(2%, -2%, 0) scale(1.09) rotate(1deg);
+  }
+  100% {
+    transform: translate3d(-1%, 3%, 0) scale(1.04) rotate(-2deg);
+  }
+}
+
+.prisma-glass-surface {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--lg-border);
+  border-top-color: var(--lg-border-top);
+  border-left-color: var(--lg-border-left);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.028),
+      rgba(255, 255, 255, 0.008) 52%,
+      rgba(255, 255, 255, 0.004)
+    ),
+    var(--lg-bg) !important;
+  -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate));
+  backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate));
+  box-shadow: var(--lg-shadow);
+  transform-style: preserve-3d;
+  transition:
+    transform 180ms cubic-bezier(.16, 1, .3, 1),
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease;
+}
+
+.prisma-glass-surface::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    radial-gradient(
+      700px circle at var(--glass-mouse-x, 50%) var(--glass-mouse-y, 50%),
+      rgba(255, 255, 255, 0.20),
+      transparent 38%
+    ),
+    linear-gradient(180deg, var(--lg-specular), transparent 30%);
+  opacity: 0.72;
+  transition: opacity 180ms ease;
+}
+
+.prisma-glass-surface > * {
+  position: relative;
+  z-index: 1;
+}
+
+.prisma-glass-surface.prisma-glass-active {
+  will-change: transform;
+  transition-duration: 80ms;
+  transform:
+    perspective(1000px)
+    rotateX(calc(var(--glass-tilt-y, 0) * -1))
+    rotateY(var(--glass-tilt-x, 0))
+    translateY(var(--glass-lift, 0));
+}
+
+.prisma-glass-hover:hover {
+  border-color: var(--lg-border-hover);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.12),
+      rgba(255, 255, 255, 0.028) 48%,
+      rgba(255, 255, 255, 0.045)
+    ),
+    var(--lg-bg-hover) !important;
+  box-shadow: var(--lg-shadow-hover);
+}
+
+.prisma-glass-primary {
+  position: relative;
+  overflow: hidden;
+  border-color: color-mix(in srgb, #ffffff 24%, var(--lg-border)) !important;
+  box-shadow:
+    0 12px 34px rgba(0, 0, 0, 0.20),
+    inset 0 1px 1px rgba(255, 255, 255, 0.34);
+}
+
+.prisma-glass-primary:hover {
+  box-shadow:
+    0 16px 44px rgba(0, 0, 0, 0.24),
+    0 0 26px rgba(255, 255, 255, 0.08),
+    inset 0 1px 1px rgba(255, 255, 255, 0.42);
+}
+
+.prisma-glass-badge {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.010)),
+    rgba(255, 255, 255, 0.035) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  -webkit-backdrop-filter: blur(15px) saturate(1.25);
+  backdrop-filter: blur(15px) saturate(1.25);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.18),
+    0 8px 18px rgba(0, 0, 0, 0.14);
+}
+
+/*
+ * PRISMA panel base compatibility.
+ * Panel surfaces use the same transparent glass treatment as raised surfaces.
+ */
+[class~="bg-panel"] {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.018), rgba(255, 255, 255, 0.004)),
+    var(--lg-bg-soft) !important;
+  border-color: var(--lg-border);
+  -webkit-backdrop-filter: blur(var(--lg-control-blur)) saturate(var(--lg-saturate));
+  backdrop-filter: blur(var(--lg-control-blur)) saturate(var(--lg-saturate));
+}
+
+[class~="hover:bg-panel"]:hover {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.050), rgba(255, 255, 255, 0.010)),
+    var(--lg-bg-hover) !important;
+  border-color: var(--lg-border-hover);
+}
+
+/*
+ * PRISMA panel surface compatibility.
+ * Legacy bg-panel-raised utilities now inherit the shared transparent glass layer.
+ */
+[class~="bg-panel-raised"],
+[class~="bg-panel-raised/10"],
+[class~="bg-panel-raised/20"],
+[class~="bg-panel-raised/30"],
+[class~="bg-panel-raised/40"],
+[class~="bg-panel-raised/50"],
+[class~="bg-panel-raised/60"] {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.020), rgba(255, 255, 255, 0.004)),
+    var(--lg-bg-soft) !important;
+  border-color: var(--lg-border);
+  -webkit-backdrop-filter: blur(var(--lg-control-blur)) saturate(var(--lg-saturate));
+  backdrop-filter: blur(var(--lg-control-blur)) saturate(var(--lg-saturate));
+}
+
+[class~="hover:bg-panel-raised"]:hover,
+[class~="hover:bg-panel-raised/30"]:hover,
+[class~="hover:bg-panel-raised/40"]:hover,
+[class~="hover:bg-panel-raised/50"]:hover,
+[class~="hover:bg-panel-raised/60"]:hover {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.012)),
+    var(--lg-bg-hover) !important;
+  border-color: var(--lg-border-hover);
+}
+
+/*
+ * Semantic card compatibility.
+ * Non-Card elements that still use the standard bg-card utility inherit the
+ * same translucent surface instead of rendering as a flat opaque panel.
+ */
+[class~="bg-card"],
+[class~="bg-card/10"],
+[class~="bg-card/20"],
+[class~="bg-card/30"],
+[class~="bg-card/40"],
+[class~="bg-card/50"],
+[class~="bg-card/60"] {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.020), rgba(255, 255, 255, 0.004)),
+    var(--lg-bg-soft) !important;
+  border-color: var(--lg-border);
+  -webkit-backdrop-filter: blur(var(--lg-control-blur)) saturate(var(--lg-saturate));
+  backdrop-filter: blur(var(--lg-control-blur)) saturate(var(--lg-saturate));
+}
+
+/*
+ * Legacy utility compatibility.
+ * Old page classes stay valid while inheriting the current glass language.
+ */
+[class~="bg-muted"],
+[class~="bg-muted/10"],
+[class~="bg-muted/20"],
+[class~="bg-muted/30"],
+[class~="bg-muted/40"],
+[class~="bg-muted/50"],
+[class~="bg-muted/60"] {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.020), rgba(255, 255, 255, 0.004)),
+    var(--lg-bg-soft) !important;
+  -webkit-backdrop-filter: blur(var(--lg-control-blur)) saturate(var(--lg-saturate));
+  backdrop-filter: blur(var(--lg-control-blur)) saturate(var(--lg-saturate));
+}
+
+:is(a, button, input, textarea, select)[class~="bg-background"] {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.022), rgba(255, 255, 255, 0.005)),
+    var(--lg-bg) !important;
+  -webkit-backdrop-filter: blur(var(--lg-control-blur)) saturate(var(--lg-saturate));
+  backdrop-filter: blur(var(--lg-control-blur)) saturate(var(--lg-saturate));
+}
+
+[class~="hover:bg-accent"]:hover,
+[class~="hover:bg-muted"]:hover,
+[class~="hover:bg-muted/40"]:hover,
+[class~="hover:bg-muted/50"]:hover,
+[class~="hover:bg-muted/60"]:hover,
+[class~="hover:bg-white/[0.06]"]:hover,
+[class~="hover:bg-white/[0.07]"]:hover,
+[class~="hover:bg-white/[0.08]"]:hover {
+  border-color: var(--lg-border-hover);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.050), rgba(255, 255, 255, 0.010) 48%, rgba(69, 224, 160, 0.025)),
+    var(--lg-bg-hover) !important;
+  box-shadow:
+    0 16px 46px rgba(0, 0, 0, 0.16),
+    inset 0 1px 1px rgba(255, 255, 255, 0.08);
+}
+
+.prisma-glass-control {
+  border-color: var(--lg-border);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.022), rgba(255, 255, 255, 0.005)),
+    var(--lg-bg) !important;
+  -webkit-backdrop-filter: blur(var(--lg-control-blur)) saturate(var(--lg-saturate));
+  backdrop-filter: blur(var(--lg-control-blur)) saturate(var(--lg-saturate));
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.10),
+    0 8px 24px rgba(0, 0, 0, 0.16);
+}
+
+.prisma-glass-control.prisma-glass-hover:hover {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.070), rgba(255, 255, 255, 0.012)),
+    var(--lg-bg-hover) !important;
+}
+
+.prisma-glass-control:focus-visible,
+:is(input, textarea, select).bg-background:focus {
+  border-color: color-mix(in srgb, var(--ring) 72%, var(--lg-border));
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--ring) 18%, transparent),
+    inset 0 1px 1px rgba(255, 255, 255, 0.12);
+}
+
+.prisma-glass-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.prisma-glass-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 -150%;
+  width: 100%;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.42), transparent);
+  transform: skewX(-20deg);
+  transition: left 700ms cubic-bezier(.16, 1, .3, 1);
+}
+
+.prisma-glass-shimmer:hover::after {
+  left: 150%;
+}
+
+@media (max-width: 767px) {
+  :root {
+    --lg-blur: 24px;
+    --lg-control-blur: 16px;
+    --lg-orb-blur: 82px;
+    --lg-tilt: 0deg;
+  }
+
+  .prisma-glass-surface {
+    box-shadow:
+      0 16px 44px -20px rgba(0, 0, 0, 0.46),
+      inset 0 1px 2px rgba(255, 255, 255, 0.17);
+  }
+
+  .prisma-glass-surface.prisma-glass-active {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prisma-liquid-bg::before,
+  .prisma-glass-surface,
+  .prisma-glass-hover,
+  .prisma-glass-shimmer::after {
+    animation: none;
+    transition: none;
+  }
+}
+
+
+/*
+ * PRISMA Floating Dock
+ * Shared across site and panel. The component intentionally keeps the
+ * familiar floating-dock silhouette while using the PRISMA glass language.
+ */
+.prisma-floating-dock-shell {
+  position: relative;
+  display: flex;
+  width: max-content;
+  max-width: calc(100vw - 2rem);
+  align-items: center;
+  justify-content: center;
+}
+
+.prisma-floating-dock {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.34rem;
+  padding: 0.48rem;
+  border: 1px solid var(--lg-border);
+  border-top-color: var(--lg-border-top);
+  border-left-color: var(--lg-border-left);
+  border-radius: 1.25rem;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.075),
+      rgba(255, 255, 255, 0.018) 52%,
+      rgba(255, 255, 255, 0.025)
+    ),
+    var(--lg-bg-soft);
+  -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate));
+  backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate));
+  box-shadow:
+    var(--lg-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.prisma-floating-dock::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    radial-gradient(
+      360px circle at var(--glass-mouse-x, 50%) var(--glass-mouse-y, 0%),
+      rgba(255, 255, 255, 0.12),
+      transparent 52%
+    ),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent 42%);
+  opacity: 0.9;
+}
+
+.prisma-floating-dock-item {
+  position: relative;
+  display: grid;
+  width: 3.25rem;
+  height: 3.25rem;
+  place-items: center;
+  flex: 0 0 3.25rem;
+  border: 1px solid transparent;
+  border-radius: 0.95rem;
+  color: var(--foreground);
+  text-decoration: none;
+  transform: translateY(0) scale(1);
+  transition:
+    transform 170ms cubic-bezier(.16, 1, .3, 1),
+    background 170ms ease,
+    border-color 170ms ease,
+    box-shadow 170ms ease;
+}
+
+.prisma-floating-dock-item:hover,
+.prisma-floating-dock-item:focus-visible {
+  z-index: 2;
+  border-color: var(--lg-border-hover);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.12),
+      rgba(255, 255, 255, 0.028)
+    ),
+    var(--lg-bg-hover);
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.24),
+    inset 0 1px 1px rgba(255, 255, 255, 0.18);
+  transform: translateY(-0.12rem) scale(1.09);
+}
+
+.prisma-floating-dock-item:active {
+  transform: translateY(0) scale(1.02);
+}
+
+.prisma-floating-dock-item-disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+  pointer-events: none;
+}
+
+.prisma-floating-dock-icon {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 1.35rem;
+  height: 1.35rem;
+  place-items: center;
+  color: var(--foreground-light);
+  transition:
+    color 170ms ease,
+    transform 170ms ease;
+}
+
+.prisma-floating-dock-icon > svg {
+  width: 100%;
+  height: 100%;
+  stroke-width: 1.8;
+}
+
+.prisma-floating-dock-item:hover .prisma-floating-dock-icon,
+.prisma-floating-dock-item:focus-visible .prisma-floating-dock-icon {
+  color: var(--foreground-contrast);
+  transform: scale(1.04);
+}
+
+.prisma-floating-dock-tooltip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 0.6rem);
+  z-index: 3;
+  width: max-content;
+  max-width: 12rem;
+  transform: translate(-50%, 0.2rem);
+  padding: 0.35rem 0.55rem;
+  border: 1px solid var(--lg-border);
+  border-top-color: var(--lg-border-top);
+  border-radius: 0.65rem;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.10),
+      rgba(255, 255, 255, 0.025)
+    ),
+    rgba(10, 12, 15, 0.70);
+  -webkit-backdrop-filter: blur(18px) saturate(1.35);
+  backdrop-filter: blur(18px) saturate(1.35);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.24),
+    inset 0 1px 1px rgba(255, 255, 255, 0.10);
+  color: var(--foreground);
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+}
+
+.prisma-floating-dock-item:hover .prisma-floating-dock-tooltip,
+.prisma-floating-dock-item:focus-visible .prisma-floating-dock-tooltip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+@media (max-width: 767px) {
+  .prisma-floating-dock-shell {
+    max-width: calc(100vw - 1rem);
+  }
+
+  .prisma-floating-dock {
+    gap: 0.18rem;
+    padding: 0.36rem;
+    border-radius: 1.05rem;
+  }
+
+  .prisma-floating-dock-item {
+    width: 2.8rem;
+    height: 2.8rem;
+    flex-basis: 2.8rem;
+    border-radius: 0.82rem;
+  }
+
+  .prisma-floating-dock-tooltip {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prisma-floating-dock-item,
+  .prisma-floating-dock-icon,
+  .prisma-floating-dock-tooltip {
+    transition: none;
+  }
+}
+
+/* PRISMA File Upload — shared visual treatment for future upload surfaces. */
+.prisma-file-upload {
+  display: grid;
+  gap: 0.65rem;
+  width: 100%;
+}
+
+.prisma-file-upload-dropzone {
+  position: relative;
+  display: flex;
+  min-height: 15rem;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem;
+  border: 1px dashed var(--lg-border);
+  border-radius: var(--lg-radius-card);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.055), rgba(255,255,255,.012)),
+    var(--lg-bg-soft);
+  color: var(--foreground);
+  text-align: left;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(var(--lg-control-blur)) saturate(var(--lg-saturate));
+  backdrop-filter: blur(var(--lg-control-blur)) saturate(var(--lg-saturate));
+  box-shadow:
+    inset 0 1px 1px rgba(255,255,255,.08),
+    0 14px 40px -24px rgba(0,0,0,.38);
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.prisma-file-upload-dropzone:hover,
+.prisma-file-upload.is-drag-active .prisma-file-upload-dropzone,
+.prisma-file-upload-dropzone:focus-visible {
+  border-color: var(--lg-border-hover);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.09), rgba(255,255,255,.018)),
+    var(--lg-bg);
+  box-shadow:
+    var(--lg-shadow-hover),
+    inset 0 1px 1px rgba(255,255,255,.12);
+}
+
+.prisma-file-upload.is-drag-active .prisma-file-upload-dropzone {
+  transform: translateY(-2px);
+}
+
+.prisma-file-upload.is-disabled .prisma-file-upload-dropzone {
+  cursor: not-allowed;
+  opacity: .5;
+}
+
+.prisma-file-upload-icon {
+  display: grid;
+  width: 3.25rem;
+  height: 3.25rem;
+  flex: 0 0 3.25rem;
+  place-items: center;
+  border: 1px solid var(--lg-border);
+  border-radius: 1rem;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.02)),
+    var(--lg-bg-strong);
+  box-shadow:
+    inset 0 1px 1px rgba(255,255,255,.12),
+    0 10px 24px rgba(0,0,0,.16);
+  color: var(--foreground-contrast);
+}
+
+.prisma-file-upload-icon svg {
+  width: 1.35rem;
+  height: 1.35rem;
+  stroke-width: 1.7;
+}
+
+.prisma-file-upload-copy {
+  display: grid;
+  gap: .3rem;
+}
+
+.prisma-file-upload-copy strong {
+  font-size: .92rem;
+  font-weight: 650;
+}
+
+.prisma-file-upload-copy span,
+.prisma-file-upload-copy small {
+  color: var(--foreground-muted);
+  font-size: .78rem;
+}
+
+.prisma-file-upload-copy small {
+  margin-top: .15rem;
+}
+
+.prisma-file-upload-list {
+  display: grid;
+  gap: .45rem;
+}
+
+.prisma-file-upload-file {
+  display: grid;
+  grid-template-columns: auto minmax(0,1fr) auto;
+  align-items: center;
+  gap: .7rem;
+  min-width: 0;
+  padding: .65rem .75rem;
+  border: 1px solid var(--lg-border);
+  border-radius: .9rem;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.05), rgba(255,255,255,.012)),
+    var(--lg-bg-soft);
+  -webkit-backdrop-filter: blur(var(--lg-control-blur)) saturate(var(--lg-saturate));
+  backdrop-filter: blur(var(--lg-control-blur)) saturate(var(--lg-saturate));
+}
+
+.prisma-file-upload-file-icon {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 1px solid var(--lg-border);
+  border-radius: .65rem;
+  color: var(--foreground-light);
+}
+
+.prisma-file-upload-file-icon svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.prisma-file-upload-file-meta {
+  display: grid;
+  min-width: 0;
+  gap: .18rem;
+}
+
+.prisma-file-upload-file-meta strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: .8rem;
+  font-weight: 550;
+}
+
+.prisma-file-upload-file-meta small {
+  color: var(--foreground-muted);
+  font-size: .7rem;
+}
+
+.prisma-file-upload-remove {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: .65rem;
+  background: transparent;
+  color: var(--foreground-muted);
+  cursor: pointer;
+}
+
+.prisma-file-upload-remove:hover,
+.prisma-file-upload-remove:focus-visible {
+  border-color: var(--lg-border-hover);
+  background: var(--lg-bg-hover);
+  color: var(--foreground-contrast);
+}
+
+.prisma-file-upload-remove svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+@media (max-width: 640px) {
+  .prisma-file-upload-dropzone {
+    min-height: 12rem;
+    padding: 1.25rem;
+  }
+
+  .prisma-file-upload-icon {
+    width: 2.75rem;
+    height: 2.75rem;
+    flex-basis: 2.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prisma-file-upload-dropzone,
+  .prisma-file-upload-remove {
+    transition: none;
+  }
+}
+
+
+/* PRISMA World Map — shared geographic/network visualization. */
+.prisma-world-map {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid var(--lg-border);
+  border-top-color: var(--lg-border-top);
+  border-left-color: var(--lg-border-left);
+  border-radius: var(--lg-radius-card);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.06), rgba(255,255,255,.012) 58%),
+    var(--lg-bg-soft);
+  box-shadow: var(--lg-shadow);
+  -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate));
+  backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate));
+}
+.prisma-world-map::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 15% 18%, var(--lg-orb-2), transparent 34%),
+    radial-gradient(circle at 84% 82%, var(--lg-orb-3), transparent 36%);
+  opacity: .16;
+  filter: blur(70px);
+}
+.prisma-world-map-header,
+.prisma-world-map-footer,
+.prisma-world-map-canvas {
+  position: relative;
+  z-index: 1;
+}
+.prisma-world-map-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.25rem .75rem;
+}
+.prisma-world-map-eyebrow {
+  margin: 0 0 .35rem;
+  color: var(--foreground-muted);
+  font-size: .64rem;
+  font-weight: 700;
+  letter-spacing: .18em;
+}
+.prisma-world-map-title {
+  margin: 0;
+  color: var(--foreground-contrast);
+  font-size: clamp(1.2rem, 2vw, 1.8rem);
+  font-weight: 650;
+  letter-spacing: -.025em;
+}
+.prisma-world-map-subtitle {
+  max-width: 34rem;
+  margin: .35rem 0 0;
+  color: var(--foreground-muted);
+  font-size: .78rem;
+  line-height: 1.55;
+}
+.prisma-world-map-status {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .35rem .55rem;
+  border: 1px solid var(--lg-border);
+  border-radius: 999px;
+  background: rgba(255,255,255,.025);
+  color: var(--foreground-muted);
+  font-size: .61rem;
+  font-weight: 700;
+  letter-spacing: .12em;
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+.prisma-world-map-status span {
+  width: .35rem;
+  height: .35rem;
+  border-radius: 999px;
+  background: var(--success);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--success) 65%, transparent);
+}
+.prisma-world-map-canvas {
+  position: relative;
+  min-height: 26rem;
+  padding: .5rem 1rem;
+}
+.prisma-world-map-canvas svg {
+  display: block;
+  width: 100%;
+  min-height: 26rem;
+  color: var(--foreground);
+}
+.prisma-world-map-grid line {
+  stroke: currentColor;
+  stroke-width: .12;
+  opacity: .06;
+}
+.prisma-world-map-land path {
+  fill: currentColor;
+  opacity: .055;
+  stroke: currentColor;
+  stroke-width: .16;
+  stroke-opacity: .12;
+}
+.prisma-world-map-route-shadow {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: .85;
+  stroke-linecap: round;
+  opacity: .12;
+}
+.prisma-world-map-route {
+  fill: none;
+  stroke: url("#prisma-map-line");
+  stroke-width: .38;
+  stroke-linecap: round;
+  stroke-dasharray: .035 .965;
+  animation: prisma-world-map-flow 4.6s linear infinite;
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--success) 36%, transparent));
+}
+.prisma-world-map-node {
+  fill: var(--foreground-contrast);
+  stroke: var(--success);
+  stroke-width: .3;
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--success) 60%, transparent));
+}
+.prisma-world-map-scanline {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: .06;
+  background: repeating-linear-gradient(0deg, transparent 0 3px, currentColor 3px 4px);
+  mix-blend-mode: soft-light;
+}
+@keyframes prisma-world-map-flow {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+.prisma-world-map-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .75rem 1.25rem 1rem;
+  border-top: 1px solid var(--border-muted);
+  color: var(--foreground-muted);
+  font-size: .65rem;
+}
+@media (max-width: 640px) {
+  .prisma-world-map-header { flex-direction: column; }
+  .prisma-world-map-canvas,
+  .prisma-world-map-canvas svg { min-height: 20rem; }
+  .prisma-world-map-footer { flex-direction: column; gap: .25rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .prisma-world-map-route { animation: none; }
+}
+
+
+/* PRISMA Elegant Button — hover bloom inspired by the Uiverse reference. */
+.prisma-button-elegant {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.prisma-button-elegant::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(
+      circle,
+      rgba(255, 255, 255, .26) 0%,
+      rgba(113, 225, 172, .13) 24%,
+      rgba(152, 120, 255, .10) 44%,
+      transparent 70%
+    );
+  transform: scale(.15);
+  opacity: 0;
+  transform-origin: center;
+  transition:
+    transform 500ms cubic-bezier(.16, 1, .3, 1),
+    opacity 250ms ease;
+  pointer-events: none;
+}
+
+.prisma-button-elegant:hover::after,
+.prisma-button-elegant:focus-visible::after {
+  transform: scale(3.8);
+  opacity: 1;
+}
+
+.prisma-button-elegant:hover {
+  border-color: color-mix(in srgb, var(--lg-border-hover) 80%, white);
+}
+
+.prisma-button-elegant:active::after {
+  transform: scale(4.4);
+}
+
+.prisma-button-elegant > svg {
+  position: relative;
+  z-index: 1;
+}
+
+
+/* PRISMA Notification Toggle — compact outline/filled bell state. */
+.prisma-notification-toggle {
+  --notification-color: var(--foreground-muted);
+  --notification-glow: color-mix(in srgb, var(--primary) 46%, transparent);
+  position: relative;
+  display: inline-grid;
+  width: 2.4rem;
+  height: 2.4rem;
+  place-items: center;
+  border: 1px solid var(--lg-border);
+  border-radius: .8rem;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.018)),
+    var(--lg-bg-soft);
+  color: var(--notification-color);
+  cursor: pointer;
+  user-select: none;
+  -webkit-backdrop-filter: blur(var(--lg-control-blur)) saturate(var(--lg-saturate));
+  backdrop-filter: blur(var(--lg-control-blur)) saturate(var(--lg-saturate));
+  box-shadow:
+    inset 0 1px 1px rgba(255,255,255,.10),
+    0 8px 24px rgba(0,0,0,.14);
+  transition:
+    color 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms cubic-bezier(.16,1,.3,1);
+}
+
+.prisma-notification-toggle:hover {
+  color: var(--foreground-contrast);
+  border-color: var(--lg-border-hover);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.11), rgba(255,255,255,.028)),
+    var(--lg-bg-hover);
+  box-shadow:
+    0 12px 30px rgba(0,0,0,.20),
+    0 0 20px var(--notification-glow),
+    inset 0 1px 1px rgba(255,255,255,.15);
+}
+
+.prisma-notification-toggle:focus-within {
+  border-color: color-mix(in srgb, var(--ring) 72%, var(--lg-border));
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--ring) 18%, transparent),
+    inset 0 1px 1px rgba(255,255,255,.12);
+}
+
+.prisma-notification-toggle:active {
+  transform: scale(.94);
+}
+
+.prisma-notification-toggle input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.prisma-notification-toggle-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.prisma-notification-toggle-icon > svg {
+  grid-area: 1 / 1;
+  transition:
+    opacity 140ms ease,
+    transform 500ms cubic-bezier(.16,1,.3,1),
+    filter 180ms ease;
+}
+
+.prisma-notification-toggle-solid {
+  opacity: 0;
+  transform: scale(.76) rotate(-16deg);
+  fill: currentColor;
+  stroke-width: 1.5;
+}
+
+.prisma-notification-toggle input:not(:checked) + .prisma-notification-toggle-icon > svg:first-child {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+}
+
+.prisma-notification-toggle input:checked + .prisma-notification-toggle-icon > svg:first-child {
+  opacity: 0;
+  transform: scale(.76) rotate(-16deg);
+}
+
+.prisma-notification-toggle input:checked + .prisma-notification-toggle-icon .prisma-notification-toggle-solid {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+  filter: drop-shadow(0 0 8px var(--notification-glow));
+  animation: prisma-notification-bell-fill 500ms cubic-bezier(.16,1,.3,1);
+}
+
+.prisma-notification-toggle input:focus-visible + .prisma-notification-toggle-icon {
+  outline: 2px solid var(--ring);
+  outline-offset: 4px;
+  border-radius: .4rem;
+}
+
+.prisma-notification-toggle.is-disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
+
+@keyframes prisma-notification-bell-fill {
+  0% { transform: rotate(0deg) scale(.72); }
+  25% { transform: rotate(25deg) scale(1); }
+  50% { transform: rotate(-20deg) scale(1.12); }
+  75% { transform: rotate(15deg) scale(1.03); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prisma-notification-toggle,
+  .prisma-notification-toggle-icon > svg {
+    transition: none;
+  }
+
+  .prisma-notification-toggle input:checked + .prisma-notification-toggle-icon .prisma-notification-toggle-solid {
+    animation: none;
+  }
+}
+
+
+/* PRISMA Reaction Bar — compact social feedback capsule. */
+.prisma-reaction-bar{display:flex;width:min(100%,28rem);flex-direction:column;gap:.45rem}
+.prisma-reaction-stats{display:flex;gap:.4rem}
+.prisma-reaction-item{display:flex;flex:1;align-items:center;justify-content:center;gap:.45rem;min-height:2.4rem;border:1px solid var(--lg-border);border-radius:.65rem;background:rgba(255,255,255,.035);color:var(--foreground);font-size:.78rem;font-weight:600;cursor:pointer;transition:border-color 160ms ease,background 160ms ease,transform 160ms ease}
+.prisma-reaction-item svg{width:1rem;height:1rem}
+.prisma-reaction-item:hover{border-color:var(--lg-border-hover);background:rgba(255,255,255,.06);transform:translateY(-1px)}
+.prisma-reaction-item.is-selected{border-color:color-mix(in srgb,var(--primary) 45%,var(--lg-border));background:color-mix(in srgb,var(--primary) 10%,transparent)}
+.prisma-reaction-ratio{display:flex;width:100%;height:3px;overflow:hidden;border-radius:999px;background:color-mix(in srgb,var(--destructive) 28%,transparent)}
+.prisma-reaction-ratio span{display:block;height:100%;background:var(--primary);transition:width 220ms ease}
+@media (prefers-reduced-motion:reduce){.prisma-reaction-bar,.prisma-reaction-item,.prisma-reaction-item::after{transition:none}}

@@ -1,0 +1,258 @@
+name: PrismaPlugin
+version: '${version}'
+main: team.prisma.plugin.PrismaPlugin
+api-version: '26.3'
+softdepend: [Geyser-Spigot, floodgate]
+author: PRISMA
+description: Игровые кланы, сёла, защищённые территории, телепортация и инструменты персонала с поддержкой Supabase.
+
+permissions:
+  prisma.member:
+    description: Базовый доступ участника PRISMA
+    default: false
+  prisma.command.clan:
+    description: Доступ к команде /clan
+    default: false
+  prisma.command.village:
+    description: Доступ к команде /village
+    default: false
+  prisma.command.homes:
+    description: Доступ к личным домам /home, /sethome, /homes и /delhome
+    default: false
+  prisma.command.spawns:
+    description: Доступ к основным и дополнительным точкам появления
+    default: false
+  prisma.command.spawnmanage:
+    description: Управление точками появления PRISMA
+    default: false
+  prisma.command.journey:
+    description: Доступ к координатам, контрольным точкам и последнему месту смерти
+    default: false
+  prisma.command.hud:
+    description: Доступ к персональному HUD и информации TAB
+    default: false
+  prisma.command.grave:
+    description: Доступ к собственным могилам после смерти
+    default: false
+  prisma.command.grave.admin:
+    description: Доступ администратора к могилам всех игроков
+    default: false
+  prisma.command.moderation:
+    description: Доступ к интерфейсу игровой модерации; RBAC каждого действия проверяется в Supabase
+    default: false
+  prisma.command.tpall:
+    description: Подтверждаемая массовая телепортация для администраторов и Content Maker
+    default: false
+  prisma.command.tpa:
+    description: Доступ к /tpa
+    default: false
+  prisma.command.tpaccept:
+    description: Доступ к /tpaccept
+    default: false
+  prisma.command.tpdeny:
+    description: Доступ к /tpdeny
+    default: false
+  prisma.command.commands:
+    description: Доступ к каталогу команд PRISMA
+    default: false
+  prisma.command.ptp:
+    description: Доступ к /ptp
+    default: false
+  prisma.command.ptphere:
+    description: Доступ к /ptphere
+    default: false
+  prisma.staff:
+    description: Staff-доступ PRISMA
+    default: false
+  prisma.staff.helper:
+    description: Роль Хелпер
+    default: false
+  prisma.staff.moderator:
+    description: Роль Модератор
+    default: false
+  prisma.staff.admin:
+    description: Роль Администратор
+    default: false
+  prisma.staff.head_admin:
+    description: Роль Главный администратор
+    default: false
+  prisma.staff.owner:
+    description: Роль Владелец
+    default: false
+  prisma.staff.content_maker:
+    description: Роль Контент-мейкер
+    default: false
+  prisma.staff.senior_moderator:
+    description: Роль Старший модератор
+    default: false
+  prisma.staff.head_staff:
+    description: Роль Глава модерации
+    default: false
+  prisma.staff.developer:
+    description: Роль разработчика / технического администратора
+    default: false
+  prisma.staff.builder:
+    description: Роль строителя / создателя карт
+    default: false
+  prisma.staff.game_designer:
+    description: Роль гейм-дизайнера / создателя контента
+    default: false
+  prisma.staff.event_manager:
+    description: Роль организатора мероприятий
+    default: false
+  prisma.staff.media:
+    description: Роль медиа / блогера
+    default: false
+
+commands:
+  help:
+    description: Краткая справка по разделам PRISMA
+    usage: /help [перемещение|кланы|авторизация|персонал]
+    aliases: [prismahelp]
+  register:
+    description: Установить пароль PRISMA Auth
+    usage: /register <пароль> <пароль>
+  login:
+    description: Войти в PRISMA Auth
+    usage: /login <пароль>
+  changepass:
+    description: Изменить пароль PRISMA Auth
+    usage: /changepass <текущий> <новый>
+  prismaauth:
+    description: Справка по PRISMA Auth
+    usage: /prismaauth
+    aliases: [auth]
+  clan:
+    description: Управление кланом
+    usage: /clan <подкоманда> [аргументы]
+    aliases: [клан]
+    permission: prisma.command.clan
+  village:
+    description: Управление селом и территорией клана
+    usage: /village <create|list|info|delete|radius|home> [аргументы]
+    aliases: [село]
+    permission: prisma.command.village
+  sethome:
+    description: Сохранить личный дом
+    usage: /sethome [1|2]
+    permission: prisma.command.homes
+  home:
+    description: Телепортироваться к личному дому
+    usage: /home [1|2]
+    permission: prisma.command.homes
+  homes:
+    description: Список личных домов
+    usage: /homes
+    permission: prisma.command.homes
+  delhome:
+    description: Удалить личный дом
+    usage: /delhome <1|2>
+    aliases: [deletehome]
+    permission: prisma.command.homes
+  spawn:
+    description: Телепортироваться на основной или дополнительный спавн
+    usage: /spawn [0–999]
+    permission: prisma.command.spawns
+  spawns:
+    description: Список точек появления
+    usage: /spawns
+    permission: prisma.command.spawns
+  setspawn:
+    description: Создать или изменить точку появления
+    usage: /setspawn <0–999> <название>
+    permission: prisma.command.spawnmanage
+  delspawn:
+    description: Удалить переопределение точки появления
+    usage: /delspawn <0–999>
+    permission: prisma.command.spawnmanage
+  coords:
+    description: Показать координаты или поделиться ими
+    usage: /coords [share]
+    permission: prisma.command.journey
+  lastdeath:
+    description: Показать последнее сохранённое место смерти
+    usage: /lastdeath
+    permission: prisma.command.journey
+  checkpoint:
+    description: Управлять личными контрольными точками
+    usage: /checkpoint <list|set|go|delete> [имя]
+    permission: prisma.command.journey
+  hud:
+    description: Включить или отключить HUD и информацию TAB
+    usage: /hud [on|off|status]
+    permission: prisma.command.hud
+  grave:
+    description: Список и безопасное получение предметов из могил
+    usage: /grave [list|info <id>|claim <id>]
+    aliases: [graves]
+    permission: prisma.command.grave
+  warn:
+    description: Выдать предупреждение участнику PRISMA
+    usage: /warn <ник> <причина>
+    permission: prisma.command.moderation
+  mute:
+    description: Ограничить чат игрока на срок или навсегда
+    usage: /mute <ник> <длительность|perm> <причина>
+    permission: prisma.command.moderation
+  unmute:
+    description: Снять активный мут
+    usage: /unmute <ник>
+    permission: prisma.command.moderation
+  kick:
+    description: Исключить игрока с сервера
+    usage: /kick <ник> <причина>
+    permission: prisma.command.moderation
+  ban:
+    description: Заблокировать доступ игрока к серверу навсегда
+    usage: /ban <ник> <причина>
+    permission: prisma.command.moderation
+  tempban:
+    description: Временно заблокировать доступ игрока к серверу
+    usage: /tempban <ник> <длительность> <причина>
+    permission: prisma.command.moderation
+  unban:
+    description: Снять активный бан
+    usage: /unban <ник>
+    permission: prisma.command.moderation
+  history:
+    description: Показать историю наказаний участника
+    usage: /history <ник>
+    permission: prisma.command.moderation
+  tpall:
+    description: Массовая телепортация с подтверждением
+    usage: /tpall [confirm|cancel]
+    permission: prisma.command.tpall
+  maze:
+    description: Настройка и управление режимом Maze Runner
+    usage: /maze <status|setglade|gladesize|maze-radius|start|stop|clear>
+    permission: prisma.command.spawnmanage
+  prismadiag:
+    description: Проверка соединения Prisma с Supabase
+    usage: /prismadiag <minecraft_nickname>
+  prismacommands:
+    description: Полный список команд PRISMA
+    usage: /prismacommands [страница]
+    aliases: [commands, mccommands, команды]
+    permission: prisma.command.commands
+  ptp:
+    description: Телепортация сотрудника к игроку
+    usage: /ptp <игрок>
+    aliases: [prismatp]
+    permission: prisma.command.ptp
+  ptphere:
+    description: Телепортировать игрока к сотруднику
+    usage: /ptphere <игрок>
+    aliases: [prismatphere]
+    permission: prisma.command.ptphere
+  tpa:
+    description: Запрос на телепортацию
+    usage: /tpa <игрок>
+    permission: prisma.command.tpa
+  tpaccept:
+    description: Принять запрос на телепортацию
+    usage: /tpaccept
+    permission: prisma.command.tpaccept
+  tpdeny:
+    description: Отклонить запрос на телепортацию
+    usage: /tpdeny
+    permission: prisma.command.tpdeny

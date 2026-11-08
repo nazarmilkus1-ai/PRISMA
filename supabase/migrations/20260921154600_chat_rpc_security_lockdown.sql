@@ -1,0 +1,17 @@
+drop function if exists public.bot_get_chat_mutes();
+revoke execute on function public.bot_create_chat_punishment(bigint,bigint,text,text,bigint,integer) from public,anon,authenticated;
+revoke execute on function public.bot_lift_chat_punishment(bigint,bigint,text,bigint) from public,anon,authenticated;
+revoke execute on function public.bot_revoke_chat_punishment(uuid,bigint) from public,anon,authenticated;
+revoke execute on function public.bot_get_chat_warnings(bigint,bigint) from public,anon,authenticated;
+revoke execute on function public.bot_get_chat_mutes(bigint) from public,anon,authenticated;
+revoke execute on function public.bot_list_inactive_members(integer,integer) from public,anon,authenticated;
+revoke execute on function public.bot_record_telegram_activity(bigint,bigint) from public,anon,authenticated;
+revoke execute on function public.bot_chat_top(bigint,integer,integer) from public,anon,authenticated;
+grant execute on function public.bot_create_chat_punishment(bigint,bigint,text,text,bigint,integer) to service_role;
+grant execute on function public.bot_lift_chat_punishment(bigint,bigint,text,bigint) to service_role;
+grant execute on function public.bot_revoke_chat_punishment(uuid,bigint) to service_role;
+grant execute on function public.bot_get_chat_warnings(bigint,bigint) to service_role;
+grant execute on function public.bot_get_chat_mutes(bigint) to service_role;
+grant execute on function public.bot_list_inactive_members(integer,integer) to service_role;
+grant execute on function public.bot_record_telegram_activity(bigint,bigint) to service_role;
+grant execute on function public.bot_chat_top(bigint,integer,integer) to service_role;

@@ -1,0 +1,1155 @@
+{
+  "registryVersion": 1,
+  "defaultRemovalOrder": [
+    "entrypoints",
+    "consumer adapters",
+    "contract exports",
+    "database forward migration",
+    "ACL/RLS",
+    "documentation"
+  ],
+  "modules": [
+    {
+      "id": "auth",
+      "title": "Авторизация и идентичность",
+      "status": "active",
+      "owner": "platform",
+      "dependsOn": [],
+      "surfaces": [
+        "site",
+        "panel",
+        "bot",
+        "plugin",
+        "contracts",
+        "supabase"
+      ],
+      "contractNamespaces": [
+        "PARTICIPANT_CURRENT_USER_RPC",
+        "PARTICIPANT_SERVER_ROLE_RPC",
+        "AUTH_RATE_LIMIT_RPC",
+        "PARTICIPANT_MINECRAFT_AUTH_RPC",
+        "STAFF_MINECRAFT_AUTH_RPC"
+      ],
+      "sourceRoots": [
+        "packages/contracts/src",
+        "supabase/migrations",
+        "site/src/app/api/auth",
+        "panel/src/app/api/auth",
+        "bot",
+        "minecraft-plugin/src/main/java"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": true
+    },
+    {
+      "id": "applications",
+      "title": "Заявки и онбординг",
+      "status": "active",
+      "owner": "onboarding",
+      "dependsOn": [
+        "auth"
+      ],
+      "surfaces": [
+        "site",
+        "panel",
+        "bot",
+        "contracts",
+        "supabase"
+      ],
+      "contractNamespaces": [
+        "PARTICIPANT_RPC",
+        "APPLICATION_DISCOVERY_SOURCES",
+        "APPLICATION_STATUS_LABELS",
+        "PARTICIPANT_APPLICATION_MUTATION_RPC"
+      ],
+      "sourceRoots": [
+        "packages/contracts/src",
+        "supabase/migrations",
+        "site/src/app",
+        "panel/src/app",
+        "bot"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    },
+    {
+      "id": "players",
+      "title": "Игроки и профили",
+      "status": "active",
+      "owner": "community",
+      "dependsOn": [
+        "auth"
+      ],
+      "surfaces": [
+        "site",
+        "panel",
+        "bot",
+        "plugin",
+        "contracts",
+        "supabase"
+      ],
+      "contractNamespaces": [
+        "PARTICIPANT_READ_RPC",
+        "PARTICIPANT_PROFILE_MUTATION_RPC"
+      ],
+      "sourceRoots": [
+        "packages/contracts/src",
+        "supabase/migrations",
+        "site/src/app",
+        "panel/src/app",
+        "bot",
+        "minecraft-plugin/src/main/java"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    },
+    {
+      "id": "battles",
+      "title": "Битвы и рейтинг",
+      "status": "active",
+      "owner": "community",
+      "dependsOn": [
+        "players"
+      ],
+      "surfaces": [
+        "site",
+        "panel",
+        "bot",
+        "plugin",
+        "contracts",
+        "supabase"
+      ],
+      "contractNamespaces": [
+        "PARTICIPANT_BATTLE_RPC",
+        "PARTICIPANT_BATTLE_MUTATION_RPC"
+      ],
+      "sourceRoots": [
+        "packages/contracts/src",
+        "supabase/migrations",
+        "site/src/app",
+        "panel/src/app",
+        "bot",
+        "minecraft-plugin/src/main/java"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    },
+    {
+      "id": "moderation",
+      "title": "Модерация",
+      "status": "active",
+      "owner": "moderation",
+      "dependsOn": [
+        "players"
+      ],
+      "surfaces": [
+        "site",
+        "panel",
+        "bot",
+        "plugin",
+        "contracts",
+        "supabase"
+      ],
+      "contractNamespaces": [
+        "MODERATION_TYPES"
+      ],
+      "uses": [
+        "STAFF_RPC"
+      ],
+      "sourceRoots": [
+        "packages/contracts/src",
+        "supabase/migrations",
+        "site/src/app",
+        "panel/src/app",
+        "bot",
+        "minecraft-plugin/src/main/java"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    },
+    {
+      "id": "reports",
+      "title": "Репорты игроков",
+      "status": "active",
+      "owner": "moderation",
+      "dependsOn": [
+        "players"
+      ],
+      "surfaces": [
+        "site",
+        "panel",
+        "bot",
+        "contracts",
+        "supabase"
+      ],
+      "contractNamespaces": [
+        "REPORT_STATUSES",
+        "PARTICIPANT_REPORT_RPC",
+        "PARTICIPANT_REPORT_MUTATION_RPC",
+        "PARTICIPANT_SUPPORT_RPC"
+      ],
+      "uses": [
+        "STAFF_RPC"
+      ],
+      "sourceRoots": [
+        "packages/contracts/src",
+        "supabase/migrations",
+        "site/src/app",
+        "panel/src/app",
+        "bot"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    },
+    {
+      "id": "appeals",
+      "title": "Апелляции",
+      "status": "active",
+      "owner": "moderation",
+      "dependsOn": [
+        "moderation"
+      ],
+      "surfaces": [
+        "site",
+        "panel",
+        "bot",
+        "contracts",
+        "supabase"
+      ],
+      "contractNamespaces": [
+        "APPEAL_STATUSES",
+        "PARTICIPANT_APPEAL_RPC",
+        "PARTICIPANT_APPEAL_MUTATION_RPC"
+      ],
+      "uses": [
+        "STAFF_RPC"
+      ],
+      "sourceRoots": [
+        "packages/contracts/src",
+        "supabase/migrations",
+        "site/src/app",
+        "panel/src/app",
+        "bot"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    },
+    {
+      "id": "clans",
+      "title": "Кланы, деревни и войны",
+      "status": "active",
+      "owner": "community",
+      "dependsOn": [
+        "players"
+      ],
+      "surfaces": [
+        "site",
+        "panel",
+        "bot",
+        "plugin",
+        "contracts",
+        "supabase"
+      ],
+      "contractNamespaces": [
+        "CLAN_ROLES",
+        "CLAN_ROLE_LABELS",
+        "CLAN_ROLE_LEVELS",
+        "PARTICIPANT_CLAN_MUTATION_RPC"
+      ],
+      "uses": [
+        "STAFF_RPC"
+      ],
+      "sourceRoots": [
+        "packages/contracts/src",
+        "supabase/migrations",
+        "site/src/app",
+        "panel/src/app",
+        "bot",
+        "minecraft-plugin/src/main/java"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    },
+    {
+      "id": "events",
+      "title": "События и календарь",
+      "status": "active",
+      "owner": "community",
+      "dependsOn": [
+        "players"
+      ],
+      "surfaces": [
+        "site",
+        "panel",
+        "bot",
+        "plugin",
+        "contracts",
+        "supabase"
+      ],
+      "contractNamespaces": [
+        "PARTICIPANT_EVENT_MUTATION_RPC",
+        "STAFF_LIVE_RPC"
+      ],
+      "uses": [
+        "STAFF_RPC"
+      ],
+      "sourceRoots": [
+        "packages/contracts/src",
+        "supabase/migrations",
+        "site/src/app",
+        "panel/src/app",
+        "bot",
+        "minecraft-plugin/src/main/java"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    },
+    {
+      "id": "market",
+      "title": "Рынок сообщества",
+      "status": "active",
+      "owner": "community",
+      "dependsOn": [
+        "players"
+      ],
+      "surfaces": [
+        "site",
+        "panel",
+        "bot",
+        "contracts",
+        "supabase"
+      ],
+      "contractNamespaces": [
+        "MARKET_LISTING_KINDS",
+        "PARTICIPANT_MARKET_RPC",
+        "PARTICIPANT_MARKET_MUTATION_RPC"
+      ],
+      "uses": [
+        "STAFF_RPC"
+      ],
+      "sourceRoots": [
+        "packages/contracts/src",
+        "supabase/migrations",
+        "site/src/app",
+        "panel/src/app",
+        "bot"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    },
+    {
+      "id": "voting",
+      "title": "Голосования",
+      "status": "active",
+      "owner": "community",
+      "dependsOn": [
+        "players"
+      ],
+      "surfaces": [
+        "site",
+        "panel",
+        "bot",
+        "contracts",
+        "supabase"
+      ],
+      "contractNamespaces": [
+        "PARTICIPANT_POLL_MUTATION_RPC"
+      ],
+      "uses": [
+        "STAFF_RPC"
+      ],
+      "sourceRoots": [
+        "packages/contracts/src",
+        "supabase/migrations",
+        "site/src/app",
+        "panel/src/app",
+        "bot"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    },
+    {
+      "id": "notifications",
+      "title": "Уведомления",
+      "status": "active",
+      "owner": "platform",
+      "dependsOn": [
+        "auth"
+      ],
+      "surfaces": [
+        "site",
+        "panel",
+        "bot",
+        "contracts",
+        "supabase"
+      ],
+      "contractNamespaces": [
+        "NOTIFICATION_STATUSES",
+        "NOTIFICATION_PREFERENCES",
+        "PARTICIPANT_NOTIFICATION_MUTATION_RPC",
+        "PARTICIPANT_NOTIFICATION_COUNT_RPC",
+        "PARTICIPANT_NOTIFICATION_RPC"
+      ],
+      "uses": [
+        "STAFF_RPC"
+      ],
+      "sourceRoots": [
+        "packages/contracts/src",
+        "supabase/migrations",
+        "site/src/app",
+        "panel/src/app",
+        "bot"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    },
+    {
+      "id": "social",
+      "title": "Социальные связи",
+      "status": "active",
+      "owner": "community",
+      "dependsOn": [
+        "players"
+      ],
+      "surfaces": [
+        "site",
+        "panel",
+        "bot",
+        "contracts",
+        "supabase"
+      ],
+      "contractNamespaces": [
+        "PARTICIPANT_SOCIAL_MUTATION_RPC"
+      ],
+      "uses": [
+        "PARTICIPANT_READ_RPC"
+      ],
+      "sourceRoots": [
+        "packages/contracts/src",
+        "supabase/migrations",
+        "site/src/app",
+        "panel/src/app",
+        "bot"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    },
+    {
+      "id": "map",
+      "title": "Minecraft-карта и история",
+      "status": "active",
+      "owner": "minecraft",
+      "dependsOn": [
+        "players"
+      ],
+      "surfaces": [
+        "site",
+        "panel",
+        "plugin",
+        "contracts",
+        "supabase"
+      ],
+      "contractNamespaces": [],
+      "uses": [
+        "PUBLIC_RPC",
+        "STAFF_RPC"
+      ],
+      "sourceRoots": [
+        "packages/contracts/src",
+        "supabase/migrations",
+        "site/src/app",
+        "panel/src/app",
+        "minecraft-plugin/src/main/java"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    },
+    {
+      "id": "chat",
+      "title": "Настройки community-чата",
+      "status": "active",
+      "owner": "community",
+      "dependsOn": [
+        "auth"
+      ],
+      "surfaces": [
+        "panel",
+        "bot",
+        "contracts",
+        "supabase",
+        "plugin"
+      ],
+      "contractNamespaces": [
+        "MINECRAFT_CHAT_BRIDGE_RPC"
+      ],
+      "uses": [
+        "STAFF_RPC"
+      ],
+      "sourceRoots": [
+        "packages/contracts/src",
+        "supabase/migrations",
+        "panel/src/app",
+        "bot",
+        "minecraft-plugin/src/main/java"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    },
+    {
+      "id": "analytics",
+      "title": "Аналитика и телеметрия",
+      "status": "active",
+      "owner": "platform",
+      "dependsOn": [
+        "players",
+        "events"
+      ],
+      "surfaces": [
+        "site",
+        "panel",
+        "bot",
+        "plugin",
+        "contracts",
+        "supabase"
+      ],
+      "contractNamespaces": [],
+      "uses": [
+        "PARTICIPANT_READ_RPC",
+        "STAFF_RPC"
+      ],
+      "sourceRoots": [
+        "packages/contracts/src",
+        "supabase/migrations",
+        "site/src/app",
+        "panel/src/app",
+        "bot",
+        "minecraft-plugin/src/main/java"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    },
+    {
+      "id": "audit-security",
+      "title": "Аудит и безопасность",
+      "status": "active",
+      "owner": "platform",
+      "dependsOn": [
+        "auth"
+      ],
+      "surfaces": [
+        "panel",
+        "bot",
+        "plugin",
+        "contracts",
+        "supabase"
+      ],
+      "contractNamespaces": [],
+      "uses": [
+        "STAFF_RPC"
+      ],
+      "sourceRoots": [
+        "packages/contracts/src",
+        "supabase/migrations",
+        "panel/src/app",
+        "bot",
+        "minecraft-plugin/src/main/java"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    },
+    {
+      "id": "minecraft",
+      "title": "Minecraft-интеграция",
+      "status": "active",
+      "owner": "minecraft",
+      "dependsOn": [
+        "auth",
+        "players",
+        "moderation",
+        "clans",
+        "events"
+      ],
+      "surfaces": [
+        "site",
+        "panel",
+        "bot",
+        "plugin",
+        "contracts",
+        "supabase"
+      ],
+      "contractNamespaces": [],
+      "uses": [
+        "PARTICIPANT_SERVER_ROLE_RPC"
+      ],
+      "sourceRoots": [
+        "packages/contracts/src",
+        "supabase/migrations",
+        "site/src/app",
+        "panel/src/app",
+        "bot",
+        "minecraft-plugin/src/main/java"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    },
+    {
+      "id": "public-content",
+      "title": "Публичный контент",
+      "status": "active",
+      "owner": "content",
+      "dependsOn": [],
+      "surfaces": [
+        "site",
+        "panel",
+        "bot",
+        "contracts",
+        "supabase"
+      ],
+      "contractNamespaces": [
+        "PUBLIC_RPC"
+      ],
+      "sourceRoots": [
+        "packages/contracts/src",
+        "supabase/migrations",
+        "site/src/app",
+        "panel/src/app",
+        "bot"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    },
+    {
+      "id": "staff-core",
+      "title": "Staff control plane",
+      "status": "active",
+      "owner": "platform",
+      "dependsOn": [
+        "auth"
+      ],
+      "surfaces": [
+        "panel",
+        "bot",
+        "contracts",
+        "supabase"
+      ],
+      "contractNamespaces": [
+        "STAFF_RPC",
+        "MODULE_IDS",
+        "MODULE_METADATA",
+        "MODULE_STATE_RPC",
+        "STAFF_MODULE_RPC"
+      ],
+      "sourceRoots": [
+        "packages/contracts/src",
+        "supabase/migrations",
+        "panel/src/app",
+        "bot"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": true
+    },
+    {
+      "id": "minecraft-teleport-requests",
+      "title": "Игровая механика: запросы телепортации (/tpa)",
+      "status": "active",
+      "owner": "minecraft",
+      "dependsOn": [
+        "minecraft"
+      ],
+      "surfaces": [
+        "panel",
+        "plugin",
+        "supabase"
+      ],
+      "contractNamespaces": [],
+      "sourceRoots": [
+        "minecraft-plugin/src/main/java",
+        "supabase/migrations"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    },
+    {
+      "id": "minecraft-homes",
+      "title": "Игровая механика: личные дома",
+      "status": "active",
+      "owner": "minecraft",
+      "dependsOn": [
+        "minecraft"
+      ],
+      "surfaces": [
+        "panel",
+        "plugin",
+        "supabase"
+      ],
+      "contractNamespaces": [],
+      "sourceRoots": [
+        "minecraft-plugin/src/main/java",
+        "supabase/migrations"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    },
+    {
+      "id": "minecraft-spawns",
+      "title": "Игровая механика: точки появления",
+      "status": "active",
+      "owner": "minecraft",
+      "dependsOn": [
+        "minecraft"
+      ],
+      "surfaces": [
+        "panel",
+        "plugin",
+        "supabase"
+      ],
+      "contractNamespaces": [],
+      "sourceRoots": [
+        "minecraft-plugin/src/main/java",
+        "supabase/migrations"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    },
+    {
+      "id": "minecraft-journey",
+      "title": "Игровая механика: координаты и контрольные точки",
+      "status": "active",
+      "owner": "minecraft",
+      "dependsOn": [
+        "minecraft"
+      ],
+      "surfaces": [
+        "panel",
+        "plugin",
+        "supabase"
+      ],
+      "contractNamespaces": [],
+      "sourceRoots": [
+        "minecraft-plugin/src/main/java",
+        "supabase/migrations"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    },
+    {
+      "id": "minecraft-graves",
+      "title": "Игровая механика: могилы после смерти",
+      "status": "active",
+      "owner": "minecraft",
+      "dependsOn": [
+        "minecraft"
+      ],
+      "surfaces": [
+        "panel",
+        "plugin",
+        "supabase"
+      ],
+      "contractNamespaces": [],
+      "sourceRoots": [
+        "minecraft-plugin/src/main/java",
+        "supabase/migrations"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    },
+    {
+      "id": "minecraft-hud",
+      "title": "Игровая механика: HUD и TAB",
+      "status": "active",
+      "owner": "minecraft",
+      "dependsOn": [
+        "minecraft"
+      ],
+      "surfaces": [
+        "panel",
+        "plugin",
+        "supabase"
+      ],
+      "contractNamespaces": [],
+      "sourceRoots": [
+        "minecraft-plugin/src/main/java",
+        "supabase/migrations"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    },
+    {
+      "id": "minecraft-moderation",
+      "title": "Игровая механика: команды модерации",
+      "status": "active",
+      "owner": "minecraft",
+      "dependsOn": [
+        "minecraft",
+        "moderation"
+      ],
+      "surfaces": [
+        "panel",
+        "plugin",
+        "supabase"
+      ],
+      "contractNamespaces": [],
+      "sourceRoots": [
+        "minecraft-plugin/src/main/java",
+        "supabase/migrations"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    },
+    {
+      "id": "minecraft-tpall",
+      "title": "Игровая механика: массовая телепортация (/tpall)",
+      "status": "active",
+      "owner": "minecraft",
+      "dependsOn": [
+        "minecraft"
+      ],
+      "surfaces": [
+        "panel",
+        "plugin",
+        "supabase"
+      ],
+      "contractNamespaces": [],
+      "sourceRoots": [
+        "minecraft-plugin/src/main/java",
+        "supabase/migrations"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    },
+    {
+      "id": "minecraft-staff-teleport",
+      "title": "Игровая механика: телепортация персонала",
+      "status": "active",
+      "owner": "minecraft",
+      "dependsOn": [
+        "minecraft"
+      ],
+      "surfaces": [
+        "panel",
+        "plugin",
+        "supabase"
+      ],
+      "contractNamespaces": [],
+      "sourceRoots": [
+        "minecraft-plugin/src/main/java",
+        "supabase/migrations"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    },
+    {
+      "id": "minecraft-clan-commands",
+      "title": "Игровая механика: команды кланов",
+      "status": "active",
+      "owner": "minecraft",
+      "dependsOn": [
+        "minecraft",
+        "clans"
+      ],
+      "surfaces": [
+        "panel",
+        "plugin",
+        "supabase"
+      ],
+      "contractNamespaces": [],
+      "sourceRoots": [
+        "minecraft-plugin/src/main/java",
+        "supabase/migrations"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    },
+    {
+      "id": "minecraft-village-commands",
+      "title": "Игровая механика: команды сёл",
+      "status": "active",
+      "owner": "minecraft",
+      "dependsOn": [
+        "minecraft",
+        "clans"
+      ],
+      "surfaces": [
+        "panel",
+        "plugin",
+        "supabase"
+      ],
+      "contractNamespaces": [],
+      "sourceRoots": [
+        "minecraft-plugin/src/main/java",
+        "supabase/migrations"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    },
+    {
+      "id": "minecraft-village-protection",
+      "title": "Игровая механика: защита территорий сёл",
+      "status": "active",
+      "owner": "minecraft",
+      "dependsOn": [
+        "minecraft",
+        "clans"
+      ],
+      "surfaces": [
+        "panel",
+        "plugin",
+        "supabase"
+      ],
+      "contractNamespaces": [],
+      "sourceRoots": [
+        "minecraft-plugin/src/main/java",
+        "supabase/migrations"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    },
+    {
+      "id": "minecraft-chat-bridge",
+      "title": "Игровая механика: мост чата Minecraft ↔ Telegram",
+      "status": "active",
+      "owner": "minecraft",
+      "dependsOn": [
+        "minecraft",
+        "chat"
+      ],
+      "surfaces": [
+        "panel",
+        "plugin",
+        "supabase"
+      ],
+      "contractNamespaces": [],
+      "sourceRoots": [
+        "minecraft-plugin/src/main/java",
+        "supabase/migrations"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    },
+    {
+      "id": "minecraft-maze-runner",
+      "title": "Игровой режим Maze Runner",
+      "status": "active",
+      "owner": "minecraft",
+      "dependsOn": [
+        "minecraft"
+      ],
+      "surfaces": [
+        "panel",
+        "plugin",
+        "supabase"
+      ],
+      "contractNamespaces": [],
+      "sourceRoots": [
+        "minecraft-plugin/src/main/java",
+        "supabase/migrations"
+      ],
+      "removal": {
+        "entrypoints": true,
+        "contracts": true,
+        "database": "forward-migration",
+        "acl": true
+      },
+      "runtimeManaged": true,
+      "runtimeToggleProtected": false
+    }
+  ]
+}

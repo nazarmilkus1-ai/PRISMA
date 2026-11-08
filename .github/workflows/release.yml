@@ -1,0 +1,129 @@
+name: PRISMA release gate
+
+on:
+  push:
+    branches: [main, "release/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prisma-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version: 24
+
+      - name: Verify PRISMA release metadata
+        run: node scripts/verify-release.mjs
+
+      - name: Verify PRISMA architecture boundaries
+        run: node scripts/verify-architecture.mjs
+
+      - name: Install participant site dependencies
+        if: startsWith(github.ref, 'refs/heads/release/') || github.event_name == 'workflow_dispatch'
+        working-directory: site
+        run: npm install --no-audit --no-fund
+
+      - name: Typecheck participant site
+        if: startsWith(github.ref, 'refs/heads/release/') || github.event_name == 'workflow_dispatch'
+        working-directory: site
+        run: npm run typecheck
+
+      - name: Build participant site
+        if: startsWith(github.ref, 'refs/heads/release/') || github.event_name == 'workflow_dispatch'
+        working-directory: site
+        run: npm run build
+
+      - name: Install panel dependencies
+        if: startsWith(github.ref, 'refs/heads/release/') || github.event_name == 'workflow_dispatch'
+        working-directory: panel
+        run: npm install --no-audit --no-fund
+
+      - name: Typecheck panel
+        if: startsWith(github.ref, 'refs/heads/release/') || github.event_name == 'workflow_dispatch'
+        working-directory: panel
+        run: npm run typecheck
+
+      - name: Build panel
+        if: startsWith(github.ref, 'refs/heads/release/') || github.event_name == 'workflow_dispatch'
+        working-directory: panel
+        run: npm run build
+
+      - name: Setup Python
+        if: startsWith(github.ref, 'refs/heads/release/') || github.event_name == 'workflow_dispatch'
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Compile bot Python sources
+        if: startsWith(github.ref, 'refs/heads/release/') || github.event_name == 'workflow_dispatch'
+        run: python -m compileall -q bot
+
+      - name: Setup Java
+        if: startsWith(github.ref, 'refs/heads/release/') || github.event_name == 'workflow_dispatch'
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: gradle
+
+      - name: Setup Gradle
+        if: startsWith(github.ref, 'refs/heads/release/') || github.event_name == 'workflow_dispatch'
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        with:
+          gradle-version: "9.4.0"
+          cache-disabled: true
+
+      - name: Build Minecraft plugin
+        if: startsWith(github.ref, 'refs/heads/release/') || github.event_name == 'workflow_dispatch'
+        working-directory: minecraft-plugin
+        run: gradle clean build --no-daemon
+
+      - name: Verify Minecraft plugin artifact
+        if: startsWith(github.ref, 'refs/heads/release/') || github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(tr -d '\r\n' < VERSION)"
+          test "$VERSION" = "2.1.0"
+          JAR="minecraft-plugin/build/libs/PrismaPlugin-${VERSION}.jar"
+          test -f "$JAR"
+          jar tf "$JAR" | grep -qx 'plugin.yml'
+          ls -lh "$JAR"
+
+  release-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    needs: verify
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check tracked secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git ls-files | grep -E '(^|/)(\.env|\.env\.[^.]*)$' | grep -v '\.example$'; then
+            echo "Tracked environment files detected. Remove secrets before release."
+            exit 1
+          fi
+          if git grep -nE '(^|[^A-Za-z])(sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{20,})([^A-Za-z0-9_-]|$)' -- ':!package-lock.json'; then
+            echo "Possible credential detected in tracked source."
+            exit 1
+          fi
+      - name: Verify release documentation
+        run: test -f docs/OPERATIONS.md && test -f panel/.env.example && test -f site/.env.example

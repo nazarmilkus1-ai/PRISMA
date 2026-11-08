@@ -1,0 +1,3 @@
+-- PRISMA application age policy: 14+.
+-- The private application RPC must reject applicants younger than 14.
+-- Applied to the connected production Supabase project as migration 20261004143000_prisma_application_age_policy_14.

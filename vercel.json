@@ -1,0 +1,46 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "site": {
+      "root": "site",
+      "framework": "nextjs",
+      "installCommand": "npm install --prefix ../packages/ui --no-audit --no-fund && npm install --no-audit --no-fund",
+      "buildCommand": "npm run build",
+      "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ../packages ../modules ../supabase ../VERSION ../vercel.json"
+    },
+    "panel": {
+      "root": "panel",
+      "framework": "nextjs",
+      "installCommand": "npm install --prefix ../packages/ui --no-audit --no-fund && npm install --no-audit --no-fund",
+      "buildCommand": "npm run build",
+      "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ../packages ../modules ../supabase ../VERSION ../vercel.json"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/admin",
+      "destination": {
+        "service": "panel"
+      }
+    },
+    {
+      "source": "/admin/:path*",
+      "destination": {
+        "service": "panel"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "site"
+      }
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/dashboard",
+      "destination": "/admin/dashboard",
+      "permanent": false
+    }
+  ]
+}

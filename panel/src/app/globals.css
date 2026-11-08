@@ -1,0 +1,410 @@
+@import "tailwindcss";
+@import "../../../packages/ui/src/liquid-glass.css";
+@source "../../../packages/ui/src";
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * PRISMA admin theme
+ * Semantic names follow the Supabase Design System vocabulary.
+ */
+:root {
+  --bg: #f6f6f6;
+  --bg-200: #eeeeee;
+  --bg-alternative: #e8e8e8;
+  --bg-alternative-200: #dedede;
+  --bg-selection: rgba(69, 224, 160, 0.14);
+  --bg-control: #ffffff;
+  --bg-surface-75: #f7f7f7;
+  --bg-surface-100: #ededed;
+  --bg-surface-200: #e3e3e3;
+  --bg-surface-300: #d7d7d7;
+  --bg-surface-400: #c4c4c4;
+  --bg-overlay: rgba(0, 0, 0, 0.45);
+  --bg-overlay-hover: rgba(0, 0, 0, 0.04);
+  --bg-muted: #e7e7e7;
+  --bg-button: #ffffff;
+  --bg-dialog: #ffffff;
+  --bg-dash-sidebar: #0b0b0b;
+  --bg-dash-canvas: #f6f6f6;
+
+  --foreground: #101817;
+  --foreground-light: #3f3f3f;
+  --foreground-muted: #666666;
+  --foreground-contrast: #000000;
+
+  --brand: #20c97b;
+  --brand-hover: #16b96f;
+  --primary: #159f67;
+  --primary-foreground: #ffffff;
+
+  --secondary: #e5e5e5;
+  --secondary-foreground: #1a1a1a;
+  --accent: #e4e4e4;
+  --accent-foreground: #151515;
+
+  --destructive: #ef3f35;
+  --warning: #c77700;
+  --success: #078f5a;
+
+  --border: #d6d6d6;
+  --border-muted: #dddddd;
+  --border-secondary: #cecece;
+  --border-strong: #b8b8b8;
+  --border-stronger: #a7a7a7;
+  --border-control: #c5c5c5;
+  --input: #c5c5c5;
+  --ring: var(--brand);
+
+  --background: var(--bg);
+  --card: var(--bg-surface-75);
+  --card-foreground: var(--foreground);
+  --popover: var(--bg-dialog);
+  --popover-foreground: var(--foreground);
+  --muted: var(--bg-muted);
+  --muted-foreground: var(--foreground-muted);
+  --sidebar: var(--bg-dash-sidebar);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-border: var(--border-muted);
+  --sidebar-accent: var(--bg-overlay-hover);
+  --sidebar-accent-foreground: var(--foreground-contrast);
+
+  --chart-1: #8b8b8b;
+  --chart-2: #666666;
+  --chart-3: #505050;
+  --chart-4: #777777;
+  --chart-5: #999999;
+  --chart-6: #b0b0b0;
+  --chart-7: #45e0a0;
+  --chart-8: #5f5f5f;
+
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #121416;
+  --bg-200: #181b1d;
+  --bg-alternative: #0b0d0e;
+  --bg-alternative-200: #07090a;
+  --bg-selection: rgba(69, 224, 160, 0.14);
+  --bg-control: #1a1a1a;
+  --bg-surface-75: #191d1f;
+  --bg-surface-100: #202426;
+  --bg-surface-200: #2d3133;
+  --bg-surface-300: #353a3c;
+  --bg-surface-400: #414749;
+  --bg-overlay: rgba(0, 0, 0, 0.64);
+  --bg-overlay-hover: rgba(255, 255, 255, 0.06);
+  --bg-muted: #282d2f;
+  --bg-button: #252b2d;
+  --bg-dialog: #202527;
+  --bg-dash-sidebar: #101315;
+  --bg-dash-canvas: #121416;
+
+  --foreground: #f5f7f8;
+  --foreground-light: #c7ccce;
+  --foreground-muted: #a5adb0;
+  --foreground-contrast: #ffffff;
+
+  --brand: #45e0a0;
+  --brand-hover: #6bf0b5;
+  --primary: var(--brand);
+  --primary-foreground: #062b1d;
+
+  --secondary: #272727;
+  --secondary-foreground: #f4f7f7;
+  --accent: #292929;
+  --accent-foreground: #ffffff;
+
+  --destructive: #ff4d43;
+  --warning: #ffbe55;
+  --success: #45e0a0;
+
+  --border: #343434;
+  --border-muted: #292929;
+  --border-secondary: #3a3a3a;
+  --border-strong: #494949;
+  --border-stronger: #5b5b5b;
+  --border-control: #444444;
+  --input: #444444;
+  --ring: var(--brand);
+
+  --background: var(--bg);
+  --card: var(--bg-surface-100);
+  --card-foreground: var(--foreground);
+  --popover: var(--bg-dialog);
+  --popover-foreground: var(--foreground);
+  --muted: var(--bg-muted);
+  --muted-foreground: var(--foreground-muted);
+  --sidebar: var(--bg-dash-sidebar);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-border: var(--border-muted);
+  --sidebar-accent: var(--bg-overlay-hover);
+  --sidebar-accent-foreground: var(--foreground-contrast);
+
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-warning: var(--warning);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-bg-200: var(--bg-200);
+  --color-bg-alternative: var(--bg-alternative);
+  --color-bg-alternative-200: var(--bg-alternative-200);
+  --color-bg-selection: var(--bg-selection);
+  --color-bg-control: var(--bg-control);
+  --color-bg-surface-75: var(--bg-surface-75);
+  --color-bg-surface-100: var(--bg-surface-100);
+  --color-bg-surface-200: var(--bg-surface-200);
+  --color-bg-surface-300: var(--bg-surface-300);
+  --color-bg-surface-400: var(--bg-surface-400);
+  --color-bg-overlay: var(--bg-overlay);
+  --color-bg-overlay-hover: var(--bg-overlay-hover);
+  --color-bg-muted: var(--bg-muted);
+  --color-bg-button: var(--bg-button);
+  --color-bg-dialog: var(--bg-dialog);
+  --color-bg-dash-sidebar: var(--bg-dash-sidebar);
+  --color-bg-dash-canvas: var(--bg-dash-canvas);
+  --color-foreground-light: var(--foreground-light);
+  --color-foreground-muted: var(--foreground-muted);
+  --color-foreground-contrast: var(--foreground-contrast);
+  --color-border-muted: var(--border-muted);
+  --color-border-secondary: var(--border-secondary);
+  --color-border-strong: var(--border-strong);
+  --color-border-stronger: var(--border-stronger);
+  --color-border-control: var(--border-control);
+  --color-success: var(--success);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+  --color-chart-7: var(--chart-7);
+  --color-chart-8: var(--chart-8);
+
+  /* Legacy component aliases mapped to the semantic palette above. */
+  --color-moon: var(--foreground);
+  --color-moon-dim: var(--foreground-muted);
+  --color-panel: var(--background);
+  --color-panel-raised: var(--bg-surface-100);
+  --color-panel-deep: var(--bg-alternative);
+  --color-curse: var(--brand);
+  --color-ember: var(--brand);
+  --color-danger: var(--destructive);
+  --color-success: var(--success);
+  --font-display: ui-sans-serif, system-ui, sans-serif;
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--foreground);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg-dash-canvas);
+  color: var(--foreground);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button:not(:disabled),
+a,
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--bg-selection);
+  color: var(--foreground-contrast);
+}
+
+
+@keyframes prisma-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes prisma-page-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes prisma-list-enter {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.prisma-skeleton {
+  position: relative;
+  overflow: hidden;
+  background-image: linear-gradient(
+    105deg,
+    color-mix(in srgb, var(--muted) 92%, transparent) 0%,
+    color-mix(in srgb, var(--foreground) 10%, var(--muted)) 48%,
+    color-mix(in srgb, var(--muted) 92%, transparent) 100%
+  );
+  background-size: 220% 100%;
+  animation: prisma-shimmer 1.35s linear infinite;
+}
+
+.prisma-page-enter {
+  animation: prisma-page-enter 220ms ease-out both;
+}
+
+.prisma-list-enter {
+  animation: prisma-list-enter 220ms ease-out both;
+}
+
+a,
+button,
+input,
+textarea,
+select {
+  transition-property: color, background-color, border-color, opacity, transform, box-shadow;
+  transition-duration: 160ms;
+  transition-timing-function: ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prisma-skeleton,
+  .prisma-page-enter,
+  .prisma-list-enter {
+    animation: none;
+  }
+
+  a,
+  button,
+  input,
+  textarea,
+  select {
+    transition: none;
+  }
+}
+
+
+@keyframes prisma-stagger-in {
+  from { opacity: 0; transform: translateY(10px) scale(.995); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.prisma-stagger,
+.prisma-stagger-2,
+.prisma-stagger-3,
+.prisma-stagger-4,
+.prisma-section-stagger,
+.prisma-section-stagger-2,
+.prisma-login-card {
+  animation: prisma-stagger-in 420ms cubic-bezier(.22,1,.36,1) both;
+}
+
+.prisma-stagger-2,
+.prisma-section-stagger-2 {
+  animation-delay: 90ms;
+}
+
+.prisma-stagger-3 {
+  animation-delay: 160ms;
+}
+
+.prisma-stagger-4 {
+  animation-delay: 230ms;
+}
+
+.prisma-section-stagger > * {
+  animation: prisma-stagger-in 420ms cubic-bezier(.22,1,.36,1) both;
+}
+
+.prisma-section-stagger > *:nth-child(2) { animation-delay: 70ms; }
+.prisma-section-stagger > *:nth-child(3) { animation-delay: 140ms; }
+.prisma-section-stagger > *:nth-child(4) { animation-delay: 210ms; }
+
+.prisma-auth-page {
+  position: relative;
+  overflow: hidden;
+}
+
+.prisma-auth-page::before,
+.prisma-auth-page::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  width: 40vw;
+  height: 40vw;
+  border-radius: 9999px;
+  filter: blur(90px);
+  opacity: .16;
+}
+
+.prisma-auth-page::before {
+  left: -18vw;
+  top: 8vh;
+  background: color-mix(in srgb, var(--brand) 70%, transparent);
+}
+
+.prisma-auth-page::after {
+  right: -18vw;
+  bottom: 5vh;
+  background: color-mix(in srgb, #5b8def 65%, transparent);
+}
+
+.prisma-login-card {
+  position: relative;
+  z-index: 1;
+  animation-delay: 50ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prisma-stagger,
+  .prisma-stagger-2,
+  .prisma-stagger-3,
+  .prisma-stagger-4,
+  .prisma-section-stagger,
+  .prisma-section-stagger-2,
+  .prisma-login-card,
+  .prisma-section-stagger > * {
+    animation: none;
+  }
+}

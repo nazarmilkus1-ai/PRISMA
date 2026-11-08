@@ -1,0 +1,680 @@
+{
+  "schema_version": 1,
+  "release": "2.1.0",
+  "roles": [
+    {
+      "id": "participant",
+      "label": "УЧ",
+      "name": "Участник",
+      "description": "Обычный участник PRISMA",
+      "priority": 0
+    },
+    {
+      "id": "helper",
+      "label": "ХЕЛП",
+      "name": "Хелпер / стажёр",
+      "description": "Помощник / стажёр",
+      "priority": 30
+    },
+    {
+      "id": "moderator",
+      "label": "МДР",
+      "name": "Модератор",
+      "description": "Основная модерация",
+      "priority": 40
+    },
+    {
+      "id": "senior_moderator",
+      "label": "СМДР",
+      "name": "Старший модератор",
+      "description": "Старший модератор",
+      "priority": 50
+    },
+    {
+      "id": "admin",
+      "label": "АДМ",
+      "name": "Администратор",
+      "description": "Администратор",
+      "priority": 60
+    },
+    {
+      "id": "head_staff",
+      "label": "ГС",
+      "name": "Глава модерации",
+      "description": "Руководитель модерации",
+      "priority": 70
+    },
+    {
+      "id": "head_admin",
+      "label": "ГА",
+      "name": "Со-владелец / главный администратор",
+      "description": "Руководство проекта",
+      "priority": 80
+    },
+    {
+      "id": "owner",
+      "label": "ВЛД",
+      "name": "Владелец",
+      "description": "Владелец проекта",
+      "priority": 100
+    },
+    {
+      "id": "developer",
+      "label": "ТЕХ",
+      "name": "Разработчик / технический администратор",
+      "description": "Техническая ветка",
+      "priority": 20
+    },
+    {
+      "id": "game_designer",
+      "label": "ГД",
+      "name": "Гейм-дизайнер / создатель контента",
+      "description": "Игровой контент",
+      "priority": 18
+    },
+    {
+      "id": "event_manager",
+      "label": "ИВТ",
+      "name": "Организатор мероприятий",
+      "description": "Мероприятия",
+      "priority": 15
+    },
+    {
+      "id": "builder",
+      "label": "СТР",
+      "name": "Строитель / картограф",
+      "description": "Строительство и карты",
+      "priority": 12
+    },
+    {
+      "id": "media",
+      "label": "МЕД",
+      "name": "Медиа / блогер",
+      "description": "Медиастатус без админских прав",
+      "priority": 10
+    },
+    {
+      "id": "content_maker",
+      "label": "КМ",
+      "name": "Content Maker",
+      "description": "Создатель контента; доступ к отдельным командам определяется назначенным разрешением.",
+      "priority": 5
+    }
+  ],
+  "commands": [
+    {
+      "command": "/clan",
+      "aliases": [
+        "/клан"
+      ],
+      "description": "Управление кланом",
+      "access": "APPROVED",
+      "subcommands": [
+        [
+          "create",
+          "Создать клан",
+          "CLAN_OWNER"
+        ],
+        [
+          "join",
+          "Вступить в открытый клан",
+          "APPROVED"
+        ],
+        [
+          "leave",
+          "Выйти из клана",
+          "CLAN_MEMBER"
+        ],
+        [
+          "chat",
+          "Сообщение в чат клана",
+          "CLAN_MEMBER"
+        ],
+        [
+          "list",
+          "Список кланов",
+          "APPROVED"
+        ],
+        [
+          "info",
+          "Информация о клане",
+          "APPROVED"
+        ],
+        [
+          "invite",
+          "Пригласить игрока",
+          "CLAN_OFFICER"
+        ],
+        [
+          "invites",
+          "Мои приглашения",
+          "CLAN_MEMBER"
+        ],
+        [
+          "accept",
+          "Принять приглашение",
+          "APPROVED"
+        ],
+        [
+          "deny",
+          "Отклонить приглашение",
+          "APPROVED"
+        ],
+        [
+          "kick",
+          "Исключить игрока",
+          "CLAN_OFFICER"
+        ],
+        [
+          "promote",
+          "Повысить участника",
+          "CLAN_OWNER"
+        ],
+        [
+          "demote",
+          "Понизить участника",
+          "CLAN_OWNER"
+        ],
+        [
+          "role",
+          "Изменить роль участника",
+          "CLAN_OFFICER"
+        ],
+        [
+          "transfer",
+          "Передать клан",
+          "CLAN_OWNER"
+        ],
+        [
+          "disband",
+          "Распустить клан",
+          "CLAN_OWNER"
+        ],
+        [
+          "home",
+          "Телепорт к дому/селу клана",
+          "CLAN_MEMBER"
+        ],
+        [
+          "village",
+          "Справка по селу",
+          "CLAN_MEMBER"
+        ],
+        [
+          "war",
+          "Войны кланов",
+          "CLAN_OFFICER"
+        ],
+        [
+          "news",
+          "Новости клана",
+          "CLAN_MEMBER"
+        ],
+        [
+          "announce",
+          "Объявление клана",
+          "CLAN_OFFICER"
+        ]
+      ]
+    },
+    {
+      "command": "/village",
+      "aliases": [
+        "/село"
+      ],
+      "description": "Управление селом и защищённой территорией",
+      "access": "CLAN_MEMBER",
+      "subcommands": [
+        [
+          "create",
+          "Создать село",
+          "CLAN_OWNER"
+        ],
+        [
+          "list",
+          "Список сёл",
+          "CLAN_MEMBER"
+        ],
+        [
+          "info",
+          "Информация о селе",
+          "CLAN_MEMBER"
+        ],
+        [
+          "delete",
+          "Удалить село",
+          "CLAN_OWNER"
+        ],
+        [
+          "radius",
+          "Изменить радиус 24–96",
+          "CLAN_OWNER"
+        ],
+        [
+          "home",
+          "Телепорт к селу",
+          "CLAN_MEMBER"
+        ]
+      ]
+    },
+    {
+      "command": "/sethome",
+      "aliases": [],
+      "description": "Сохранить личный дом (слот 1 или 2)",
+      "access": "APPROVED",
+      "subcommands": []
+    },
+    {
+      "command": "/home",
+      "aliases": [],
+      "description": "Телепортироваться к личному дому (слот 1 или 2)",
+      "access": "APPROVED",
+      "subcommands": []
+    },
+    {
+      "command": "/homes",
+      "aliases": [],
+      "description": "Показать список личных домов",
+      "access": "APPROVED",
+      "subcommands": []
+    },
+    {
+      "command": "/spawn",
+      "aliases": [],
+      "description": "Телепортироваться на основной спавн или дополнительную точку по номеру",
+      "access": "APPROVED",
+      "subcommands": []
+    },
+    {
+      "command": "/spawns",
+      "aliases": [],
+      "description": "Список основных и дополнительных точек появления",
+      "access": "APPROVED",
+      "subcommands": []
+    },
+    {
+      "command": "/setspawn",
+      "aliases": [],
+      "description": "Создать или изменить точку появления (только старший персонал)",
+      "access": "STAFF",
+      "subcommands": []
+    },
+    {
+      "command": "/delspawn",
+      "aliases": [],
+      "description": "Удалить точку появления (только старший персонал)",
+      "access": "STAFF",
+      "subcommands": []
+    },
+    {
+      "command": "/delhome",
+      "aliases": [
+        "/deletehome"
+      ],
+      "description": "Удалить личный дом (слот 1 или 2)",
+      "access": "APPROVED",
+      "subcommands": []
+    },
+    {
+      "command": "/tpa",
+      "aliases": [],
+      "description": "Запрос на телепортацию к игроку",
+      "access": "APPROVED",
+      "subcommands": []
+    },
+    {
+      "command": "/tpaccept",
+      "aliases": [],
+      "description": "Принять запрос на телепортацию",
+      "access": "APPROVED",
+      "subcommands": []
+    },
+    {
+      "command": "/tpdeny",
+      "aliases": [],
+      "description": "Отклонить запрос на телепортацию",
+      "access": "APPROVED",
+      "subcommands": []
+    },
+    {
+      "command": "/help",
+      "aliases": [
+        "/prismahelp"
+      ],
+      "description": "Краткая справка по разделам PRISMA",
+      "access": "APPROVED",
+      "subcommands": [
+        [
+          "перемещение",
+          "Дома, спавны и телепортация",
+          "APPROVED"
+        ],
+        [
+          "кланы",
+          "Кланы и сёла",
+          "APPROVED"
+        ],
+        [
+          "авторизация",
+          "Вход и пароль PRISMA Auth",
+          "APPROVED"
+        ],
+        [
+          "персонал",
+          "Инструменты персонала",
+          "STAFF"
+        ]
+      ]
+    },
+    {
+      "command": "/hud",
+      "aliases": [],
+      "description": "Персональный HUD в action bar и показатели сервера в TAB",
+      "access": "APPROVED",
+      "subcommands": [
+        [
+          "on",
+          "Включить HUD и информацию TAB",
+          "APPROVED"
+        ],
+        [
+          "off",
+          "Отключить их до выхода с сервера",
+          "APPROVED"
+        ],
+        [
+          "status",
+          "Проверить состояние HUD",
+          "APPROVED"
+        ]
+      ]
+    },
+    {
+      "command": "/coords",
+      "aliases": [],
+      "description": "Показать свои координаты; публикация в общий чат — только по команде /coords share",
+      "access": "APPROVED",
+      "subcommands": [
+        [
+          "share",
+          "Опубликовать текущие координаты в общем чате",
+          "APPROVED"
+        ]
+      ]
+    },
+    {
+      "command": "/lastdeath",
+      "aliases": [],
+      "description": "Показать координаты и время последнего сохранённого места смерти",
+      "access": "APPROVED",
+      "subcommands": []
+    },
+    {
+      "command": "/grave",
+      "aliases": [
+        "/graves"
+      ],
+      "description": "Список могил после смерти и безопасное возвращение сохранённых предметов",
+      "access": "APPROVED",
+      "subcommands": [
+        [
+          "list",
+          "Показать свои могилы и срок хранения",
+          "APPROVED"
+        ],
+        [
+          "info <id>",
+          "Посмотреть владельца и координаты могилы",
+          "APPROVED"
+        ],
+        [
+          "claim <id>",
+          "Вернуть предметы у метки в течение 10 минут; доступ владельца или администратора",
+          "APPROVED"
+        ]
+      ]
+    },
+    {
+      "command": "/checkpoint",
+      "aliases": [],
+      "description": "Личные именованные контрольные точки: до пяти на игрока",
+      "access": "APPROVED",
+      "subcommands": [
+        [
+          "list",
+          "Показать сохранённые точки",
+          "APPROVED"
+        ],
+        [
+          "set",
+          "Создать или обновить точку",
+          "APPROVED"
+        ],
+        [
+          "go",
+          "Телепортироваться к своей точке",
+          "APPROVED"
+        ],
+        [
+          "delete",
+          "Удалить свою точку",
+          "APPROVED"
+        ]
+      ]
+    },
+    {
+      "command": "/prismacommands",
+      "aliases": [
+        "/commands"
+      ],
+      "description": "Показать список команд PRISMA",
+      "access": "APPROVED",
+      "subcommands": []
+    },
+    {
+      "command": "/maze",
+      "aliases": [],
+      "description": "Настройка и управление режимом Maze Runner",
+      "access": "STAFF",
+      "subcommands": [
+        [
+          "status",
+          "Показать состояние режима и конфигурацию Глейда",
+          "STAFF"
+        ],
+        [
+          "setglade",
+          "Сохранить центр Глейда стоя в его центре",
+          "STAFF"
+        ],
+        [
+          "gladesize <50–250>",
+          "Изменить полуразмер безопасной зоны",
+          "STAFF"
+        ],
+        [
+          "maze-radius <250–5000>",
+          "Изменить радиус игровой зоны",
+          "STAFF"
+        ],
+        [
+          "start",
+          "Запустить раунд после включения модуля в панели",
+          "STAFF"
+        ],
+        [
+          "stop",
+          "Остановить раунд и убрать управляемых Гриверов",
+          "STAFF"
+        ],
+        [
+          "clear",
+          "Убрать управляемых Гриверов",
+          "STAFF"
+        ]
+      ]
+    },
+    {
+      "command": "/prismadiag",
+      "aliases": [],
+      "description": "Проверить подключение PRISMA к Supabase",
+      "access": "APPROVED",
+      "subcommands": []
+    },
+    {
+      "command": "/ptp",
+      "aliases": [
+        "/prismatp"
+      ],
+      "description": "Телепортация сотрудника к игроку",
+      "access": "STAFF",
+      "subcommands": []
+    },
+    {
+      "command": "/ptphere",
+      "aliases": [
+        "/prismatphere"
+      ],
+      "description": "Телепортировать игрока к сотруднику",
+      "access": "STAFF",
+      "subcommands": []
+    },
+    {
+      "command": "/tpall",
+      "aliases": [],
+      "description": "Переместить всех онлайн-игроков к себе после подтверждения",
+      "access": "STAFF",
+      "subcommands": [
+        [
+          "confirm",
+          "Подтвердить запрос в течение 20 секунд",
+          "STAFF"
+        ],
+        [
+          "cancel",
+          "Отменить ожидающий запрос",
+          "STAFF"
+        ]
+      ]
+    },
+    {
+      "command": "/warn",
+      "aliases": [],
+      "description": "Выдать предупреждение участнику; требуется причина",
+      "access": "STAFF",
+      "subcommands": []
+    },
+    {
+      "command": "/mute",
+      "aliases": [],
+      "description": "Ограничить общение на срок или навсегда; срок от 1 минуты до 30 дней",
+      "access": "STAFF",
+      "subcommands": []
+    },
+    {
+      "command": "/unmute",
+      "aliases": [],
+      "description": "Снять активное наказание MUTE",
+      "access": "STAFF",
+      "subcommands": []
+    },
+    {
+      "command": "/kick",
+      "aliases": [],
+      "description": "Исключить находящегося в сети игрока с сервера; требуется причина",
+      "access": "STAFF",
+      "subcommands": []
+    },
+    {
+      "command": "/ban",
+      "aliases": [],
+      "description": "Заблокировать участнику доступ к серверу навсегда; требуется причина",
+      "access": "STAFF",
+      "subcommands": []
+    },
+    {
+      "command": "/tempban",
+      "aliases": [],
+      "description": "Заблокировать доступ к серверу на срок от 1 минуты до 30 дней; требуется причина",
+      "access": "STAFF",
+      "subcommands": []
+    },
+    {
+      "command": "/unban",
+      "aliases": [],
+      "description": "Снять активное наказание BAN",
+      "access": "STAFF",
+      "subcommands": []
+    },
+    {
+      "command": "/history",
+      "aliases": [],
+      "description": "Показать до 10 последних записей истории наказаний",
+      "access": "STAFF",
+      "subcommands": []
+    }
+  ],
+  "clan_war_subcommands": [
+    [
+      "list",
+      "Список войн",
+      "CLAN_MEMBER"
+    ],
+    [
+      "create",
+      "Создать вызов на войну",
+      "CLAN_OWNER"
+    ],
+    [
+      "accept",
+      "Принять вызов на войну",
+      "CLAN_OFFICER"
+    ],
+    [
+      "deny",
+      "Отклонить вызов на войну",
+      "CLAN_OFFICER"
+    ],
+    [
+      "start",
+      "Начать войну",
+      "CLAN_OFFICER"
+    ],
+    [
+      "finish",
+      "Завершить войну с указанием счёта",
+      "CLAN_OFFICER"
+    ]
+  ],
+  "authentication": [
+    {
+      "name": "PRISMA Auth",
+      "platform": "JAVA",
+      "description": "Авторизация Java-игроков по паролю внутри PrismaPlugin; SimpleLogin не требуется.",
+      "commands": [
+        [
+          "/register <пароль> <пароль>",
+          "Первичная установка пароля"
+        ],
+        [
+          "/login <пароль>",
+          "Вход на сервер"
+        ],
+        [
+          "/changepass <текущий_пароль> <новый_пароль>",
+          "Смена пароля"
+        ],
+        [
+          "/prismaauth",
+          "Справка по авторизации"
+        ]
+      ]
+    },
+    {
+      "name": "Floodgate",
+      "platform": "BEDROCK",
+      "description": "Вход с Bedrock через Geyser/Floodgate; пароль PRISMA Auth для Bedrock не используется.",
+      "commands": []
+    }
+  ]
+}

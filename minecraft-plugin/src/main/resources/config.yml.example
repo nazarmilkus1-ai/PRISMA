@@ -1,0 +1,7 @@
+supabase:
+  url: "https://YOUR_PROJECT.supabase.co"
+  service-role-key: "YOUR_SUPABASE_SERVICE_ROLE_KEY"
+
+moderation-poll-interval-seconds: 10
+http-timeout-seconds: 8
+auth-timeout-seconds: 120

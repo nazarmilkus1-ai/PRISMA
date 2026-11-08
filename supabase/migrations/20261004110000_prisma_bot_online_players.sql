@@ -1,0 +1,28 @@
+-- Public bot read adapter for the current Minecraft online roster.
+-- Player liveness is refreshed by the Minecraft heartbeat task every 30 seconds.
+
+create or replace function public.bot_get_online_players()
+returns json
+language sql
+security definer
+set search_path to 'public'
+as $function$
+  select coalesce(
+    json_agg(
+      json_build_object(
+        'minecraft_nickname', u.minecraft_nickname,
+        'platform', u.platform
+      )
+      order by lower(u.minecraft_nickname)
+    ),
+    '[]'::json
+  )
+  from public.users u
+  where u.deleted_at is null
+    and u.status = 'ACCEPTED'
+    and u.is_whitelisted
+    and u.last_seen_at > now() - interval '90 seconds';
+$function$;
+
+revoke all on function public.bot_get_online_players() from public, anon, authenticated;
+grant execute on function public.bot_get_online_players() to service_role;

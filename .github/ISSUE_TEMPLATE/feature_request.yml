@@ -1,0 +1,49 @@
+name: Feature request
+description: Propose an improvement to PRISMA.
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the problem and the value of the proposed change. Avoid including secrets or private player data.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected component
+      options:
+        - Telegram bot
+        - Participant website
+        - Staff dashboard
+        - Minecraft plugin
+        - Supabase / backend
+        - Shared contracts / packages
+        - Cross-component
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false
+  - type: textarea
+    id: impact
+    attributes:
+      label: Security, data, and compatibility impact
+      description: Mention migrations, permissions, other consumers, and rollback implications.
+    validations:
+      required: false

@@ -1,0 +1,17 @@
+# This is the subset of supabase/config.toml that matters for this project.
+# Run `supabase init` first (see README) to generate the full file with all
+# the default [db]/[auth]/[storage] sections, then merge these two blocks in
+# — or just append them to the bottom of the generated file.
+#
+# Both functions are called by parties that do NOT hold a Supabase Auth JWT
+# (Telegram's servers, and our own Next.js backend using a shared secret), so
+# Supabase's built-in "reject requests without a valid JWT" gate has to be
+# switched off for them. Each function does its own auth instead:
+#   - telegram-bot checks a `?secret=` query param against the bot token.
+#   - notify-telegram checks a bearer token against NOTIFY_FUNCTION_SECRET.
+
+[functions.telegram-bot]
+verify_jwt = false
+
+[functions.notify-telegram]
+verify_jwt = false

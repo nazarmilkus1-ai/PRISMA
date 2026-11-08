@@ -1,0 +1,235 @@
+name: PRISMA CI
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+      - "VERSION"
+      - "bot/**"
+      - "minecraft-plugin/**"
+      - "packages/**"
+      - "panel/**"
+      - "scripts/**"
+      - "site/**"
+      - "supabase/**"
+      - "README.md"
+      - "docs/**"
+      - "docker-compose.yml"
+      - ".gitignore"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: prisma-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      site: ${{ steps.filter.outputs.site }}
+      panel: ${{ steps.filter.outputs.panel }}
+      bot: ${{ steps.filter.outputs.bot }}
+      plugin: ${{ steps.filter.outputs.plugin }}
+    steps:
+      - name: Check out PR history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Detect affected components
+        id: filter
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number || '' }}
+        run: |
+          set -euo pipefail
+          site=false
+          panel=false
+          bot=false
+          plugin=false
+          changed_files=""
+
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" && -n "${PR_NUMBER}" ]]; then
+            # Use the GitHub PR-files API instead of relying on a local synthetic merge ref.
+            changed_files="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files" --jq '.[].filename' 2>/dev/null || true)"
+          else
+            # Manual dispatch compares the selected topic branch with the integration branch.
+            git fetch --no-tags origin rebuild/prisma-v3 >/dev/null 2>&1 || true
+            if git rev-parse --verify 'origin/rebuild/prisma-v3^{commit}' >/dev/null 2>&1; then
+              changed_files="$(git diff --name-only origin/rebuild/prisma-v3...HEAD 2>/dev/null || true)"
+            fi
+          fi
+
+          while IFS= read -r file; do
+            [[ -z "$file" ]] && continue
+            case "$file" in
+              site/*|packages/*|supabase/*|VERSION|.github/workflows/*)
+                site=true
+                ;;
+            esac
+
+            case "$file" in
+              panel/*|packages/*|supabase/*|VERSION|.github/workflows/*)
+                panel=true
+                ;;
+            esac
+
+            case "$file" in
+              bot/*|supabase/*|VERSION|.github/workflows/*)
+                bot=true
+                ;;
+            esac
+
+            case "$file" in
+              minecraft-plugin/*|packages/contracts/minecraft-commands.json|modules/registry.json|VERSION|supabase/*|.github/workflows/*)
+                plugin=true
+                ;;
+            esac
+          done <<< "$changed_files"
+
+          # If GitHub's files API or the diff is unavailable, still run the plugin build.
+          if [[ -z "$changed_files" ]]; then
+            plugin=true
+          fi
+
+          echo "site=$site" >> "$GITHUB_OUTPUT"
+          echo "panel=$panel" >> "$GITHUB_OUTPUT"
+          echo "bot=$bot" >> "$GITHUB_OUTPUT"
+          echo "plugin=$plugin" >> "$GITHUB_OUTPUT"
+
+          printf 'site=%s panel=%s bot=%s plugin=%s\n' "$site" "$panel" "$bot" "$plugin"
+
+  site:
+    needs: changes
+    if: needs.changes.outputs.site == 'true'
+    timeout-minutes: 15
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version: 24
+      - name: Install site
+        working-directory: site
+        run: npm install --no-audit --no-fund
+      - name: Install shared UI package
+        working-directory: packages/ui
+        run: npm install --no-audit --no-fund
+      - name: Typecheck site
+        working-directory: site
+        run: npm run typecheck
+      - name: Build site
+        working-directory: site
+        run: npm run build
+
+  panel:
+    needs: changes
+    if: needs.changes.outputs.panel == 'true'
+    timeout-minutes: 15
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version: 24
+      - name: Install panel
+        working-directory: panel
+        run: npm install --no-audit --no-fund
+      - name: Install shared UI package
+        working-directory: packages/ui
+        run: npm install --no-audit --no-fund
+      - name: Typecheck panel
+        working-directory: panel
+        run: npm run typecheck
+      - name: Build panel
+        working-directory: panel
+        run: npm run build
+
+  bot:
+    needs: changes
+    if: needs.changes.outputs.bot == 'true'
+    timeout-minutes: 15
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: "3.12"
+      - name: Compile bot
+        run: python -m compileall -q bot
+
+  minecraft-plugin:
+    needs: changes
+    # Build the plugin even when change detection itself fails before producing outputs.
+    if: always() && (needs.changes.outputs.plugin == 'true' || needs.changes.result != 'success')
+    timeout-minutes: 15
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: temurin
+          java-version: "25"
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        with:
+          gradle-version: "9.4.0"
+      - name: Read release version
+        id: release-version
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(tr -d '\r\n' < VERSION)"
+          test "$VERSION" = "2.1.0"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+      - name: Build plugin
+        working-directory: minecraft-plugin
+        run: gradle clean build --no-daemon
+      - name: Verify plugin JAR
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.release-version.outputs.version }}"
+          JAR="minecraft-plugin/build/libs/PrismaPlugin-${VERSION}.jar"
+          test -f "$JAR"
+          jar tf "$JAR" | grep -qx 'plugin.yml'
+          ls -lh "$JAR"
+      - name: Upload testable Minecraft plugin JAR
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: PrismaPlugin-${{ steps.release-version.outputs.version }}-pr-${{ github.event.pull_request.number }}
+          path: minecraft-plugin/build/libs/PrismaPlugin-${{ steps.release-version.outputs.version }}.jar
+          if-no-files-found: error
+          retention-days: 7
+
+  architecture:
+    needs: changes
+    if: always()
+    timeout-minutes: 15
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version: 24
+      - name: Verify release metadata
+        run: node scripts/verify-release.mjs
+      - name: Verify architecture boundaries
+        run: node scripts/verify-architecture.mjs
