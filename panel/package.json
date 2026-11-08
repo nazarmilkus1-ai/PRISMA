@@ -16,7 +16,7 @@
     "@prisma-eco/contracts": "file:../packages/contracts",
     "@prisma-eco/ui": "file:../packages/ui",
     "@sentry/nextjs": "10.75.2",
-    "@supabase/supabase-js": "2.116.0",
+    "@supabase/supabase-js": "2.119.0",
     "@supabase/ssr": "0.12.7",
     "jose": "^5.10.0",
     "lucide-react": "1.48.0",
