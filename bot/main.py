@@ -184,11 +184,12 @@ async def verify_moderation_group(bot: Bot):
 
 
 async def main():
+    # Bind the HTTP health endpoint before Telegram API calls so Render can detect the service port during startup.
+    health_server = await start_health_server()
     bot = Bot(BOT_TOKEN)
     await bot.set_my_commands(PUBLIC_COMMANDS)
     await set_group_commands(bot)
 
-    health_server = await start_health_server()
     storage, redis = await make_storage()
     await configure_mode_store(redis)
     dp = Dispatcher(storage=storage)
@@ -345,27 +346,31 @@ async def main():
 
     # Staff callbacks are still feature entrypoints: hiding participant pages
     # alone must not leave admin mutation handlers active when a module is off.
-    attach_module_dispatch_gate(
-        admin.router, admin_actions.router,
-        command_modules={
-            "app_approve": "applications",
-            "app_reject": "applications",
-            "report_status": "reports",
-            "appeal_review": "appeals",
-            "appeal_approve": "appeals",
-            "appeal_reject": "appeals",
-            "players": "players",
-        },
-        callback_modules={
+    for staff_router in (admin.router, admin_actions.router):
+        attach_module_dispatch_gate(
+            staff_router,
+            command_modules={
+                "app_approve": "applications",
+                "app_reject": "applications",
+                "report_status": "reports",
+                "appeal_review": "appeals",
+                "appeal_approve": "appeals",
+                "appeal_reject": "appeals",
+                "players": "players",
+            },
+            callback_modules={
+                "adm:app:*": "applications",
+            "adm:rep:*": "reports",
+            "adm:apl:*": "appeals",
             "admin:applications": "applications",
-            "admin:reports": "reports",
-            "admin:appeals": "appeals",
-            "admin:automod": "moderation",
-            "admin:moderation": "moderation",
-            "admin:server": "minecraft",
-            "admin:players": "players",
-        },
-    )
+                "admin:reports": "reports",
+                "admin:appeals": "appeals",
+                "admin:automod": "moderation",
+                "admin:moderation": "moderation",
+                "admin:server": "minecraft",
+                "admin:players": "players",
+            },
+        )
 
     dp.include_router(rules.router)
     dp.include_router(guide.router)
@@ -377,6 +382,7 @@ async def main():
         start.router, application.router, profile.router, link.router, moderation.router,
         reports.router, polls.router, clans.router, news.router, help_.router, ai.router, player.router,
         admin.router,
+        admin_actions.router,
         # Social and market callbacks are private UI callbacks; they must be
         # registered before menu's catch-all stale_callback.
         social.router, market.router, minecraft_commands.router, support.router, menu.router, errors.router,
