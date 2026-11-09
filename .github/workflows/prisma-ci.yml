@@ -96,8 +96,12 @@ jobs:
             esac
           done <<< "$changed_files"
 
-          # If GitHub's files API or the diff is unavailable, still run the plugin build.
+          # An unavailable/empty file list is not evidence that a component is unaffected.
+          # Run every component job so change-detection failures cannot produce a false-green CI.
           if [[ -z "$changed_files" ]]; then
+            site=true
+            panel=true
+            bot=true
             plugin=true
           fi
 
