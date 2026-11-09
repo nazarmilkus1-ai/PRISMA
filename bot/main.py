@@ -360,9 +360,9 @@ async def main():
             },
             callback_modules={
                 "adm:app:*": "applications",
-            "adm:rep:*": "reports",
-            "adm:apl:*": "appeals",
-            "admin:applications": "applications",
+                "adm:rep:*": "reports",
+                "adm:apl:*": "appeals",
+                "admin:applications": "applications",
                 "admin:reports": "reports",
                 "admin:appeals": "appeals",
                 "admin:automod": "moderation",
