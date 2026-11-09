@@ -804,12 +804,17 @@ async def _handle_who(message: types.Message):
             await message.answer("❌ Не удалось получить список неактивных.")
             return
         if not result.data:
-            await message.answer(f"✅ За последние {days} дн. неактивных не найдено.")
+            await message.answer(f"✅ За {_days_label(days)} неактивных не найдено.")
             return
-        lines = [f"😴 <b>Неактивные более {days} дн.</b>"]
-        for row in result.data[:50]:
-            name = row.get("telegram_username") or row.get("full_name") or row.get("tg_id")
-            lines.append(f"• {escape(str(name))} — {escape(str(row.get('last_seen_at') or 'нет активности'))}")
+        lines = [f"✖️ <b>Неактив чата: больше, чем {_days_label(days)}:</b>"]
+        for index, row in enumerate(result.data[:50], 1):
+            name = row.get("display_name") or row.get("username") or row.get("telegram_id")
+            mention = _mention(row.get("telegram_id"), name, row.get("username"))
+            message_link = row.get("message_link")
+            suffix = f'<a href="{escape(str(message_link), quote=True)}">⁬</a>' if message_link else "⁬"
+            age = _elapsed_label(_parse_timestamp(row.get("last_seen_at"))) if row.get("last_seen_at") else "нет активности"
+            lines.append(f"{index}. {mention}{suffix} ({age})")
+        lines.append(f"🗓 <b>Всего неактивных: {len(result.data)}</b>")
         await message.answer("\n".join(lines), parse_mode="HTML")
         return
 
