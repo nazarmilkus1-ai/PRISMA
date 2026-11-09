@@ -951,6 +951,7 @@ for (const file of requiredContracts) {
   }
 }
 
+const minecraftCatalog = read("packages/contracts/minecraft-commands.json");
 const gameplayToggleMigration = read("supabase/migrations/20261024150000_prisma_minecraft_gameplay_toggles.sql");
 for (const moduleId of [
   "minecraft-teleport-requests", "minecraft-homes", "minecraft-spawns", "minecraft-journey",
@@ -1004,7 +1005,6 @@ for (const fn of [
   }
 }
 
-const minecraftCatalog = read("packages/contracts/minecraft-commands.json");
 const identityBindingMigration = migrationFiles.find((file) => file.endsWith("_prisma_minecraft_identity_binding.sql"));
 if (!identityBindingMigration) {
   failures.push("Minecraft identity binding migration is missing");
