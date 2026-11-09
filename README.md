@@ -63,23 +63,20 @@ The following describes functionality present in the PRISMA 2.1.0 integration so
 - An optional, partial Maze Runner controller. It is not a complete implementation of all original map mechanics; see [Maze Runner notes](docs/MAZE_RUNNER.md).
 
 ## Architecture
-
-\`\`\`text
                          ┌──────────────────────────┐
                          │         Supabase         │
                          │ PostgreSQL · Auth · RLS  │
                          │ RPC gateways · migrations│
                          └─────────────┬────────────┘
                                        │
-                        shared contracts / domain rules
+                      shared contracts / domain rules
                                        │
-     ┌─────────────────┬───────────────┼───────────────┬─────────────────┐
-     │                 │               │               │                 │
-┌────▼─────┐   ┌───────▼──────┐  ┌─────▼─────┐  ┌──────▼───────┐  ┌─────▼────┐
-│ Telegram │   │ Participant │  │ Staff     │  │ Paper        │  │ Shared   │
-│ bot      │   │ website     │  │ dashboard │  │ plugin       │  │ packages │
-└──────────┘   └──────────────┘  └───────────┘  └──────────────┘  └──────────┘
-\`\`\`
+          ┌─────────────────┬───────────────┼───────────────┬────────────────┐
+          │                 │               │               │                │
+     ┌────▼─────┐   ┌───────▼──────┐  ┌─────▼─────┐  ┌──────▼───────┐  ┌─────▼────┐
+     │ Telegram │   │ Participant  │  │ Staff     │  │ Paper        │  │ Shared   │
+     │ bot      │   │ website      │  │ dashboard │  │ plugin       │  │ packages │
+     └──────────┘   └──────────────┘  └───────────┘  └──────────────┘  └──────────┘
 
 The core rule is:
 
