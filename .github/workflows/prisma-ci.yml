@@ -123,7 +123,7 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Install shared UI package
         working-directory: packages/ui
-        run: npm install --no-audit --no-fund
+        run: npm install --omit=peer --no-audit --no-fund
       - name: Typecheck site
         working-directory: site
         run: npm run typecheck
@@ -148,7 +148,7 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Install shared UI package
         working-directory: packages/ui
-        run: npm install --no-audit --no-fund
+        run: npm install --omit=peer --no-audit --no-fund
       - name: Typecheck panel
         working-directory: panel
         run: npm run typecheck
