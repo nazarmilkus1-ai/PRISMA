@@ -211,7 +211,6 @@ for (const marker of [
   "pendingWrites.compute(playerUuid",
   "previous.handle((ignored, failure) -> null)",
   "pendingWrites.remove(playerUuid, next)",
-  "enqueueWrite(playerUuid, nickname, body)",
   "!cache.hasStatsBaseline(playerUuid)",
   "awaitPendingWrites(UUID playerUuid)",
   "persistQuitSnapshot(Player player)",
@@ -230,11 +229,21 @@ for (const marker of [
   "final quit snapshot write failed",
   "attempt >= MAX_QUIT_SNAPSHOT_RETRIES",
   "retryDisposition(int attempt)",
-  "persistQuitPayloadWithRetry(QuitSnapshot snapshot, JsonObject payload, int attempt, CompletableFuture<Void> result)",
-  "retryQuitPayload(QuitSnapshot snapshot, JsonObject payload, int attempt, CompletableFuture<Void> result)",
 ]) {
   if (!playerStatsTask.includes(marker)) {
     failures.push("PlayerStatsTask must serialize per-player snapshots and clean up completed writes: " + marker);
+  }
+}
+if (!playerStatsTask.includes("enqueueWrite(playerUuid, nickname, statisticsPayload(")) {
+  failures.push("PlayerStatsTask must enqueue the captured statistics payload through the per-player write queue");
+}
+const compactPlayerStatsTask = playerStatsTask.replace(/\s+/g, " ");
+for (const [name, signature] of [
+  ["persistQuitPayloadWithRetry", "persistQuitPayloadWithRetry( QuitSnapshot snapshot, JsonObject payload, int attempt, CompletableFuture<Void> result )"],
+  ["retryQuitPayload", "retryQuitPayload( QuitSnapshot snapshot, JsonObject payload, int attempt, CompletableFuture<Void> result )"],
+]) {
+  if (!compactPlayerStatsTask.includes(signature)) {
+    failures.push("PlayerStatsTask must implement the quit snapshot retry stage: " + name);
   }
 }
 if (playerStatsTask.includes('player.getName() + ": " + error.getMessage()')) {
@@ -951,6 +960,7 @@ for (const file of requiredContracts) {
   }
 }
 
+const minecraftCatalog = read("packages/contracts/minecraft-commands.json");
 const gameplayToggleMigration = read("supabase/migrations/20261024150000_prisma_minecraft_gameplay_toggles.sql");
 for (const moduleId of [
   "minecraft-teleport-requests", "minecraft-homes", "minecraft-spawns", "minecraft-journey",
@@ -1004,7 +1014,6 @@ for (const fn of [
   }
 }
 
-const minecraftCatalog = read("packages/contracts/minecraft-commands.json");
 const identityBindingMigration = migrationFiles.find((file) => file.endsWith("_prisma_minecraft_identity_binding.sql"));
 if (!identityBindingMigration) {
   failures.push("Minecraft identity binding migration is missing");
@@ -1090,11 +1099,13 @@ for (const marker of [
   'case "кланы"',
   'case "авторизация"',
   'case "персонал"',
-  '"/prismacommands 1"',
 ]) {
   if (!prismaHelpCommand.includes(marker)) {
     failures.push("Categorized Russian help is incomplete: " + marker);
   }
+}
+if (!prismaHelpCommand.includes("/prismacommands 1")) {
+  failures.push("Categorized Russian help must link to the paginated command catalog");
 }
 if (!pluginYaml.includes("  help:") || !pluginYaml.includes("aliases: [prismahelp]") ||
     !helpEntrypoint.includes('getCommand("help")') ||
@@ -1127,11 +1138,13 @@ for (const marker of [
   'Bukkit.broadcastMessage("§7[Координаты]',
   'player.teleportAsync(target)',
   'if (now - last < 15_000L)',
-  "MutationResult.LIMIT_REACHED",
 ]) {
   if (!journeyCommand.includes(marker)) {
     failures.push("Journey command implementation is incomplete: " + marker);
   }
+}
+if (!journeyStore.includes("LIMIT_REACHED") || !journeyCommand.includes("case LIMIT_REACHED ->")) {
+  failures.push("Journey command must handle the checkpoint limit result returned by its store");
 }
 for (const marker of [
   "PlayerDeathEvent",
@@ -1482,7 +1495,6 @@ const tpAllCommand = read("minecraft-plugin/src/main/java/team/prisma/plugin/com
 for (const marker of [
   "CONFIRMATION_WINDOW_MILLIS = 20_000L",
   'pending.remove(actorId)',
-  'pending.remove(actor.getUniqueId())',
   'pending.remove(player.getUniqueId())',
   'player.hasPermission("prisma.command.tpall")',
   'actor.hasPermission("prisma.command.tpall")',
@@ -1496,6 +1508,14 @@ for (const marker of [
   if (!tpAllCommand.includes(marker)) {
     failures.push("Confirmed /tpall implementation is missing a safety/audit contract: " + marker);
   }
+}
+const tpAllConfirm = tpAllCommand.slice(
+  tpAllCommand.indexOf("private void confirm("),
+  tpAllCommand.indexOf("private boolean authorizesTpAll(")
+);
+if (!tpAllConfirm.includes("UUID actorId = actor.getUniqueId();") ||
+    !tpAllConfirm.includes("pending.remove(actorId)")) {
+  failures.push("Confirmed /tpall must consume the pending request for the confirming actor");
 }
 for (const marker of [
   '"prisma.command.tpall"',
