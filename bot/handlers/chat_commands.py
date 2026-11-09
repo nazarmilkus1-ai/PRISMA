@@ -806,7 +806,7 @@ async def _handle_who(message: types.Message):
         if not result.data:
             await message.answer(f"✅ За {_days_label(days)} неактивных не найдено.")
             return
-        lines = [f"✖️ <b>Неактив чата: больше, ніж {_days_label(days)}:</b>"]
+        lines = [f"✖️ <b>Неактив чата: больше, чем {_days_label(days)}:</b>"]
         for index, row in enumerate(result.data[:50], 1):
             name = row.get("display_name") or row.get("username") or row.get("telegram_id")
             mention = _mention(row.get("telegram_id"), name, row.get("username"))
