@@ -40,7 +40,9 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          fetch-depth: 0
+          # Pull requests use the GitHub PR-files API and do not need full Git history.
+          # Manual dispatch keeps full history for the integration-branch diff.
+          fetch-depth: ${{ github.event_name == 'pull_request' && 1 || 0 }}
 
       - name: Detect affected components
         id: filter
