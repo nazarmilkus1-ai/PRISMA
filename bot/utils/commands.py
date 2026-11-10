@@ -63,6 +63,7 @@ ADMIN_COMMANDS = PUBLIC_COMMANDS + [
     BotCommand(command="onboarding", description="Позвать на вступление"),
     BotCommand(command="admin", description="Админ-центр"),
     BotCommand(command="ai", description="Copilot: задачи для админа"),
+    BotCommand(command="ai_status", description="Проверка связи с ИИ"),
     BotCommand(command="players", description="Поиск игроков"),
     BotCommand(command="app_approve", description="Одобрить заявку"),
     BotCommand(command="app_reject", description="Отклонить заявку"),

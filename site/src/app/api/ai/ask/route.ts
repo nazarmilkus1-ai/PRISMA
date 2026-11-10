@@ -53,8 +53,8 @@ export async function POST(request: Request) {
 
   if (!aiConfigured()) {
     return NextResponse.json({
-      answer: "Помощник пока не подключён. Загляните в Wiki или напишите в поддержку через бота.",
-      links: [{ href: "/wiki", label: "Wiki" }],
+      answer: "Умный помощник пока не подключён. Загляните в Wiki или напишите в поддержку через бота.",
+      links: [{ href: "/wiki", label: "Wiki" }, { href: "/rules", label: "Правила" }],
     });
   }
   if (!modelBudgetLeft()) {
@@ -68,8 +68,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ answer, links: [] });
   } catch {
     return NextResponse.json({
-      answer: "Не получилось ответить. Попробуйте переформулировать или откройте Wiki.",
-      links: [{ href: "/wiki", label: "Wiki" }],
+      answer: "Умный помощник сейчас недоступен, но вот куда можно заглянуть: в Wiki — инструкции и правила, заявку можно подать за минуту.",
+      links: [{ href: "/wiki", label: "Wiki" }, { href: "/rules", label: "Правила" }, { href: "/apply", label: "Подать заявку" }],
     });
   }
 }

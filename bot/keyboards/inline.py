@@ -68,6 +68,7 @@ def main_menu_approved(show_admin_switch: bool = False):
         [InlineKeyboardButton(text="📢 Жалоба", callback_data="reports"),
          InlineKeyboardButton(text="🆘 Поддержка", callback_data="support")],
         [InlineKeyboardButton(text="🔔 Уведомления", callback_data="player:notifications"),
+         InlineKeyboardButton(text="🤖 Спросить", callback_data="ask"),
          InlineKeyboardButton(text="➕ Ещё", callback_data="menu:player")],
     ]
     return _with_mode_switch(rows, show_admin_switch)
