@@ -6,20 +6,24 @@ from html import escape
 from aiogram import F, Router, types
 from aiogram.filters import Command, CommandObject, StateFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.types import BufferedInputFile
+from aiogram.dispatcher.event.bases import SkipHandler
+from aiogram.types import BufferedInputFile, InlineKeyboardMarkup
 
 from db.rpc import bot_get_profile, bot_get_user_status
 from fsm.states import AskForm
 from handlers.guide import build_guide
 from db.rpc import bot_check_admin_permission, bot_list_current_participants, bot_list_inactive_members
+from services.ai import memory as ai_memory
 from services.ai import navigator, sections
 from services.ai.admin_tools import run_copilot
 from services.ai.bench import run_bench
 from services.ai.client import AIError, base_url, chat, fallback_model, is_configured, model_for
+from services.ai.links import link_buttons
+from services.ai.member_tools import peek_draft, publish, run_member, take_draft
 from services.ai.live import live_answer, live_intent
 from services.ai.players import apply_player_filter, parse_player_filter
 from utils.mdhtml import strip_markdown, to_telegram_html
-from utils.permissions import has_any_staff_permission, is_admin_mode, require_admin_mode
+from utils.permissions import get_application_status, has_any_staff_permission, is_admin_mode, require_admin_mode
 from utils.rules import rules_text
 
 router = Router(name="ai")
@@ -97,8 +101,9 @@ async def _answer(message: types.Message, question: str, private: bool = True):
     if matched:
         built = sections.build_answer(question, status)
         markup = built[1] if built else None
+    chat_id = message.chat.id
     try:
-        text = await navigator.ask_model(question, status)
+        text, cards = await run_member(tg_id, question, status, ai_memory.history(chat_id, tg_id), private)
     except AIError as exc:
         logger.warning("navigator model failed: %s", exc)
         try:
@@ -111,7 +116,14 @@ async def _answer(message: types.Message, question: str, private: bool = True):
         else:
             await _fallback_menu(message, "😕 Не получилось ответить. Выберите нужный раздел:")
         return
-    await _send_model_text(waiting, message, text, markup)
+    ai_memory.remember(chat_id, tg_id, "user", question)
+    ai_memory.remember(chat_id, tg_id, "assistant", text)
+    rows = list(markup.inline_keyboard) if markup else []
+    link_row = link_buttons(question, text)
+    rows += [link_row[i:i + 2] for i in range(0, len(link_row), 2)]
+    await _send_model_text(waiting, message, text, InlineKeyboardMarkup(inline_keyboard=rows) if rows else None)
+    for card_text, card_markup in cards:
+        await message.answer(card_text, parse_mode="HTML", reply_markup=card_markup)
 
 
 
@@ -383,3 +395,71 @@ async def group_ai(message: types.Message, command: CommandObject):
         await message.reply("🤖 PRISMA_AI: напишите вопрос после команды, например /ai что такое призма")
         return
     await _answer(message, question, private=False)
+
+
+@group_router.message(F.chat.type.in_({"group", "supergroup"}), F.text)
+async def group_talk(message: types.Message):
+    """Talk to PRISMA_AI in a group by mentioning the bot or replying to it.
+
+    Anything else, and anything that looks like spam (links, long text, over the rate limit),
+    is passed on untouched so automod still sees it.
+    """
+    text = message.text or ""
+    if text.startswith("/") or not message.from_user or len(text) > 400:
+        raise SkipHandler
+    me = await message.bot.me()
+    mentioned = f"@{(me.username or '').lower()}" in text.lower()
+    reply = message.reply_to_message
+    replied = bool(reply and reply.from_user and reply.from_user.id == me.id)
+    if not (mentioned or replied):
+        raise SkipHandler
+    if any(entity.type in {"url", "text_link"} for entity in (message.entities or [])):
+        raise SkipHandler
+    if navigator.is_limited(message.from_user.id):
+        raise SkipHandler
+    question = re.sub(f"@{re.escape(me.username or '')}", "", text, flags=re.I).strip()
+    await _answer(message, question, private=False)
+
+
+# ------------------------------------------------------------ confirm cards
+_CARD_KINDS = {"mk": "market", "sp": "support", "ev": "events"}
+
+
+@router.callback_query(F.data.startswith("aim:"))
+async def member_card(callback: types.CallbackQuery):
+    parts = (callback.data or "").split(":")
+    if len(parts) != 4 or parts[1] not in _CARD_KINDS or parts[2] not in {"ok", "no", "edit"}:
+        await callback.answer("Кнопка устарела.", show_alert=True)
+        return
+    _, kind, action, draft_id = parts
+    tg_id = callback.from_user.id
+    if action == "edit":
+        draft = peek_draft(draft_id, tg_id)
+        if not draft:
+            await callback.answer("Черновик устарел — попросите PRISMA_AI подготовить новый.", show_alert=True)
+            return
+        ai_memory.remember(callback.message.chat.id, tg_id, "assistant", f"Черновик ({kind}): {draft['payload']}")
+        await callback.answer("Напишите в чат, что изменить.")
+        await callback.message.answer("✏️ Напишите, что поправить (цена, текст, срок) — я подготовлю обновлённую карточку.")
+        return
+    draft = take_draft(draft_id, tg_id)
+    if not draft or draft["kind"] != kind:
+        await callback.answer("Черновик устарел или не ваш.", show_alert=True)
+        return
+    if action == "no":
+        await callback.answer("Отменено")
+        await _finish_card(callback, "✖ Отменено.")
+        return
+    if kind in {"mk", "ev"} and await get_application_status(tg_id) != "ACCEPTED":
+        await callback.answer("Доступно после одобрения заявки.", show_alert=True)
+        return
+    ok, text = await publish(kind, draft["payload"], tg_id)
+    await callback.answer("Готово" if ok else "Не получилось")
+    await _finish_card(callback, text)
+
+
+async def _finish_card(callback: types.CallbackQuery, text: str) -> None:
+    try:
+        await callback.message.edit_text(text, reply_markup=None)
+    except Exception:
+        await callback.message.answer(text)
