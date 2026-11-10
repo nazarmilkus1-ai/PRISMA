@@ -23,3 +23,7 @@ def appeal_actions(uid: str) -> InlineKeyboardMarkup:
         [_btn("✅ Одобрить (снять наказание)", "apl", "ok", uid)],
         [_btn("❌ Отклонить", "apl", "no", uid)],
     ])
+
+
+def support_actions(uid: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[_btn("✅ Закрыть обращение", "sup", "res", uid)]])
