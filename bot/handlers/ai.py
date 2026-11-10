@@ -16,6 +16,7 @@ from services.ai import navigator, sections
 from services.ai.admin_tools import run_copilot
 from services.ai.bench import run_bench
 from services.ai.client import AIError, base_url, chat, fallback_model, is_configured, model_for
+from services.ai.live import live_answer, live_intent
 from services.ai.players import apply_player_filter, parse_player_filter
 from utils.mdhtml import strip_markdown, to_telegram_html
 from utils.permissions import has_any_staff_permission, is_admin_mode, require_admin_mode
@@ -45,7 +46,7 @@ def _is_short(question: str) -> bool:
     return len(question.split()) <= 6
 
 
-async def _answer(message: types.Message, question: str):
+async def _answer(message: types.Message, question: str, private: bool = True):
     question = (question or "").strip()
     if len(question) < 2:
         await message.answer("Напишите вопрос чуть подробнее.")
@@ -54,6 +55,12 @@ async def _answer(message: types.Message, question: str):
     kind = navigator.fast_kind(question)
 
     # Code-first: deterministic answers, no model call and no database lookup needed.
+    if kind is None and live_intent(question):
+        accepted = str(await bot_get_user_status(tg_id) or "") == "ACCEPTED"
+        live = await live_answer(question, tg_id, accepted, private)
+        if live:
+            await message.answer(live, parse_mode="HTML")
+            return
     if kind == "rules":
         await message.answer(rules_text(), parse_mode="HTML")
         return
@@ -79,13 +86,13 @@ async def _answer(message: types.Message, question: str):
             return
 
     if not configured:
-        await _fallback_menu(message, "🤖 Умный помощник пока не подключён, но вот куда можно нажать:")
+        await _fallback_menu(message, "🤖 PRISMA_AI пока не подключён, но вот куда можно нажать:")
         return
     if not navigator.allowed(tg_id):
         await message.answer("⏳ Слишком много вопросов подряд. Попробуйте чуть позже.")
         return
     status = str(await bot_get_user_status(tg_id) or "")
-    waiting = await message.answer("🤖 Думаю…")
+    waiting = await message.answer("🤖 PRISMA_AI думает…")
     markup = None
     if matched:
         built = sections.build_answer(question, status)
@@ -129,7 +136,7 @@ async def ask_command(message: types.Message, command: CommandObject, state: FSM
         await _answer(message, command.args)
         return
     await state.set_state(AskForm.waiting)
-    await message.answer("🤖 Что подсказать? Напишите вопрос одним сообщением (или /cancel).")
+    await message.answer("🤖 PRISMA_AI: что подсказать? Напишите вопрос одним сообщением (или /cancel).")
 
 
 @router.callback_query(F.data == "ask")
@@ -137,7 +144,7 @@ async def ask_button(callback: types.CallbackQuery, state: FSMContext):
     await callback.answer()
     if callback.message:
         await state.set_state(AskForm.waiting)
-        await callback.message.answer("🤖 Что подсказать? Напишите вопрос одним сообщением (или /cancel).")
+        await callback.message.answer("🤖 PRISMA_AI: что подсказать? Напишите вопрос одним сообщением (или /cancel).")
 
 
 @router.message(Command("cancel"), StateFilter(AskForm.waiting))
@@ -168,7 +175,7 @@ async def free_text(message: types.Message):
     text = (message.text or "").strip()
     if len(text) < 3 or message.from_user is None:
         return
-    # Staff in admin mode talk to the Copilot, everyone else to the navigator.
+    # Staff in admin mode talk to the PRISMA_AI, everyone else to the navigator.
     if await is_admin_mode(message.from_user.id):
         await _copilot(message, text)
         return
@@ -196,7 +203,7 @@ async def ai_status(message: types.Message):
     await message.answer("\n".join(lines), parse_mode="HTML")
 
 
-# ---------------------------------------------------------------- admin Copilot
+# ---------------------------------------------------------------- admin PRISMA_AI
 
 _PLAYERS_RE = re.compile(r"(список|все|всех|выведи|покажи|склади|составь).*(игрок|участник|ник|юз|username|юзернейм)|^(ники|юзы)$", re.I)
 _PLATFORM_LIST_RE = re.compile(
@@ -303,7 +310,7 @@ async def _copilot(message: types.Message, request: str):
             return
 
     if not is_configured("admin"):
-        await message.answer("🤖 Copilot не настроен: задайте AI_API_KEY_ADMIN.")
+        await message.answer("🤖 PRISMA_AI не настроен: задайте AI_API_KEY_ADMIN.")
         return
     waiting = await message.answer("🤖 Работаю…")
     try:
@@ -332,7 +339,7 @@ async def copilot_command(message: types.Message, command: CommandObject, state:
         return
     await state.set_state(AskForm.admin_waiting)
     await message.answer(
-        "🤖 <b>Copilot</b>\nНапишите задачу, например:\n• список игроков и их юзы\n• кто неактивен месяц\n• какие заявки ждут\n"
+        "🤖 <b>PRISMA_AI</b>\nНапишите задачу, например:\n• список игроков и их юзы\n• кто неактивен месяц\n• какие заявки ждут\n"
         "Изменения — только через кнопки подтверждения. /cancel — выйти.",
         parse_mode="HTML",
     )
@@ -346,13 +353,13 @@ async def copilot_button(callback: types.CallbackQuery, state: FSMContext):
     await callback.answer()
     if callback.message:
         await state.set_state(AskForm.admin_waiting)
-        await callback.message.answer("🤖 Copilot: напишите задачу (например «список игроков и их юзы»). /cancel — выйти.")
+        await callback.message.answer("🤖 PRISMA_AI: напишите задачу (например «список игроков и их юзы»). /cancel — выйти.")
 
 
 @router.message(Command("cancel"), StateFilter(AskForm.admin_waiting))
 async def copilot_cancel(message: types.Message, state: FSMContext):
     await state.clear()
-    await message.answer("Ок, Copilot закрыт.")
+    await message.answer("Ок, PRISMA_AI закрыт.")
 
 
 @router.message(StateFilter(AskForm.admin_waiting), F.text, ~F.text.startswith("/"))
@@ -361,3 +368,18 @@ async def copilot_waiting(message: types.Message, state: FSMContext):
     if not await has_any_staff_permission(message.from_user.id) or not await require_admin_mode(message):
         return
     await _copilot(message, message.text)
+
+
+# ---------------------------------------------------------------- group chats
+group_router = Router(name="ai_group")
+
+
+@group_router.message(Command("ai", "pai", "prisma_ai"), F.chat.type.in_({"group", "supergroup"}))
+async def group_ai(message: types.Message, command: CommandObject):
+    question = (command.args or "").strip()
+    if not question and message.reply_to_message:
+        question = (message.reply_to_message.text or "").strip()
+    if not question:
+        await message.reply("🤖 PRISMA_AI: напишите вопрос после команды, например /ai что такое призма")
+        return
+    await _answer(message, question, private=False)

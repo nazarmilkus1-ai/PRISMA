@@ -5,3 +5,8 @@ supabase:
 moderation-poll-interval-seconds: 10
 http-timeout-seconds: 8
 auth-timeout-seconds: 120
+
+# PRISMA_AI в игре: /ai <вопрос>. Оставьте url пустым, чтобы выключить команду.
+ai:
+  url: ""   # например https://<сайт>/api/ai/ask
+  key: ""   # необязательно: общий ключ, должен совпадать с AI_PLUGIN_KEY на сайте

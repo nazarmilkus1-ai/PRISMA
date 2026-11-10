@@ -53,17 +53,26 @@ function limited(ip: string): boolean {
   return false;
 }
 
-export async function POST(request: Request) {
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  if (limited(ip)) return NextResponse.json({ answer: "Слишком много вопросов подряд. Попробуйте через минуту.", links: [] }, { status: 429 });
+/** The Minecraft plugin shares one server IP, so it is limited per player instead (shared key required). */
+function pluginCaller(request: Request, player: unknown): string | null {
+  const key = process.env.AI_PLUGIN_KEY?.trim();
+  const sent = request.headers.get("x-prisma-plugin-key")?.trim();
+  if (!key || !sent || sent !== key) return null;
+  const name = String(player ?? "").replace(/[^\w.\-]/g, "").slice(0, 32);
+  return name ? `mc:${name}` : null;
+}
 
-  let question = "";
+export async function POST(request: Request) {
+  let raw: { question?: unknown; player?: unknown } = {};
   try {
-    const body = await request.json();
-    question = String(body?.question ?? "").trim().slice(0, 500);
+    raw = await request.json();
   } catch {
     return NextResponse.json({ error: "bad request" }, { status: 400 });
   }
+  const ip = pluginCaller(request, raw.player) ?? (request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown");
+  if (limited(ip)) return NextResponse.json({ answer: "Слишком много вопросов подряд. Попробуйте через минуту.", links: [] }, { status: 429 });
+
+  const question = String(raw?.question ?? "").trim().slice(0, 500);
   if (question.length < 2) return NextResponse.json({ error: "empty" }, { status: 400 });
 
   const fast = fastAnswer(question);

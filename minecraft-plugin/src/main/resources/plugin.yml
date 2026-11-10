@@ -105,6 +105,10 @@ permissions:
     default: false
 
 commands:
+  ai:
+    description: Задать вопрос PRISMA_AI
+    usage: /ai <вопрос>
+    aliases: [ии, prismaai]
   help:
     description: Краткая справка по разделам PRISMA
     usage: /help [перемещение|кланы|авторизация|персонал]

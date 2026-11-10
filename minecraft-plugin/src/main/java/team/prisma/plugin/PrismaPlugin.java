@@ -113,6 +113,11 @@ public final class PrismaPlugin extends JavaPlugin {
             getLogger().warning("'help' command not found -- check plugin.yml.");
         }
 
+        var ai = getCommand("ai");
+        if (ai != null) {
+            bindGatedCommand(ai, new team.prisma.plugin.commands.AiCommand(this), null, modules, "minecraft");
+        }
+
         ServerHudTask serverHud = new ServerHudTask(this, cache, modules);
         getServer().getPluginManager().registerEvents(serverHud, this);
         var hud = getCommand("hud");

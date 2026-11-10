@@ -393,6 +393,7 @@ async def main():
         private.include_router(r)
 
     dp.include_router(private)
+    dp.include_router(ai.group_router)
     # Group social commands are intentionally handled by chat_commands; keep
     # legacy group handlers after the dedicated social router.
     dp.include_router(chat_commands.router)

@@ -48,7 +48,7 @@ export function AskWidget() {
           className="prisma-glass-surface w-[min(92vw,22rem)] rounded-2xl border border-white/10 p-4"
         >
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-sm font-bold">Спросить PRISMA</h2>
+            <h2 className="text-sm font-bold">PRISMA_AI</h2>
             <button type="button" onClick={() => setOpen(false)} aria-label="Закрыть" className="text-lg leading-none text-muted-foreground">
               ×
             </button>

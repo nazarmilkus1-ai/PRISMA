@@ -1,4 +1,4 @@
-"""Admin Copilot tools.
+"""Admin PRISMA_AI tools.
 
 Reads call the same RPCs the bot already uses. Writes are *proposals only*: a
 card with the existing confirm buttons (handlers/admin_actions.py) is shown to
@@ -28,7 +28,7 @@ MAX_TOOL_CHARS = 6000
 MAX_STEPS = 6
 
 SYSTEM = (
-    "Ты — Copilot для администраторов PRISMA (Minecraft-сообщество) в Telegram-боте. "
+    "Ты — PRISMA_AI для администраторов PRISMA (Minecraft-сообщество) в Telegram-боте. "
     "Данные получай только через инструменты. Отвечай коротко, на языке администратора. "
     "Ты НИЧЕГО не меняешь сам: изменения возможны только через propose_* — они показывают администратору "
     "карточку с кнопками подтверждения. Никогда не говори, что действие выполнено. "
@@ -206,7 +206,7 @@ async def execute(name: str, args: dict, ctx: Context) -> dict:
         if not row:
             return {"error": "ticket not found among open"}
         ctx.cards.append((
-            f"🆘 <b>Предложение Copilot: закрыть обращение</b> #{escape(ticket)}\n{escape(str(row.get('message') or '')[:300])}",
+            f"🆘 <b>Предложение PRISMA_AI: закрыть обращение</b> #{escape(ticket)}\n{escape(str(row.get('message') or '')[:300])}",
             support_actions(ticket)))
         return {"ok": "confirmation card shown to admin"}
     if name == "propose_punishment":
@@ -221,14 +221,14 @@ async def execute(name: str, args: dict, ctx: Context) -> dict:
         target = row.get("minecraft_nickname") or row.get("telegram_id")
         command = f"/{kind} {target} {str(args.get('reason') or '')[:200]} {duration}".strip()
         ctx.cards.append((
-            f"🛡 <b>Предложение Copilot: наказание</b>\nСкопируйте и отправьте, если согласны:\n<code>{escape(command)}</code>",
+            f"🛡 <b>Предложение PRISMA_AI: наказание</b>\nСкопируйте и отправьте, если согласны:\n<code>{escape(command)}</code>",
             None))
         return {"ok": "command shown to admin; the admin must send it themselves"}
     if name == "report_bug":
         if not diagnostics.issue_configured():
             return {"error": "issue tracker not configured (GITHUB_TOKEN/GITHUB_REPO)"}
         url, err = await diagnostics.create_issue(
-            f"[Copilot] {str(args.get('title') or 'bug')[:100]}",
+            f"[PRISMA_AI] {str(args.get('title') or 'bug')[:100]}",
             f"{str(args.get('details') or '')[:3000]}\n\nПоследние ошибки бота:\n" + "\n".join(diagnostics.recent_errors(10)),
         )
         return {"error": err} if err else {"issue": url}
@@ -239,7 +239,7 @@ async def execute(name: str, args: dict, ctx: Context) -> dict:
             return {"error": "application not found among pending"}
         verb = "одобрить" if args.get("action") == "approve" else "отклонить"
         ctx.cards.append((
-            f"📋 <b>Предложение Copilot: {verb} заявку</b> #{escape(str(row.get('application_no') or '—'))}\n"
+            f"📋 <b>Предложение PRISMA_AI: {verb} заявку</b> #{escape(str(row.get('application_no') or '—'))}\n"
             f"{escape(str(row.get('full_name') or '—'))} · <code>{escape(str(row.get('nickname') or '—'))}</code>",
             application_actions(str(row["id"]))))
         return {"ok": "confirmation card shown to admin"}
@@ -248,7 +248,7 @@ async def execute(name: str, args: dict, ctx: Context) -> dict:
         if not row:
             return {"error": "report not found among open"}
         ctx.cards.append((
-            f"📢 <b>Предложение Copilot: репорт</b> #{escape(str(row.get('ticket_no') or row['id']))} → {escape(str(args.get('action')))}\n"
+            f"📢 <b>Предложение PRISMA_AI: репорт</b> #{escape(str(row.get('ticket_no') or row['id']))} → {escape(str(args.get('action')))}\n"
             f"{escape(str(row.get('target_nickname') or '—'))}: {escape(str(row.get('description') or '')[:300])}",
             report_actions(str(row["id"]))))
         return {"ok": "confirmation card shown to admin"}
@@ -257,7 +257,7 @@ async def execute(name: str, args: dict, ctx: Context) -> dict:
         if not row:
             return {"error": "appeal not found among open"}
         ctx.cards.append((
-            f"⚖️ <b>Предложение Copilot: апелляция</b> → {escape(str(args.get('action')))}\n{escape(str(row.get('reason') or '')[:300])}",
+            f"⚖️ <b>Предложение PRISMA_AI: апелляция</b> → {escape(str(args.get('action')))}\n{escape(str(row.get('reason') or '')[:300])}",
             appeal_actions(str(row["id"]))))
         return {"ok": "confirmation card shown to admin"}
     return {"error": "unknown tool"}
