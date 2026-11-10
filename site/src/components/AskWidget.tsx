@@ -12,10 +12,17 @@ export function AskWidget() {
   const [reply, setReply] = useState<Reply | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const SUGGESTIONS = ["Как попасть на сервер?", "Где правила?", "Какой IP сервера?"];
+
   async function submit(event: FormEvent) {
     event.preventDefault();
-    const value = question.trim();
+    await ask(question);
+  }
+
+  async function ask(raw: string) {
+    const value = raw.trim();
     if (value.length < 2 || busy) return;
+    setQuestion(value);
     setBusy(true);
     setReply(null);
     try {
@@ -64,16 +71,31 @@ export function AskWidget() {
               <p className="whitespace-pre-line">{reply.answer}</p>
               {reply.links.length ? (
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {reply.links.map((link) => (
-                    <Link key={link.href} href={link.href} className="ox-btn ox-btn-sm" onClick={() => setOpen(false)}>
-                      {link.label}
-                    </Link>
-                  ))}
+                  {reply.links.map((link) =>
+                    /^https?:\/\//.test(link.href) ? (
+                      <a key={link.href} href={link.href} target="_blank" rel="noopener noreferrer" className="ox-btn ox-btn-sm">
+                        {link.label}
+                      </a>
+                    ) : (
+                      <Link key={link.href} href={link.href} className="ox-btn ox-btn-sm" onClick={() => setOpen(false)}>
+                        {link.label}
+                      </Link>
+                    ),
+                  )}
                 </div>
               ) : null}
             </div>
           ) : (
-            <p className="mt-3 text-xs text-muted-foreground">Подскажу, где что находится и как подать заявку.</p>
+            <div className="mt-3">
+              <p className="text-xs text-muted-foreground">Подскажу, где что находится и как подать заявку.</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {SUGGESTIONS.map((item) => (
+                  <button key={item} type="button" disabled={busy} onClick={() => void ask(item)} className="ox-btn ox-btn-sm">
+                    {item}
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
         </section>
       ) : null}

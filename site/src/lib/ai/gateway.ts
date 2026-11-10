@@ -28,7 +28,7 @@ export async function askModel(system: string, question: string): Promise<string
         signal: AbortSignal.timeout(25_000),
       });
       if (!response.ok) {
-        lastError = `HTTP ${response.status}`;
+        lastError = `${model} HTTP ${response.status}`;
         continue;
       }
       const data = await response.json();
@@ -39,5 +39,7 @@ export async function askModel(system: string, question: string): Promise<string
       lastError = error instanceof Error ? error.name : "error";
     }
   }
+  // Status/class only, never headers or keys: this is what shows up in Vercel runtime logs.
+  console.error("[ai] all models failed:", lastError);
   throw new Error(lastError);
 }

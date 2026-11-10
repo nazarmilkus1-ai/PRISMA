@@ -16,6 +16,7 @@ from db.admin import find_players, open_appeals, open_reports, pending_applicati
 from db.rpc import bot_check_admin_permission, bot_list_current_participants, bot_list_inactive_members
 from keyboards.admin_actions import application_actions, appeal_actions, report_actions
 from services.ai.client import AIError, chat_with_fallback
+from services.ai.players import PlayerFilter, apply_player_filter
 
 MAX_ROWS = 60
 MAX_TOOL_CHARS = 6000
@@ -39,7 +40,10 @@ def _fn(name: str, description: str, properties: dict | None = None, required: l
 
 
 TOOLS = [
-    _fn("list_players", "Список участников PRISMA: имя, @username, Minecraft-ник."),
+    _fn("list_players",
+        "Список участников PRISMA: имя, @username, Minecraft-ник. Bedrock-игроки — те, чей ник начинается с точки.",
+        {"platform": {"type": "string", "enum": ["bedrock", "java"], "description": "Фильтр по платформе"},
+         "telegram": {"type": "string", "enum": ["with", "without"], "description": "Есть ли @username в Telegram"}}),
     _fn("find_player", "Найти игрока по нику, @username или Telegram ID.", {"query": {"type": "string"}}, ["query"]),
     _fn("list_inactive", "Кто неактивен в чате дольше N дней (1..30).", {"days": {"type": "integer"}}, ["days"]),
     _fn("list_pending_applications", "Заявки на вступление, ожидающие решения."),
@@ -96,6 +100,9 @@ async def execute(name: str, args: dict, ctx: Context) -> dict:
     if name == "list_players":
         result = await bot_list_current_participants()
         rows = result.data if not result.error and isinstance(result.data, list) else []
+        platform = args.get("platform") if args.get("platform") in {"bedrock", "java"} else None
+        telegram = args.get("telegram") if args.get("telegram") in {"with", "without"} else None
+        rows = apply_player_filter(rows, PlayerFilter(platform=platform, telegram=telegram))
         return {"total": len(rows), "players": _clip(rows, ("display_name", "username", "nickname"))}
     if name == "find_player":
         rows, err = await find_players(ctx.admin_id, str(args.get("query") or "")[:64])

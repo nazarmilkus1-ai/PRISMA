@@ -385,7 +385,7 @@ async def main():
         admin_actions.router,
         # Social and market callbacks are private UI callbacks; they must be
         # registered before menu's catch-all stale_callback.
-        social.router, market.router, minecraft_commands.router, support.router, menu.router, errors.router,
+        social.router, market.router, minecraft_commands.router, support.router, menu.router, ai.free_router, errors.router,
     ):
         private.include_router(r)
 

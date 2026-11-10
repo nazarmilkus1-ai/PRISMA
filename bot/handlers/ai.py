@@ -1,4 +1,6 @@
+import logging
 import re
+import time
 from html import escape
 
 from aiogram import F, Router, types
@@ -10,14 +12,18 @@ from db.rpc import bot_get_profile, bot_get_user_status
 from fsm.states import AskForm
 from handlers.guide import build_guide
 from db.rpc import bot_check_admin_permission, bot_list_current_participants, bot_list_inactive_members
-from services.ai import navigator
+from services.ai import navigator, sections
 from services.ai.admin_tools import run_copilot
 from services.ai.bench import run_bench
-from services.ai.client import AIError, is_configured
-from utils.permissions import has_any_staff_permission, require_admin_mode
+from services.ai.client import AIError, base_url, chat, fallback_model, is_configured, model_for
+from services.ai.players import apply_player_filter, parse_player_filter
+from utils.permissions import has_any_staff_permission, is_admin_mode, require_admin_mode
 from utils.rules import rules_text
 
 router = Router(name="ai")
+# Free-text questions in private chat; registered last so every dialog with its own state wins.
+free_router = Router(name="ai_free")
+logger = logging.getLogger(__name__)
 
 
 async def _status_for_intent(tg_id: int, kind: str | None) -> str:
@@ -25,6 +31,17 @@ async def _status_for_intent(tg_id: int, kind: str | None) -> str:
     if kind not in {"guide", "apply"}:
         return ""
     return str(await bot_get_user_status(tg_id) or "")
+
+
+async def _fallback_menu(message: types.Message, text: str):
+    """Never leave a member with a dead end: show the real menu for their status."""
+    from handlers.menu import _menu_for  # local import: menu imports this package's neighbours
+
+    await message.answer(text, reply_markup=await _menu_for(message.from_user.id))
+
+
+def _is_short(question: str) -> bool:
+    return len(question.split()) <= 6
 
 
 async def _answer(message: types.Message, question: str):
@@ -50,21 +67,46 @@ async def _answer(message: types.Message, question: str):
         await message.answer(text, parse_mode="HTML", reply_markup=markup)
         return
 
-    if not is_configured("user"):
-        await message.answer("🤖 Помощник пока не подключён. Используйте /help или /support.")
+    configured = is_configured("user")
+    matched = sections.match_sections(question)
+    # A short question that names a section is answered by code; longer ones go to the model (with the buttons attached).
+    if matched and (not configured or _is_short(question)):
+        status = str(await bot_get_user_status(tg_id) or "")
+        built = sections.build_answer(question, status)
+        if built:
+            await message.answer(built[0], reply_markup=built[1])
+            return
+
+    if not configured:
+        await _fallback_menu(message, "🤖 Умный помощник пока не подключён, но вот куда можно нажать:")
         return
     if not navigator.allowed(tg_id):
         await message.answer("⏳ Слишком много вопросов подряд. Попробуйте чуть позже.")
         return
+    status = str(await bot_get_user_status(tg_id) or "")
     waiting = await message.answer("🤖 Думаю…")
+    markup = None
+    if matched:
+        built = sections.build_answer(question, status)
+        markup = built[1] if built else None
     try:
         text = await navigator.ask_model(question, status)
-    except AIError:
-        text = "😕 Не получилось ответить. Попробуйте переформулировать или откройте /help."
+    except AIError as exc:
+        logger.warning("navigator model failed: %s", exc)
+        try:
+            await waiting.delete()
+        except Exception:
+            pass
+        built = sections.build_answer(question, status) if matched else None
+        if built:
+            await message.answer(built[0], reply_markup=built[1])
+        else:
+            await _fallback_menu(message, "😕 Не получилось ответить. Выберите нужный раздел:")
+        return
     try:
-        await waiting.edit_text(text)  # plain text: model output is never parsed as HTML
+        await waiting.edit_text(text, reply_markup=markup)  # plain text: model output is never parsed as HTML
     except Exception:
-        await message.answer(text)
+        await message.answer(text, reply_markup=markup)
 
 
 @router.message(Command("ask", "спросить"), F.chat.type == "private")
@@ -108,9 +150,45 @@ async def ai_bench(message: types.Message):
     await message.answer(await run_bench(), parse_mode="HTML")
 
 
+@free_router.message(StateFilter(None), F.text, ~F.text.startswith("/"))
+async def free_text(message: types.Message):
+    text = (message.text or "").strip()
+    if len(text) < 3 or message.from_user is None:
+        return
+    # Staff in admin mode talk to the Copilot, everyone else to the navigator.
+    if await is_admin_mode(message.from_user.id):
+        await _copilot(message, text)
+        return
+    await _answer(message, text)
+
+
+@router.message(Command("ai_status"), F.chat.type == "private")
+async def ai_status(message: types.Message):
+    if not await has_any_staff_permission(message.from_user.id) or not await require_admin_mode(message):
+        return
+    host = re.sub(r"^https?://", "", base_url()).split("/")[0]
+    lines = [f"🔌 <b>ИИ-шлюз</b>: <code>{escape(host)}</code>"]
+    checks = (("пользователи", "user", model_for("user")), ("админы", "admin", model_for("admin")),
+              ("запасная модель", "user", fallback_model()))
+    for title, role, model in checks:
+        if not is_configured(role):
+            lines.append(f"• {title}: ключ не задан")
+            continue
+        started = time.monotonic()
+        try:
+            await chat([{"role": "user", "content": "Ответь одним словом: ок"}], role=role, model=model, max_tokens=8, timeout=25)
+            lines.append(f"• {title}: ✅ <code>{escape(model)}</code> · {int((time.monotonic() - started) * 1000)} мс")
+        except AIError as exc:
+            lines.append(f"• {title}: ❌ <code>{escape(model)}</code> — {escape(str(exc))}")
+    await message.answer("\n".join(lines), parse_mode="HTML")
+
+
 # ---------------------------------------------------------------- admin Copilot
 
 _PLAYERS_RE = re.compile(r"(список|все|всех|выведи|покажи|склади|составь).*(игрок|участник|ник|юз|username|юзернейм)|^(ники|юзы)$", re.I)
+_PLATFORM_LIST_RE = re.compile(
+    r"(бедрок|бэдрок|bedrock|java|джав|жав)\w*.*(игрок|участник|ник)|(игрок|участник|ник)\w*.*(бедрок|бэдрок|bedrock|java|джав|жав)", re.I
+)
 _INACTIVE_RE = re.compile(r"неактив", re.I)
 
 
@@ -140,21 +218,35 @@ async def _send_long(message: types.Message, title: str, lines: list[str], filen
     await message.answer(chunk, parse_mode="HTML")
 
 
-async def _players_report(message: types.Message):
+async def _players_report(message: types.Message, request: str = ""):
+    flt = parse_player_filter(request)
     result = await bot_list_current_participants()
     if result.error or not isinstance(result.data, list):
         await message.answer("❌ Не удалось получить список участников.")
         return
+    rows = apply_player_filter(result.data, flt)
     if not result.data:
         await message.answer("ℹ️ Участников пока нет.")
         return
+    if not rows:
+        await message.answer(f"ℹ️ Подходящих участников нет ({escape(flt.describe())}).")
+        return
     lines = []
-    for index, row in enumerate(result.data, 1):
+    for index, row in enumerate(rows, 1):
+        nick = escape(str(row.get("nickname") or "—"))
+        if flt.nicks_only:
+            lines.append(f"{index}. <code>{nick}</code>")
+            continue
         name = escape(str(row.get("display_name") or "—"))
         username = row.get("username")
         user = f"@{escape(str(username))}" if username else "—"
-        lines.append(f"{index}. {name} · {user} · <code>{escape(str(row.get('nickname') or '—'))}</code>")
-    await _send_long(message, f"👥 <b>Участники PRISMA ({len(lines)})</b>\nИмя · Telegram · Minecraft", lines, "prisma_players.txt")
+        lines.append(f"{index}. {name} · {user} · <code>{nick}</code>")
+    title = "👥 <b>Участники PRISMA" + (f" — {escape(flt.describe())}" if flt.is_filtered else "") + f" ({len(lines)})</b>"
+    if not flt.nicks_only:
+        title += "\nИмя · Telegram · Minecraft"
+    if flt.unsupported:
+        title += "\nℹ️ Часть условий без ИИ не применяется, показан список по платформе/юзернейму."
+    await _send_long(message, title, lines, "prisma_players.txt")
 
 
 async def _inactive_report(message: types.Message, days: int):
@@ -187,12 +279,15 @@ async def _copilot(message: types.Message, request: str):
         else:
             await message.answer("❌ Недостаточно прав.")
         return
-    if _PLAYERS_RE.search(request):
-        if await _has(admin_id, "player.view"):
-            await _players_report(message)
-        else:
-            await message.answer("❌ Недостаточно прав.")
-        return
+    if _PLAYERS_RE.search(request) or _PLATFORM_LIST_RE.search(request):
+        flt = parse_player_filter(request)
+        # Conditions the code cannot apply (online, clan, level…) go to the model when it is available.
+        if not (flt.unsupported and is_configured("admin")):
+            if await _has(admin_id, "player.view"):
+                await _players_report(message, request)
+            else:
+                await message.answer("❌ Недостаточно прав.")
+            return
 
     if not is_configured("admin"):
         await message.answer("🤖 Copilot не настроен: задайте AI_API_KEY_ADMIN.")
@@ -200,8 +295,9 @@ async def _copilot(message: types.Message, request: str):
     waiting = await message.answer("🤖 Работаю…")
     try:
         text, cards = await run_copilot(admin_id, request)
-    except AIError:
-        await waiting.edit_text("😕 Не получилось выполнить запрос. Попробуйте проще, например: «заявки» или «неактив 14».")
+    except AIError as exc:
+        logger.warning("copilot model failed: %s", exc)
+        await waiting.edit_text("😕 Не получилось выполнить запрос. Попробуйте проще, например: «заявки», «игроки бедрок» или «неактив 14». Проверка связи: /ai_status")
         return
     try:
         await waiting.edit_text(text)
