@@ -16,6 +16,7 @@ from services.ai import navigator, sections
 from services.ai.admin_tools import run_copilot
 from services.ai.bench import run_bench
 from services.ai.client import AIError, base_url, chat, fallback_model, is_configured, model_for
+from services.ai.live import live_answer, live_intent
 from services.ai.players import apply_player_filter, parse_player_filter
 from utils.mdhtml import strip_markdown, to_telegram_html
 from utils.permissions import has_any_staff_permission, is_admin_mode, require_admin_mode
@@ -45,7 +46,7 @@ def _is_short(question: str) -> bool:
     return len(question.split()) <= 6
 
 
-async def _answer(message: types.Message, question: str):
+async def _answer(message: types.Message, question: str, private: bool = True):
     question = (question or "").strip()
     if len(question) < 2:
         await message.answer("Напишите вопрос чуть подробнее.")
@@ -54,6 +55,12 @@ async def _answer(message: types.Message, question: str):
     kind = navigator.fast_kind(question)
 
     # Code-first: deterministic answers, no model call and no database lookup needed.
+    if kind is None and live_intent(question):
+        accepted = str(await bot_get_user_status(tg_id) or "") == "ACCEPTED"
+        live = await live_answer(question, tg_id, accepted, private)
+        if live:
+            await message.answer(live, parse_mode="HTML")
+            return
     if kind == "rules":
         await message.answer(rules_text(), parse_mode="HTML")
         return
@@ -361,3 +368,18 @@ async def copilot_waiting(message: types.Message, state: FSMContext):
     if not await has_any_staff_permission(message.from_user.id) or not await require_admin_mode(message):
         return
     await _copilot(message, message.text)
+
+
+# ---------------------------------------------------------------- group chats
+group_router = Router(name="ai_group")
+
+
+@group_router.message(Command("ai", "pai", "prisma_ai"), F.chat.type.in_({"group", "supergroup"}))
+async def group_ai(message: types.Message, command: CommandObject):
+    question = (command.args or "").strip()
+    if not question and message.reply_to_message:
+        question = (message.reply_to_message.text or "").strip()
+    if not question:
+        await message.reply("🤖 PRISMA_AI: напишите вопрос после команды, например /ai что такое призма")
+        return
+    await _answer(message, question, private=False)
