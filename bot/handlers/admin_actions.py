@@ -6,14 +6,14 @@ Destructive actions need a second tap ("!" suffix) so a stray tap does nothing.
 from aiogram import F, Router, types
 from aiogram.types import InlineKeyboardMarkup
 
-from db.rpc import bot_approve_application, bot_manage_appeal, bot_reject_application, bot_set_report_status
+from db.rpc import bot_approve_application, bot_manage_appeal, bot_manage_support_request, bot_reject_application, bot_set_report_status
 from handlers.admin import require_callback_perm
-from keyboards.admin_actions import _btn, application_actions, appeal_actions, report_actions
+from keyboards.admin_actions import _btn, application_actions, appeal_actions, report_actions, support_actions
 
 router = Router(name="admin_actions")
 
 
-_ORIGINAL = {"app": application_actions, "rep": report_actions, "apl": appeal_actions}
+_ORIGINAL = {"app": application_actions, "rep": report_actions, "apl": appeal_actions, "sup": support_actions}
 # action -> (permission, human label, needs confirmation)
 _RULES = {
     ("app", "ok"): ("application.approve", "✅ Заявка одобрена", False),
@@ -23,6 +23,7 @@ _RULES = {
     ("rep", "dis"): ("report.reject", "🚫 Репорт отклонён", True),
     ("apl", "rev"): ("appeal.manage", "👀 Апелляция взята в работу", False),
     ("apl", "ok"): ("appeal.manage", "✅ Апелляция одобрена, наказание снято", True),
+    ("sup", "res"): ("player.view", "✅ Обращение закрыто", False),
     ("apl", "no"): ("appeal.manage", "❌ Апелляция отклонена", True),
 }
 _ERRORS = {
@@ -41,6 +42,8 @@ async def _execute(kind: str, action: str, uid: str, admin_id: int):
     elif kind == "rep":
         status = {"rev": "IN_REVIEW", "res": "RESOLVED", "dis": "DISMISSED"}[action]
         fn = bot_set_report_status(uid, status, admin_id)
+    elif kind == "sup":
+        fn = bot_manage_support_request(admin_id, int(uid), "RESOLVED")
     else:
         name = {"rev": "REVIEW", "ok": "APPROVE", "no": "REJECT"}[action]
         fn = bot_manage_appeal(uid, name, admin_id, None)
@@ -54,6 +57,9 @@ async def admin_action(callback: types.CallbackQuery):
         await callback.answer("Некорректная кнопка.", show_alert=True)
         return
     _, kind, action, uid = parts
+    if kind == "sup" and not uid.isdigit():
+        await callback.answer("Некорректная кнопка.", show_alert=True)
+        return
     confirm = action.endswith("!")
     action = action.rstrip("!")
 

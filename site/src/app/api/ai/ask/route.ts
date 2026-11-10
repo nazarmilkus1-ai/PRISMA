@@ -1,8 +1,26 @@
 import { NextResponse } from "next/server";
 import { aiConfigured, askModel } from "@/lib/ai/gateway";
-import { SYSTEM_PROMPT, fastAnswer } from "@/lib/ai/knowledge";
+import { buildSystemPrompt, fastAnswer, formatWiki } from "@/lib/ai/knowledge";
+import { getPublicWiki } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
+// Reasoning models can take a while; the default serverless limit is too short for them.
+export const maxDuration = 60;
+
+let wikiCache = { at: 0, text: "" };
+
+async function wikiContext(): Promise<string> {
+  const now = Date.now();
+  if (now - wikiCache.at < (wikiCache.text ? 600_000 : 60_000)) return wikiCache.text;
+  let text = "";
+  try {
+    text = formatWiki(await getPublicWiki(""));
+  } catch {
+    text = "";
+  }
+  wikiCache = { at: now, text };
+  return text;
+}
 
 const WINDOW_MS = 60_000;
 const PER_MINUTE = 6;
@@ -64,7 +82,7 @@ export async function POST(request: Request) {
     });
   }
   try {
-    const answer = await askModel(SYSTEM_PROMPT, question);
+    const answer = await askModel(buildSystemPrompt(await wikiContext()), question);
     return NextResponse.json({ answer, links: [] });
   } catch {
     return NextResponse.json({

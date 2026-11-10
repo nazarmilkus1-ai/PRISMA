@@ -31,6 +31,9 @@ logging.basicConfig(
     level=getattr(logging, LOG_LEVEL, logging.INFO),
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
 )
+from services.ai.diagnostics import install as install_error_buffer
+install_error_buffer()
+
 logging.getLogger("aiogram.event").setLevel(logging.WARNING)
 
 SENTRY_DSN = os.getenv("SENTRY_DSN", "").strip()

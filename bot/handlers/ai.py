@@ -17,6 +17,7 @@ from services.ai.admin_tools import run_copilot
 from services.ai.bench import run_bench
 from services.ai.client import AIError, base_url, chat, fallback_model, is_configured, model_for
 from services.ai.players import apply_player_filter, parse_player_filter
+from utils.mdhtml import strip_markdown, to_telegram_html
 from utils.permissions import has_any_staff_permission, is_admin_mode, require_admin_mode
 from utils.rules import rules_text
 
@@ -103,10 +104,22 @@ async def _answer(message: types.Message, question: str):
         else:
             await _fallback_menu(message, "😕 Не получилось ответить. Выберите нужный раздел:")
         return
+    await _send_model_text(waiting, message, text, markup)
+
+
+
+async def _send_model_text(waiting, message, text, markup):
+    """Model text is converted to escaped Telegram HTML; plain text is the fallback."""
     try:
-        await waiting.edit_text(text, reply_markup=markup)  # plain text: model output is never parsed as HTML
+        await waiting.edit_text(to_telegram_html(text), parse_mode="HTML", reply_markup=markup)
+        return
     except Exception:
-        await message.answer(text, reply_markup=markup)
+        pass
+    plain = strip_markdown(text)
+    try:
+        await waiting.edit_text(plain, reply_markup=markup)
+    except Exception:
+        await message.answer(plain, reply_markup=markup)
 
 
 @router.message(Command("ask", "спросить"), F.chat.type == "private")
@@ -176,7 +189,7 @@ async def ai_status(message: types.Message):
             continue
         started = time.monotonic()
         try:
-            await chat([{"role": "user", "content": "Ответь одним словом: ок"}], role=role, model=model, max_tokens=8, timeout=25)
+            await chat([{"role": "user", "content": "Ответь одним словом: ок"}], role=role, model=model, max_tokens=600, timeout=45)
             lines.append(f"• {title}: ✅ <code>{escape(model)}</code> · {int((time.monotonic() - started) * 1000)} мс")
         except AIError as exc:
             lines.append(f"• {title}: ❌ <code>{escape(model)}</code> — {escape(str(exc))}")
@@ -299,10 +312,7 @@ async def _copilot(message: types.Message, request: str):
         logger.warning("copilot model failed: %s", exc)
         await waiting.edit_text("😕 Не получилось выполнить запрос. Попробуйте проще, например: «заявки», «игроки бедрок» или «неактив 14». Проверка связи: /ai_status")
         return
-    try:
-        await waiting.edit_text(text)
-    except Exception:
-        await message.answer(text)
+    await _send_model_text(waiting, message, text, None)
     for card_text, markup in cards:
         await message.answer(card_text, parse_mode="HTML", reply_markup=markup)
 
