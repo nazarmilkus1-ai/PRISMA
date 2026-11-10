@@ -48,5 +48,5 @@ async def wiki_context() -> str:
             text = format_pages(result.data)
     except Exception:  # the Wiki is optional context: never break an answer because of it
         text = ""
-    _cache.update(at=now, ttl=TTL_OK if text else TTL_EMPTY, text=text)
+    _cache["at"], _cache["ttl"], _cache["text"] = now, TTL_OK if text else TTL_EMPTY, text
     return text
