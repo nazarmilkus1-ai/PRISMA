@@ -176,7 +176,7 @@ async def ai_status(message: types.Message):
             continue
         started = time.monotonic()
         try:
-            await chat([{"role": "user", "content": "Ответь одним словом: ок"}], role=role, model=model, max_tokens=8, timeout=25)
+            await chat([{"role": "user", "content": "Ответь одним словом: ок"}], role=role, model=model, max_tokens=600, timeout=45)
             lines.append(f"• {title}: ✅ <code>{escape(model)}</code> · {int((time.monotonic() - started) * 1000)} мс")
         except AIError as exc:
             lines.append(f"• {title}: ❌ <code>{escape(model)}</code> — {escape(str(exc))}")

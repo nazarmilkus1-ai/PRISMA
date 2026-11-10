@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from handlers import ai as ai_handler  # noqa: E402
 from keyboards.inline import main_menu_approved  # noqa: E402
-from services.ai import admin_tools, sections  # noqa: E402
+from services.ai import admin_tools, client, sections, wiki  # noqa: E402
 from services.ai.players import apply_player_filter, parse_player_filter  # noqa: E402
 
 ROWS = [
@@ -149,11 +149,67 @@ class SectionTests(unittest.TestCase):
         known = {"player:server", "player:stats", "player:achievements", "player:top", "player:events", "clans",
                  "market", "news", "polls", "reports", "support", "menu:link", "player:mc_auth",
                  "player:minecraft_commands", "player:notifications", "profile", "menu:help", "about_server",
-                 "apply", "guide"}
+                 "apply", "guide", "about_prisma"}
         for section in sections.SECTIONS:
             for cb in (section.member_cb, section.guest_cb):
                 if cb:
                     self.assertIn(cb, known, section.key)
+
+
+class AnswerQualityTests(unittest.TestCase):
+    def test_what_is_prisma_is_answered_by_code(self):
+        text, markup = sections.build_answer("Что такое призма", "ACCEPTED")
+        self.assertIn("Minecraft", text)
+        self.assertIn("about_prisma", callbacks(markup))
+
+    def test_wiki_context_is_trimmed_and_cleaned(self):
+        pages = [{"title": "Правила", "content": "<p>**Не** читерить</p>\n\n# Заголовок " + "x" * 2000},
+                 {"title": "Пусто", "content": ""}, "garbage"]
+        text = wiki.format_pages(pages, max_chars=1000)
+        self.assertIn("[Правила] Не читерить Заголовок", text)
+        self.assertNotIn("<p>", text)
+        self.assertLessEqual(len(text), 1000)
+
+    def test_empty_wiki_gives_empty_context(self):
+        self.assertEqual(wiki.format_pages([]), "")
+
+    def test_reasoning_only_reply_is_reported_not_returned_empty(self):
+        saved = client.aiohttp.ClientSession
+
+        class Resp:
+            status = 200
+
+            async def json(self, content_type=None):
+                return {"choices": [{"finish_reason": "length", "message": {"content": "", "reasoning_content": "думаю"}}]}
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *a):
+                return False
+
+        class Session:
+            def __init__(self, *a, **k):
+                pass
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *a):
+                return False
+
+            def post(self, *a, **k):
+                return Resp()
+
+        client.aiohttp.ClientSession = Session
+        os.environ["AI_API_KEY_USER"] = "test-key"
+        try:
+            with self.assertRaises(client.AIError) as ctx:
+                run(client.chat([{"role": "user", "content": "hi"}]))
+        finally:
+            client.aiohttp.ClientSession = saved
+            os.environ.pop("AI_API_KEY_USER", None)
+        self.assertIn("token budget", str(ctx.exception))
 
 
 class MenuTests(unittest.TestCase):

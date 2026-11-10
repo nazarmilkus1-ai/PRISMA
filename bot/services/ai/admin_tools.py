@@ -158,7 +158,7 @@ async def run_copilot(admin_id: int, request: str) -> tuple[str, list[tuple[str,
     ctx = Context(admin_id)
     messages: list[dict] = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": request[:800]}]
     for _ in range(MAX_STEPS):
-        message = await chat_with_fallback(messages, role="admin", tools=TOOLS, max_tokens=700, timeout=60)
+        message = await chat_with_fallback(messages, role="admin", tools=TOOLS, max_tokens=1500, timeout=60)
         calls = message.get("tool_calls") or []
         if not calls:
             text = str(message.get("content") or "").strip()

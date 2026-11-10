@@ -7,6 +7,7 @@ Configuration (environment, never committed):
   AI_MODEL_USER       default am/gpt-oss-20b
   AI_MODEL_ADMIN      default am/nemotron-3-ultra-550b-a55b
   AI_MODEL_FALLBACK   default am/nemotron-3.5-lightning-30b-a3b
+  AI_REASONING_EFFORT optional (low|medium|high): sent as reasoning_effort to cut "thinking" time
 """
 from __future__ import annotations
 
@@ -55,9 +56,9 @@ async def chat(
     role: str = "user",
     model: str | None = None,
     tools: list[dict] | None = None,
-    max_tokens: int = 500,
+    max_tokens: int = 1200,
     temperature: float = 0.2,
-    timeout: float = 30.0,
+    timeout: float = 45.0,
 ) -> dict:
     """Return the assistant message dict. Raises AIError on any failure."""
     key = key_for(role)
@@ -70,6 +71,9 @@ async def chat(
         "temperature": temperature,
         "stream": False,
     }
+    effort = _env("AI_REASONING_EFFORT").lower()
+    if effort in {"low", "medium", "high"}:
+        payload["reasoning_effort"] = effort
     if tools:
         payload["tools"] = tools
         payload["tool_choice"] = "auto"
@@ -90,9 +94,15 @@ async def chat(
     except Exception as exc:  # network, timeout, bad JSON
         raise AIError(type(exc).__name__) from exc
     try:
-        return body["choices"][0]["message"]
+        choice = body["choices"][0]
+        message = choice["message"]
     except (KeyError, IndexError, TypeError) as exc:
         raise AIError("malformed response") from exc
+    if not str(message.get("content") or "").strip() and not message.get("tool_calls"):
+        # Reasoning models can spend the whole budget on thinking and return no text.
+        reason = "token budget used up by reasoning" if choice.get("finish_reason") == "length" else "empty answer"
+        raise AIError(reason)
+    return message
 
 
 async def chat_with_fallback(messages: list[dict], *, role: str = "user", **kwargs) -> dict:

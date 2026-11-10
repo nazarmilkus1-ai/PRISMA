@@ -644,6 +644,9 @@ async def bot_get_polls(tg_id):
 async def bot_get_poll_for_message(poll_id):
     return await call_rpc_async("bot_get_poll_for_message", {"p_poll_id": poll_id})
 
+async def bot_get_public_wiki(query="", limit=30):
+    return await call_rpc_async("get_public_wiki", {"p_query": query, "p_limit": limit})
+
 async def bot_get_news(tg_id):
     return await call_rpc_async("bot_get_news", {"p_tg_id": tg_id})
 

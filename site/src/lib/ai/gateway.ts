@@ -21,11 +21,11 @@ export async function askModel(system: string, question: string): Promise<string
         body: JSON.stringify({
           model,
           messages: [{ role: "system", content: system }, { role: "user", content: question }],
-          max_tokens: 400,
+          max_tokens: 1200,
           temperature: 0.2,
           stream: false,
         }),
-        signal: AbortSignal.timeout(25_000),
+        signal: AbortSignal.timeout(40_000),
       });
       if (!response.ok) {
         lastError = `${model} HTTP ${response.status}`;
@@ -34,7 +34,8 @@ export async function askModel(system: string, question: string): Promise<string
       const data = await response.json();
       const text = String(data?.choices?.[0]?.message?.content ?? "").trim();
       if (text) return text;
-      lastError = "empty";
+      // Reasoning models can burn the whole budget on thinking and return no text.
+      lastError = `${model} ${data?.choices?.[0]?.finish_reason === "length" ? "token budget used up" : "empty answer"}`;
     } catch (error) {
       lastError = error instanceof Error ? error.name : "error";
     }
