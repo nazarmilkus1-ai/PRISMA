@@ -7,7 +7,7 @@ def _with_mode_switch(rows, show_admin_switch: bool):
     if show_admin_switch:
         rows.append([
             InlineKeyboardButton(
-                text="🛡 Режим администратора",
+                text="🛡 Админ-панель",
                 callback_data="mode:admin",
             )
         ])
@@ -129,20 +129,8 @@ def player_center_keyboard():
 
 
 def admin_menu(panel_url: str | None = None):
-    rows = [
-        [InlineKeyboardButton(text="📋 Заявки", callback_data="admin:applications"),
-         InlineKeyboardButton(text="📢 Репорты", callback_data="admin:reports")],
-        [InlineKeyboardButton(text="⚖️ Апелляции", callback_data="admin:appeals"),
-         InlineKeyboardButton(text="🤖 Автомод", callback_data="admin:automod")],
-        [InlineKeyboardButton(text="👥 Игроки", callback_data="admin:players"),
-         InlineKeyboardButton(text="🖥 Сервер", callback_data="admin:server")],
-        [InlineKeyboardButton(text="🛡 Модерация", callback_data="admin:moderation"),
-         InlineKeyboardButton(text="🤖 PRISMA_AI", callback_data="ai:admin")],
-    ]
-    if panel_url:
-        rows.append([InlineKeyboardButton(text="🌐 Открыть Prisma Panel", url=panel_url)])
-    rows.append([InlineKeyboardButton(text="👤 Режим участника", callback_data="mode:participant")])
-    return InlineKeyboardMarkup(inline_keyboard=rows)
+    from keyboards.admin_panel import home_keyboard
+    return home_keyboard(None, None, panel_url)
 
 
 def notification_keyboard(prefs: dict):

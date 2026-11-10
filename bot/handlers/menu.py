@@ -95,12 +95,8 @@ async def switch_to_admin(callback: types.CallbackQuery):
     await callback.answer("🛡 Включён режим администратора.")
 
     if callback.message:
-        await callback.message.edit_text(
-            "🛡 <b>Режим администратора</b>\n\n"
-            "Вы вернулись в интерфейс управления PRISMA.",
-            parse_mode="HTML",
-            reply_markup=admin_menu(PANEL_URL),
-        )
+        from handlers.admin_panel import send_dashboard
+        await send_dashboard(callback.message, edit=True)
 
 
 @router.callback_query(F.data.in_(set(SECTION_TEXTS)))
