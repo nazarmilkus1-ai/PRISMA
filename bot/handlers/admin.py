@@ -3,25 +3,22 @@ from html import escape
 from aiogram import F, Router, types
 from aiogram.filters import Command
 
-from config import MODERATION_GROUP_ID, PANEL_URL
+from config import MODERATION_GROUP_ID
 from db.admin import (
     find_players,
     open_appeals,
     open_reports,
     pending_applications,
 )
-from db.player import _user
 from db.rpc import (
     bot_approve_application,
     bot_check_admin_permission,
     bot_get_automod_config,
-    bot_get_pending_count,
     bot_get_server_status,
     bot_reject_application,
     bot_set_report_status,
     bot_manage_appeal,
 )
-from keyboards.inline import admin_menu
 from keyboards.admin_actions import application_actions, appeal_actions, report_actions
 from utils.errors import safe_rpc_error
 from utils.permissions import require_admin_mode, require_admin_mode_callback
@@ -36,17 +33,6 @@ async def require_perm(message: types.Message, permission: str) -> bool:
         await message.answer("❌ Недостаточно прав.")
         return False
     return True
-
-
-@router.message(Command("admin"))
-async def admin_command(message: types.Message):
-    if not await require_admin_mode(message):
-        return
-    await message.answer(
-        "🛡 <b>PRISMA STAFF</b>\n\nВыберите раздел управления.",
-        reply_markup=admin_menu(PANEL_URL),
-        parse_mode="HTML",
-    )
 
 
 @router.callback_query(F.data == "admin:applications")

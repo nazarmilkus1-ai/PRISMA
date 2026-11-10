@@ -3,9 +3,8 @@ from aiogram import Router, types
 from aiogram.filters import Command, CommandObject
 from aiogram.fsm.context import FSMContext
 
-from config import PANEL_URL
 from db.rpc import bot_get_user_status, bot_consume_login_code, bot_touch_user
-from keyboards.inline import admin_menu, main_menu_before_apply, main_menu_pending, main_menu_approved
+from keyboards.inline import main_menu_before_apply, main_menu_pending, main_menu_approved
 from utils.commands import set_user_commands
 from utils.mode import ADMIN_MODE
 from utils.permissions import ensure_mode, has_any_staff_permission
@@ -31,11 +30,8 @@ async def _send_status_menu(message: types.Message, status: str):
     await set_user_commands(message.bot, tg_id, admin=mode == ADMIN_MODE)
 
     if mode == ADMIN_MODE:
-        await message.answer(
-            "🛡 <b>PRISMA STAFF</b>\n\nВыберите раздел управления.",
-            reply_markup=admin_menu(PANEL_URL),
-            parse_mode="HTML",
-        )
+        from handlers.admin_panel import send_dashboard
+        await send_dashboard(message)
         return
 
     show_admin_switch = await has_any_staff_permission(tg_id)

@@ -61,7 +61,7 @@ GROUP_ADMIN_COMMANDS = GROUP_COMMANDS + [
 
 ADMIN_COMMANDS = PUBLIC_COMMANDS + [
     BotCommand(command="onboarding", description="Позвать на вступление"),
-    BotCommand(command="admin", description="Админ-центр"),
+    BotCommand(command="admin", description="Админ-панель"),
     BotCommand(command="ai", description="PRISMA_AI: задачи для админа"),
     BotCommand(command="ai_status", description="Проверка связи с ИИ"),
     BotCommand(command="players", description="Поиск игроков"),
