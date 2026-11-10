@@ -28,7 +28,7 @@ def main_menu_before_apply(show_admin_switch: bool = False):
         [InlineKeyboardButton(text="📖 О PRISMA", callback_data="about_prisma"),
          InlineKeyboardButton(text="📜 Правила", callback_data="rules")],
         [_wiki_button(),
-         InlineKeyboardButton(text="🤖 Спросить", callback_data="ask")],
+         InlineKeyboardButton(text="🤖 PRISMA_AI", callback_data="ask")],
         [InlineKeyboardButton(text="❓ Помощь", callback_data="menu:help")],
     ]
     return _with_mode_switch(rows, show_admin_switch)
@@ -49,7 +49,7 @@ def main_menu_pending(show_admin_switch: bool = False):
         [InlineKeyboardButton(text="📖 О PRISMA", callback_data="about_prisma"),
          InlineKeyboardButton(text="📜 Правила", callback_data="rules")],
         [_wiki_button(),
-         InlineKeyboardButton(text="🤖 Спросить", callback_data="ask")],
+         InlineKeyboardButton(text="🤖 PRISMA_AI", callback_data="ask")],
         [InlineKeyboardButton(text="❓ Помощь", callback_data="menu:help")],
     ]
     return _with_mode_switch(rows, show_admin_switch)
@@ -68,7 +68,7 @@ def main_menu_approved(show_admin_switch: bool = False):
         [InlineKeyboardButton(text="📢 Жалоба", callback_data="reports"),
          InlineKeyboardButton(text="🆘 Поддержка", callback_data="support")],
         [InlineKeyboardButton(text="🔔 Уведомления", callback_data="player:notifications"),
-         InlineKeyboardButton(text="🤖 Спросить", callback_data="ask"),
+         InlineKeyboardButton(text="🤖 PRISMA_AI", callback_data="ask"),
          InlineKeyboardButton(text="➕ Ещё", callback_data="menu:player")],
     ]
     return _with_mode_switch(rows, show_admin_switch)
@@ -137,7 +137,7 @@ def admin_menu(panel_url: str | None = None):
         [InlineKeyboardButton(text="👥 Игроки", callback_data="admin:players"),
          InlineKeyboardButton(text="🖥 Сервер", callback_data="admin:server")],
         [InlineKeyboardButton(text="🛡 Модерация", callback_data="admin:moderation"),
-         InlineKeyboardButton(text="🤖 Copilot", callback_data="ai:admin")],
+         InlineKeyboardButton(text="🤖 PRISMA_AI", callback_data="ai:admin")],
     ]
     if panel_url:
         rows.append([InlineKeyboardButton(text="🌐 Открыть Prisma Panel", url=panel_url)])
