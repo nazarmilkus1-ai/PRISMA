@@ -15,6 +15,8 @@ on:
       - "README.md"
       - "docs/**"
       - "docker-compose.yml"
+      - "vercel.json"
+      - "modules/**"
       - ".gitignore"
   workflow_dispatch:
 
@@ -62,11 +64,12 @@ jobs:
             # Use the GitHub PR-files API instead of relying on a local synthetic merge ref.
             changed_files="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files" --jq '.[].filename' 2>/dev/null || true)"
           else
-            # Manual dispatch compares the selected topic branch with the integration branch.
-            git fetch --no-tags origin rebuild/prisma-v3 >/dev/null 2>&1 || true
-            if git rev-parse --verify 'origin/rebuild/prisma-v3^{commit}' >/dev/null 2>&1; then
-              changed_files="$(git diff --name-only origin/rebuild/prisma-v3...HEAD 2>/dev/null || true)"
-            fi
+            # Manual runs have no PR file list: verify every component.
+            site=true
+            panel=true
+            bot=true
+            plugin=true
+            changed_files="all"
           fi
 
           while IFS= read -r file; do
@@ -176,6 +179,11 @@ jobs:
           python-version: "3.12"
       - name: Compile bot
         run: python -m compileall -q bot
+      - name: Install bot dependencies
+        run: python -m pip install --no-cache-dir -r bot/requirements.txt
+      - name: Run bot tests
+        working-directory: bot
+        run: python -m unittest discover -s tests -t . -v
 
   minecraft-plugin:
     needs: changes
@@ -239,3 +247,7 @@ jobs:
         run: node scripts/verify-release.mjs
       - name: Verify architecture boundaries
         run: node scripts/verify-architecture.mjs
+      - name: Verify module registry
+        run: node scripts/verify-modules.mjs
+      - name: Verify RPC contracts
+        run: node scripts/verify-rpc-contracts.mjs
