@@ -9,6 +9,10 @@ from db.rpc import (
     bot_close_market_inquiry,
     bot_close_market_listing,
     bot_create_market_inquiry,
+    bot_create_market_offer,
+    bot_get_market_offers,
+    bot_respond_market_offer,
+    bot_withdraw_market_offer,
     bot_create_market_listing,
     bot_get_market,
     bot_get_market_inquiries,
@@ -101,6 +105,38 @@ def _format_inquiry(row: dict, index: int) -> str:
     return "\n".join(lines)
 
 
+OFFER_STATUS = {"PENDING": "⏳ ждёт ответа", "ACCEPTED": "✅ принято", "REJECTED": "❌ отклонено",
+                "COUNTERED": "🔁 встречное предложение", "WITHDRAWN": "↩️ отозвано"}
+
+
+def _format_offer(row: dict, index: int) -> str:
+    title = escape(str(row.get("listing_title") or "Объявление"))
+    partner = escape(str(row.get("partner_nickname") or "Участник"))
+    who = "Вы предложили" if row.get("mine") else f"{partner} предлагает"
+    status = "⌛ истекло" if row.get("expired") else OFFER_STATUS.get(str(row.get("status") or ""), "—")
+    lines = [f"<b>{index}. {title}</b>", f"{who}: <b>{escape(str(row.get('price_text') or '—'))}</b> · {status} · раунд {row.get('round', 1)}/6"]
+    if row.get("note"):
+        lines.append(f"Заметка: {escape(str(row['note'])[:300])}")
+    lines.append(f"ID: <code>{escape(str(row.get('id') or ''))}</code>")
+    return "\n".join(lines)
+
+
+def _offer_buttons(row: dict) -> types.InlineKeyboardMarkup | None:
+    offer_id = str(row.get("id") or "")
+    if not _uuid(offer_id):
+        return None
+    if row.get("actionable"):
+        return types.InlineKeyboardMarkup(inline_keyboard=[[
+            types.InlineKeyboardButton(text="✅ Принять", callback_data=f"mko:acc:{offer_id}"),
+            types.InlineKeyboardButton(text="❌ Отклонить", callback_data=f"mko:rej:{offer_id}"),
+        ]])
+    if row.get("mine") and row.get("status") == "PENDING" and not row.get("expired"):
+        return types.InlineKeyboardMarkup(inline_keyboard=[[
+            types.InlineKeyboardButton(text="↩️ Отозвать", callback_data=f"mko:wd:{offer_id}"),
+        ]])
+    return None
+
+
 def _error(result, fallback: str = "Не удалось выполнить действие.") -> str:
     raw = str(result.error or "").strip()
     aliases = {
@@ -116,6 +152,14 @@ def _error(result, fallback: str = "Не удалось выполнить де�
         "INQUIRY_FORBIDDEN": "У вас нет доступа к этому запросу.",
         "INQUIRY_CLOSED": "Этот запрос уже закрыт.",
         "INQUIRY_ALREADY_ANSWERED": "На этот запрос уже ответили.",
+        "INVALID_OFFER": "Цена — от 1 до 60 символов, заметка — до 300.",
+        "OFFER_ALREADY_OPEN": "По этому объявлению у вас уже есть активное предложение.",
+        "OFFER_NOT_FOUND": "Предложение не найдено или уже закрыто.",
+        "OFFER_FORBIDDEN": "Ответить на это предложение может только другая сторона.",
+        "OFFER_CLOSED": "Это предложение уже обработано.",
+        "OFFER_EXPIRED": "Время на ответ (72 часа) истекло. Предложите цену заново.",
+        "OFFER_MAX_ROUNDS": "Достигнут лимит из 6 раундов торга: договоритесь лично.",
+        "INVALID_OFFER_ACTION": "Неизвестное действие.",
     }
     return aliases.get(raw, fallback)
 
@@ -131,6 +175,7 @@ async def _show_market(message: types.Message, tg_id: int):
     blocks = [
         "🛒 <b>Рынок PRISMA</b>",
         "Запрос: <code>/рынок запрос ID | сообщение</code>",
+        "Торг: <code>/рынок предложить ID | цена | заметка</code>",
         "",
     ]
     blocks.extend(_format_listing(row, i) for i, row in enumerate(result.data[:12], 1))
@@ -182,6 +227,48 @@ async def market_command(message: types.Message):
         blocks = [f"🔎 <b>Результаты: {escape(rest)}</b>", ""]
         blocks.extend(_format_listing(row, i) for i, row in enumerate(result.data[:12], 1))
         await message.answer("\n\n".join(blocks), parse_mode="HTML")
+        return
+
+    if command in {"торг", "offers", "bargain"}:
+        result = await bot_get_market_offers(message.from_user.id)
+        if result.error or not isinstance(result.data, list):
+            await message.answer(_error(result, "Не удалось загрузить торг."))
+            return
+        if not result.data:
+            await message.answer(
+                "🤝 Торгов пока нет.\nПредложить цену: <code>/рынок предложить ID | цена | заметка</code>",
+                parse_mode="HTML",
+            )
+            return
+        await message.answer("🤝 <b>Ваш торг</b>\nВстречная цена: <code>/рынок встречная ID | цена | заметка</code>", parse_mode="HTML")
+        for i, row in enumerate(result.data[:10], 1):
+            await message.answer(_format_offer(row, i), parse_mode="HTML", reply_markup=_offer_buttons(row))
+        return
+
+    if command in {"предложить", "offer"}:
+        fields = _split_pipe(rest)
+        listing_id = _uuid(fields[0]) if fields else None
+        if not listing_id or len(fields) not in {2, 3}:
+            await message.answer("Использование: <code>/рынок предложить ID | цена | заметка</code>", parse_mode="HTML")
+            return
+        result = await bot_create_market_offer(message.from_user.id, listing_id, fields[1], fields[2] if len(fields) == 3 else None)
+        if result.error:
+            await message.answer(f"❌ {_error(result)}")
+            return
+        await message.answer("✅ Предложение отправлено. Продавец ответит в течение 72 часов.\nСмотреть: <code>/рынок торг</code>", parse_mode="HTML")
+        return
+
+    if command in {"встречная", "counter"}:
+        fields = _split_pipe(rest)
+        offer_id = _uuid(fields[0]) if fields else None
+        if not offer_id or len(fields) not in {2, 3}:
+            await message.answer("Использование: <code>/рынок встречная ID | цена | заметка</code>", parse_mode="HTML")
+            return
+        result = await bot_respond_market_offer(message.from_user.id, offer_id, "counter", fields[1], fields[2] if len(fields) == 3 else None)
+        if result.error:
+            await message.answer(f"❌ {_error(result)}")
+            return
+        await message.answer("🔁 Встречное предложение отправлено.")
         return
 
     if command in {"мои", "мои-запросы", "inbox", "my"}:
@@ -336,8 +423,37 @@ async def market_command(message: types.Message):
         "<code>/рынок создать ...</code> — создать объявление\n"
         "<code>/рынок редактировать ID | тип | заголовок | описание | цена | условия | срок</code> — изменить своё объявление\n"
         "<code>/рынок запрос ID | текст</code> — написать владельцу\n"
+        "<code>/рынок предложить ID | цена | заметка</code> — торг: предложить цену\n"
+        "<code>/рынок торг</code> — ваши предложения, принять/отклонить\n"
+        "<code>/рынок встречная ID | цена</code> — встречная цена\n"
         "<code>/рынок ответ ID | текст</code> — ответить\n"
         "<code>/рынок закрыть ID</code> — закрыть запрос\n"
         "<code>/рынок снять ID</code> — снять своё объявление",
         parse_mode="HTML",
     )
+
+
+@router.callback_query(F.data.startswith("mko:"))
+async def offer_callback(callback: types.CallbackQuery):
+    """The RPC enforces that only the other party can answer and only the author can withdraw."""
+    parts = (callback.data or "").split(":")
+    offer_id = _uuid(parts[2]) if len(parts) == 3 else None
+    if not offer_id or parts[1] not in {"acc", "rej", "wd"}:
+        await callback.answer("Кнопка устарела.", show_alert=True)
+        return
+    tg_id = callback.from_user.id
+    if parts[1] == "wd":
+        result = await bot_withdraw_market_offer(tg_id, offer_id)
+        done = "↩️ Предложение отозвано."
+    else:
+        action = "accept" if parts[1] == "acc" else "reject"
+        result = await bot_respond_market_offer(tg_id, offer_id, action)
+        done = "✅ Вы приняли предложение. Договоритесь о передаче в игре." if action == "accept" else "❌ Предложение отклонено."
+    if result.error:
+        await callback.answer(_error(result), show_alert=True)
+        return
+    await callback.answer("Готово")
+    try:
+        await callback.message.edit_text(done, reply_markup=None)
+    except Exception:
+        await callback.message.answer(done)

@@ -1,19 +1,20 @@
 import { requireModuleMember } from "@/lib/access";
 import { redirect } from "next/navigation";
-import {getMarket,getMarketInquiries} from "@/lib/data";
+import {getMarket,getMarketInquiries, getMarketOffers} from "@/lib/data";
 import {Card} from "@/components/Card";
 import {SectionTitle,EmptyState} from "@/components/SitePrimitives";
 
 export const metadata={title:"Рынок"};
 
-export default async function MarketPage({searchParams}:{searchParams:Promise<{q?:string;kind?:string;created?:string;closed?:string;updated?:string;inquiry_sent?:string;inquiry_updated?:string;inquiry_closed?:string;error?:string}>}){
+export default async function MarketPage({searchParams}:{searchParams:Promise<{q?:string;kind?:string;created?:string;closed?:string;updated?:string;inquiry_sent?:string;inquiry_updated?:string;inquiry_closed?:string;offer_sent?:string;offer_updated?:string;error?:string}>}){
  const user=await requireModuleMember("market");
  if(!user.is_whitelisted) redirect("/?memberOnly=1");
  const sp=await searchParams;
  const q=sp.q||"",kind=sp.kind||"";
- const [listings,inquiries]=await Promise.all([
+ const [listings,inquiries,offers]=await Promise.all([
    getMarket(kind||undefined,q),
    getMarketInquiries(),
+   getMarketOffers(),
  ]);
  const hiddenReturn=<><input type="hidden" name="return_q" value={q}/><input type="hidden" name="return_kind" value={kind}/></>;
 
@@ -26,6 +27,8 @@ export default async function MarketPage({searchParams}:{searchParams:Promise<{q
    {sp.error?<p className="mb-4 rounded-xl border border-red-500/30 px-4 py-3 text-sm text-red-400">Не удалось выполнить действие: {sp.error}</p>:null}
    {sp.inquiry_sent?<p className="mb-4 prisma-glass-surface rounded-xl border border-primary/30 px-4 py-3 text-sm">Запрос отправлен владельцу объявления.</p>:null}
    {sp.inquiry_updated?<p className="mb-4 prisma-glass-surface rounded-xl border border-primary/30 px-4 py-3 text-sm">Ответ отправлен.</p>:null}
+   {sp.offer_sent?<p className="mb-4 prisma-glass-surface rounded-xl border border-primary/30 px-4 py-3 text-sm">Предложение отправлено. Продавец ответит в течение 72 часов.</p>:null}
+   {sp.offer_updated?<p className="mb-4 prisma-glass-surface rounded-xl border border-primary/30 px-4 py-3 text-sm">Готово.</p>:null}
    {sp.inquiry_closed?<p className="mb-4 prisma-glass-surface rounded-xl border border-primary/30 px-4 py-3 text-sm">Запрос закрыт.</p>:null}
 
    <form action={user ? "/app/market" : "/market"} className="grid gap-3 md:grid-cols-[1fr_180px_auto]">
@@ -52,6 +55,29 @@ export default async function MarketPage({searchParams}:{searchParams:Promise<{q
    </form>
    )}
   </Card>
+
+  {offers.length>0?<Card className="mt-6 p-5">
+    <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-semibold">Торг</h2><p className="mt-1 text-xs text-[var(--muted-foreground)]">Предложения цены: принять, отклонить или предложить свою. На ответ даётся 72 часа, до 6 раундов.</p></div><span className="prisma-glass-badge rounded-full border px-3 py-1 text-xs font-semibold">{offers.length}</span></div>
+    <div className="mt-4 grid gap-3 md:grid-cols-2">
+      {offers.map((o:any)=><div key={o.id} className="prisma-glass-surface rounded-2xl border p-4">
+        <p className="text-sm font-semibold">{o.listing_title}</p>
+        <p className="mt-1 text-xs text-[var(--muted-foreground)]">{o.mine?"Вы предложили":`${o.partner_nickname||"Участник"} предлагает`}: <b className="text-[var(--foreground)]">{o.price_text}</b> · {o.expired?"истекло":({PENDING:"ждёт ответа",ACCEPTED:"принято",REJECTED:"отклонено",COUNTERED:"есть встречное",WITHDRAWN:"отозвано"} as Record<string,string>)[o.status]||o.status} · раунд {o.round}/6</p>
+        {o.note?<p className="mt-1 text-xs text-[var(--muted-foreground)]">{o.note}</p>:null}
+        {o.actionable?<form action="/api/market" method="post" className="mt-3 space-y-2">
+          <input type="hidden" name="action" value="offer_respond"/><input type="hidden" name="offer_id" value={o.id}/>{hiddenReturn}
+          <div className="flex flex-wrap gap-2">
+            <button name="answer" value="accept" className="rounded-lg bg-[var(--primary)] px-3 py-2 text-xs font-semibold text-[var(--primary-foreground)]">Принять</button>
+            <button name="answer" value="reject" className="prisma-glass-control rounded-lg border px-3 py-2 text-xs font-semibold">Отклонить</button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <input name="price" maxLength={60} placeholder="Встречная цена" className="prisma-glass-control min-w-0 flex-1 rounded-lg border px-3 py-2 text-xs"/>
+            <button name="answer" value="counter" formNoValidate className="prisma-glass-control rounded-lg border px-3 py-2 text-xs font-semibold">Предложить свою</button>
+          </div>
+        </form>:null}
+        {o.mine&&o.status==="PENDING"&&!o.expired?<form action="/api/market" method="post" className="mt-3"><input type="hidden" name="action" value="offer_withdraw"/><input type="hidden" name="offer_id" value={o.id}/>{hiddenReturn}<button className="prisma-glass-control rounded-lg border px-3 py-1.5 text-xs font-semibold">Отозвать</button></form>:null}
+      </div>)}
+    </div>
+  </Card>:null}
 
   {inquiries.length>0?<Card className="mt-6 p-5">
     <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-semibold">Запросы по объявлениям</h2><p className="mt-1 text-xs text-[var(--muted-foreground)]">Входящие запросы от покупателей и ваши обращения к участникам.</p></div><span className="prisma-glass-badge rounded-full border px-3 py-1 text-xs font-semibold">{inquiries.length}</span></div>
@@ -83,6 +109,18 @@ export default async function MarketPage({searchParams}:{searchParams:Promise<{q
         <input type="hidden" name="action" value="inquiry_create"/><input type="hidden" name="listing_id" value={x.id}/><input type="hidden" name="return_q" value={q}/><input type="hidden" name="return_kind" value={kind}/>
         <textarea name="message" required minLength={3} maxLength={1000} placeholder="Что хотите предложить или уточнить?" className="prisma-glass-control min-h-24 w-full rounded-lg border px-3 py-2 text-sm"/>
         <button className="rounded-lg bg-[var(--primary)] px-3 py-2 text-xs font-semibold text-[var(--primary-foreground)]">Отправить запрос</button>
+       </form>
+      </details>
+    ):null}
+
+    {user && x.seller_id!==user.id?(
+      <details className="prisma-glass-surface mt-2 rounded-xl border">
+       <summary className="prisma-glass-hover cursor-pointer list-none px-3 py-2 text-xs font-semibold">🤝 Предложить цену</summary>
+       <form action="/api/market" method="post" className="space-y-2 border-t p-3">
+        <input type="hidden" name="action" value="offer_create"/><input type="hidden" name="listing_id" value={x.id}/>{hiddenReturn}
+        <input name="price" required maxLength={60} placeholder="Ваша цена, например 8 алмазов" className="prisma-glass-control w-full rounded-lg border px-3 py-2 text-sm"/>
+        <input name="note" maxLength={300} placeholder="Заметка (необязательно)" className="prisma-glass-control w-full rounded-lg border px-3 py-2 text-sm"/>
+        <button className="rounded-lg bg-[var(--primary)] px-3 py-2 text-xs font-semibold text-[var(--primary-foreground)]">Предложить</button>
        </form>
       </details>
     ):null}

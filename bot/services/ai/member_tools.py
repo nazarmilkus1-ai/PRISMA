@@ -18,7 +18,7 @@ from html import escape
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from db.rpc import (
-    bot_create_market_listing, bot_create_support_request, bot_get_minecraft_auth_status, bot_get_profile,
+    bot_create_market_listing, bot_create_market_offer, bot_create_support_request, bot_get_market, bot_get_market_offers, bot_get_minecraft_auth_status, bot_get_profile,
     bot_list_events, bot_register_event,
 )
 from services.ai import links, live
@@ -64,6 +64,12 @@ TOOLS = [
     _fn("server_status", "Онлайн и состояние Minecraft-сервера."),
     _fn("list_events", "Ближайшие ивенты (id, название, время)."),
     _fn("site_links", "Каталог страниц сайта со ссылками."),
+    _fn("search_market", "Найти объявления рынка (id, заголовок, цена, продавец) — нужно для торга.",
+        {"query": {"type": "string"}}),
+    _fn("my_offers", "Мои предложения цены и торги по рынку."),
+    _fn("draft_market_offer", "Подготовить предложение цены по объявлению (карточка с подтверждением).",
+        {"listing_id": {"type": "string"}, "price": {"type": "string"}, "note": {"type": "string"}, "title": {"type": "string"}},
+        ["listing_id", "price"]),
     _fn("draft_market_listing", "Подготовить объявление для рынка (карточка с подтверждением).",
         {"kind": {"type": "string", "enum": list(_KINDS)}, "title": {"type": "string"},
          "description": {"type": "string"}, "price": {"type": "string"}, "terms": {"type": "string"},
@@ -75,7 +81,7 @@ TOOLS = [
         {"event_id": {"type": "string"}, "title": {"type": "string"}}, ["event_id"]),
 ]
 
-_PERSONAL = {"my_account", "my_overview", "draft_market_listing", "draft_support_request", "propose_event_registration"}
+_PERSONAL = {"my_account", "my_overview", "search_market", "my_offers", "draft_market_offer", "draft_market_listing", "draft_support_request", "propose_event_registration"}
 
 
 # ----------------------------------------------------------------------------- calc
@@ -182,7 +188,7 @@ def _login_hints(status: str, profile: dict, auth: dict) -> list[str]:
 async def execute(name: str, args: dict, ctx: Context) -> dict:
     if name in _PERSONAL and not ctx.private:
         return {"error": "personal data and actions are only available in a private chat with the bot"}
-    if name in {"draft_market_listing", "propose_event_registration"} and not ctx.accepted:
+    if name in {"draft_market_listing", "propose_event_registration", "draft_market_offer", "search_market", "my_offers"} and not ctx.accepted:
         return {"error": "available only after the application is accepted"}
 
     if name == "calc":
@@ -213,6 +219,28 @@ async def execute(name: str, args: dict, ctx: Context) -> dict:
         return {"stats": _plain(await live._stats(ctx.tg_id)), "clan": _plain(await live._clan(ctx.tg_id)),
                 "punishments": _plain(await live._punish(ctx.tg_id))}
 
+    if name == "search_market":
+        result = await bot_get_market(ctx.tg_id, query=str(args.get("query") or "")[:64], limit=8)
+        rows = result.data if not result.error and isinstance(result.data, list) else []
+        return {"listings": [{k: r.get(k) for k in ("id", "kind", "title", "price_text", "minecraft_nickname") if k in r}
+                             for r in rows[:8] if isinstance(r, dict)]}
+    if name == "my_offers":
+        result = await bot_get_market_offers(ctx.tg_id)
+        rows = result.data if not result.error and isinstance(result.data, list) else []
+        return {"offers": [{k: r.get(k) for k in ("id", "listing_title", "partner_nickname", "price_text", "status", "mine", "actionable", "round") if k in r}
+                           for r in rows[:10] if isinstance(r, dict)]}
+    if name == "draft_market_offer":
+        listing_id = str(args.get("listing_id") or "").strip()
+        price = str(args.get("price") or "").strip()[:60]
+        if not re.fullmatch(r"[0-9a-fA-F\-]{32,36}", listing_id) or not price:
+            return {"error": "need a listing id from search_market and a price"}
+        note = str(args.get("note") or "").strip()[:300] or None
+        draft_id = new_draft(ctx.tg_id, "of", {"listing_id": listing_id, "price": price, "note": note})
+        ctx.cards.append((
+            f"🤝 <b>Предложение цены (черновик)</b>\n{escape(str(args.get('title') or 'Объявление')[:100])}\n"
+            f"Ваша цена: <b>{escape(price)}</b>\nЗаметка: {escape(note or '—')}\n\nОтправить продавцу? Он ответит в течение 72 часов.",
+            _card("of", draft_id, "✅ Предложить")))
+        return {"ok": "draft card shown; nothing is sent until the member taps the button"}
     if name == "draft_market_listing":
         kind = str(args.get("kind") or "").upper()
         title = str(args.get("title") or "").strip()[:80]
@@ -255,6 +283,10 @@ async def publish(kind: str, payload: dict, tg_id: int):
         result = await bot_create_market_listing(tg_id, payload["kind"], payload["title"], payload["description"],
                                                  payload["price"], payload["terms"], expires)
         return (not result.error), ("✅ Объявление опубликовано на рынке." if not result.error else "❌ Не удалось опубликовать. Проверьте /market.")
+    if kind == "of":
+        result = await bot_create_market_offer(tg_id, payload["listing_id"], payload["price"], payload["note"])
+        return (not result.error), ("✅ Предложение отправлено продавцу. Ответ придёт уведомлением (/рынок торг)." if not result.error
+                                    else f"❌ Не удалось отправить предложение ({str(result.error)[:40]}).")
     if kind == "sp":
         result = await bot_create_support_request(tg_id, payload["message"])
         return (not result.error), ("✅ Обращение отправлено администрации." if not result.error else "❌ Не удалось отправить обращение.")

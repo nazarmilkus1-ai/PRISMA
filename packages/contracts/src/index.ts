@@ -419,6 +419,7 @@ export const PARTICIPANT_READ_RPC = {
   timeline: "participant_get_timeline",
   market: "participant_get_market",
   marketInquiries: "participant_get_market_inquiries",
+  marketOffers: "participant_get_market_offers",
   voting: "participant_get_voting",
   calendar: "participant_get_calendar",
 } as const;
@@ -444,6 +445,9 @@ export const PARTICIPANT_MARKET_MUTATION_RPC = {
   createInquiry: "participant_create_market_inquiry",
   respondInquiry: "participant_respond_market_inquiry",
   closeInquiry: "participant_close_market_inquiry",
+  createOffer: "participant_create_market_offer",
+  respondOffer: "participant_respond_market_offer",
+  withdrawOffer: "participant_withdraw_market_offer",
 } as const;
 
 export const PARTICIPANT_REPORT_RPC = {

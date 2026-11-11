@@ -798,6 +798,26 @@ async def bot_update_market_listing(tg_id, listing_id, kind, title, description=
     })
 
 
+async def bot_create_market_offer(tg_id, listing_id, price, note=None):
+    return await call_rpc_async("bot_create_market_offer", {
+        "p_tg_id": tg_id, "p_listing_id": listing_id, "p_price": price, "p_note": note,
+    })
+
+
+async def bot_respond_market_offer(tg_id, offer_id, action, price=None, note=None):
+    return await call_rpc_async("bot_respond_market_offer", {
+        "p_tg_id": tg_id, "p_offer_id": offer_id, "p_action": action, "p_price": price, "p_note": note,
+    })
+
+
+async def bot_withdraw_market_offer(tg_id, offer_id):
+    return await call_rpc_async("bot_withdraw_market_offer", {"p_tg_id": tg_id, "p_offer_id": offer_id})
+
+
+async def bot_get_market_offers(tg_id):
+    return await call_rpc_async("bot_get_market_offers", {"p_tg_id": tg_id})
+
+
 async def bot_create_market_inquiry(tg_id, listing_id, message):
     return await call_rpc_async("bot_create_market_inquiry", {
         "p_tg_id": tg_id,
