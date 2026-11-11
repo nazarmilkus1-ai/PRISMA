@@ -71,6 +71,14 @@ async def cmd_start(message: types.Message, state: FSMContext, command: CommandO
                 return
             await _send_status_menu(message, status)
             return
+        from services.ai.ambient import intent_from_start
+        invited = intent_from_start(command.args)
+        if invited:
+            # Invited from a group by PRISMA_AI: continue with it in private.
+            await _touch_private(message.from_user)
+            from handlers.ai import _answer
+            await _answer(message, invited[1])
+            return
         await handle_login_code(message, command.args)
         return
 
