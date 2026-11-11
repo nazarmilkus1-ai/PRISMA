@@ -869,3 +869,22 @@ async def bot_claim_onboarding_digest(limit=100, force=False):
         "p_limit": limit,
         "p_force": force,
     })
+
+
+async def bot_ai_log_message(tg_id, chat_id, role, content, answer_id=None, agent=False):
+    return await call_rpc_async("bot_ai_log_message", {
+        "p_tg_id": tg_id, "p_chat_id": chat_id, "p_role": role,
+        "p_content": content, "p_answer_id": answer_id, "p_agent": agent,
+    })
+
+
+async def bot_ai_recent(tg_id, chat_id, limit=16):
+    return await call_rpc_async("bot_ai_recent", {"p_tg_id": tg_id, "p_chat_id": chat_id, "p_limit": limit})
+
+
+async def bot_ai_rate(tg_id, answer_id, rating):
+    return await call_rpc_async("bot_ai_rate", {"p_tg_id": tg_id, "p_answer_id": answer_id, "p_rating": rating})
+
+
+async def bot_ai_feedback_stats(days=7):
+    return await call_rpc_async("bot_ai_feedback_stats", {"p_days": days})

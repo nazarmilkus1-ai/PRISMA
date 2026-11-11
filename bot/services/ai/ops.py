@@ -1,4 +1,4 @@
-"""Operations access for the admin PRISMA_AI: Render, Vercel and GitHub.
+"""Operations access for the admin PRISMA_AGENT: Render, Vercel and GitHub.
 
 Everything is optional and driven by environment variables; nothing is configured by the bot itself.
 Reads are always sanitised (secrets redacted, fields whitelisted). The only mutating call is a Render
