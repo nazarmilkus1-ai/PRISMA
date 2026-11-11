@@ -217,6 +217,12 @@ export async function getMarketInquiries(){
   if(error||!Array.isArray(data))return[];
   return data;
 }
+export async function getMarketOffers(){
+  const db=await createSupabaseServerClient();
+  const{data,error}=await db.rpc(PARTICIPANT_READ_RPC.marketOffers);
+  if(error||!Array.isArray(data))return[];
+  return data;
+}
 export async function getParticipantVoting(){
   const db=await createSupabaseServerClient();
   const{data,error}=await db.rpc(PARTICIPANT_READ_RPC.voting);

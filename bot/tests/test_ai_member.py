@@ -101,6 +101,19 @@ class ToolTests(unittest.TestCase):
         self.assertEqual(rpc.await_args.args[0], 7)
         self.assertIsNone(rpc.await_args.args[-1])
 
+    def test_offer_draft_needs_real_listing_id_and_price(self):
+        self.assertIn("error", run(mt.execute("draft_market_offer", {"listing_id": "nope", "price": "5"}, self.ctx())))
+        ctx = self.ctx()
+        lid = "123e4567-e89b-12d3-a456-426614174000"
+        self.assertIn("ok", run(mt.execute("draft_market_offer", {"listing_id": lid, "price": "5 алмазов"}, ctx)))
+        self.assertTrue(ctx.cards[0][1].inline_keyboard[0][0].callback_data.startswith("aim:of:ok:"))
+
+    def test_offer_publish_calls_rpc(self):
+        with mock.patch.object(mt, "bot_create_market_offer", mock.AsyncMock(return_value=ok({}))) as rpc:
+            done, _ = run(mt.publish("of", {"listing_id": "x", "price": "5", "note": None}, 7))
+        self.assertTrue(done)
+        self.assertEqual(rpc.await_args.args[:3], (7, "x", "5"))
+
     def test_login_hints(self):
         hints = mt._login_hints("ACCEPTED", {"minecraft_nick": "Nick", "is_whitelisted": False}, {"platform": "JAVA", "configured": False})
         text = " ".join(hints)

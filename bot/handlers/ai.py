@@ -423,7 +423,7 @@ async def group_talk(message: types.Message):
 
 
 # ------------------------------------------------------------ confirm cards
-_CARD_KINDS = {"mk": "market", "sp": "support", "ev": "events"}
+_CARD_KINDS = {"mk": "market", "sp": "support", "ev": "events", "of": "market"}
 
 
 @router.callback_query(F.data.startswith("aim:"))
@@ -451,7 +451,7 @@ async def member_card(callback: types.CallbackQuery):
         await callback.answer("Отменено")
         await _finish_card(callback, "✖ Отменено.")
         return
-    if kind in {"mk", "ev"} and await get_application_status(tg_id) != "ACCEPTED":
+    if kind in {"mk", "ev", "of"} and await get_application_status(tg_id) != "ACCEPTED":
         await callback.answer("Доступно после одобрения заявки.", show_alert=True)
         return
     ok, text = await publish(kind, draft["payload"], tg_id)

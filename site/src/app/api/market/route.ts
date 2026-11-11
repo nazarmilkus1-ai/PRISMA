@@ -17,6 +17,13 @@ const ERRORS:Record<string,string>={
  INQUIRY_FORBIDDEN:"У вас нет доступа к этому запросу.",
  INQUIRY_CLOSED:"Этот запрос уже закрыт.",
  INQUIRY_ALREADY_ANSWERED:"На этот запрос уже ответили.",
+ INVALID_OFFER:"Цена — от 1 до 60 символов, заметка — до 300.",
+ OFFER_ALREADY_OPEN:"По этому объявлению у вас уже есть активное предложение.",
+ OFFER_NOT_FOUND:"Предложение не найдено или уже закрыто.",
+ OFFER_FORBIDDEN:"Ответить на это предложение может только другая сторона.",
+ OFFER_CLOSED:"Это предложение уже обработано.",
+ OFFER_EXPIRED:"Время на ответ (72 часа) истекло. Предложите цену заново.",
+ OFFER_MAX_ROUNDS:"Достигнут лимит из 6 раундов торга: договоритесь лично.",
 };
 
 function redirectMarket(req:Request,key:string,value:string,returnQ:string,returnKind:string){
@@ -41,6 +48,35 @@ export async function POST(req:Request){
  const action=String(form.get("action")||"create");
  const returnQ=String(form.get("return_q")||"").trim();
  const returnKind=String(form.get("return_kind")||"").trim();
+
+ if(action==="offer_create"){
+  const listingId=String(form.get("listing_id")||"").trim();
+  const price=String(form.get("price")||"").trim();
+  const note=String(form.get("note")||"").trim();
+  if(!listingId||price.length<1||price.length>60||note.length>300)return redirectMarket(req,"error",ERRORS.INVALID_OFFER,returnQ,returnKind);
+  const db=await createSupabaseServerClient();
+  const{error}=await db.rpc(PARTICIPANT_MARKET_MUTATION_RPC.createOffer,{p_listing_id:listingId,p_price:price,p_note:note||null});
+  return redirectMarket(req,error?"error":"offer_sent",error?(ERRORS[error.message]||"Не удалось отправить предложение."):"1",returnQ,returnKind);
+ }
+
+ if(action==="offer_respond"){
+  const offerId=String(form.get("offer_id")||"").trim();
+  const answer=String(form.get("answer")||"").trim();
+  const price=String(form.get("price")||"").trim();
+  const note=String(form.get("note")||"").trim();
+  if(!offerId||!["accept","reject","counter"].includes(answer)||(answer==="counter"&&(price.length<1||price.length>60||note.length>300)))return redirectMarket(req,"error",ERRORS.INVALID_OFFER,returnQ,returnKind);
+  const db=await createSupabaseServerClient();
+  const{error}=await db.rpc(PARTICIPANT_MARKET_MUTATION_RPC.respondOffer,{p_offer_id:offerId,p_action:answer,p_price:answer==="counter"?price:null,p_note:answer==="counter"?(note||null):null});
+  return redirectMarket(req,error?"error":"offer_updated",error?(ERRORS[error.message]||"Не удалось ответить на предложение."):"1",returnQ,returnKind);
+ }
+
+ if(action==="offer_withdraw"){
+  const offerId=String(form.get("offer_id")||"").trim();
+  if(!offerId)return redirectMarket(req,"error",ERRORS.OFFER_NOT_FOUND,returnQ,returnKind);
+  const db=await createSupabaseServerClient();
+  const{error}=await db.rpc(PARTICIPANT_MARKET_MUTATION_RPC.withdrawOffer,{p_offer_id:offerId});
+  return redirectMarket(req,error?"error":"offer_updated",error?(ERRORS[error.message]||"Не удалось отозвать предложение."):"1",returnQ,returnKind);
+ }
 
  if(action==="inquiry_create"){
   const listingId=String(form.get("listing_id")||"").trim();
