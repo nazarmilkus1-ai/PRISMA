@@ -6,6 +6,7 @@ import { PrismRays } from "@/components/PrismRays";
 import { GlassPointer } from "@/components/GlassPointer";
 import { SiteFooter } from "@/components/SiteFooter";
 import { AskWidget } from "@/components/AskWidget";
+import { QuickNav } from "@/components/QuickNav";
 import { PrismaProcessNotificationProvider } from "@/components/PrismaProcessNotification";
 import "./globals.css";
 import "./theme-optics.css";
@@ -57,6 +58,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             К содержимому
           </a>
         ) : null}
+        <QuickNav area={participant ? "participant" : "public"} />
         <PrismRays />
         <GlassPointer />
         <PrismaProcessNotificationProvider>

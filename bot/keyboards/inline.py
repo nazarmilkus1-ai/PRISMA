@@ -70,6 +70,7 @@ def main_menu_approved(show_admin_switch: bool = False):
         [InlineKeyboardButton(text="🔔 Уведомления", callback_data="player:notifications"),
          InlineKeyboardButton(text="🤖 PRISMA_AI", callback_data="ask"),
          InlineKeyboardButton(text="➕ Ещё", callback_data="menu:player")],
+        [InlineKeyboardButton(text="⚡ Быстрые действия", callback_data="quick")],
     ]
     return _with_mode_switch(rows, show_admin_switch)
 

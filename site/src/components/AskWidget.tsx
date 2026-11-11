@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 type Reply = { answer: string; links: { href: string; label: string }[] };
 
@@ -11,6 +11,16 @@ export function AskWidget() {
   const [question, setQuestion] = useState("");
   const [reply, setReply] = useState<Reply | null>(null);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const onAsk = (event: Event) => {
+      const text = String((event as CustomEvent).detail ?? "").trim();
+      setOpen(true);
+      if (text.length >= 2) setQuestion(text);
+    };
+    window.addEventListener("prisma:ask", onAsk);
+    return () => window.removeEventListener("prisma:ask", onAsk);
+  }, []);
 
   const SUGGESTIONS = ["Как попасть на сервер?", "Где правила?", "Какой IP сервера?"];
 
