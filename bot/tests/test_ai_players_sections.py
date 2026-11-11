@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from handlers import ai as ai_handler  # noqa: E402
 from keyboards.inline import main_menu_approved  # noqa: E402
-from services.ai import admin_tools, client, sections, wiki  # noqa: E402
+from services.ai import client, sections, wiki  # noqa: E402
 from services.ai.players import apply_player_filter, parse_player_filter  # noqa: E402
 
 ROWS = [
@@ -77,57 +77,6 @@ class PlayerFilterTests(unittest.TestCase):
 
     def test_unsupported_qualifier_is_flagged(self):
         self.assertTrue(parse_player_filter("список игроков онлайн в клане").unsupported)
-
-
-class CopilotReportTests(unittest.TestCase):
-    def setUp(self):
-        self._saved = (ai_handler.bot_list_current_participants, ai_handler._has, ai_handler.is_configured)
-
-        async def participants():
-            return Result(ROWS)
-
-        async def allowed(admin_id, permission):
-            return True
-
-        ai_handler.bot_list_current_participants = participants
-        ai_handler._has = allowed
-        ai_handler.is_configured = lambda role="user": False
-
-    def tearDown(self):
-        ai_handler.bot_list_current_participants, ai_handler._has, ai_handler.is_configured = self._saved
-
-    def test_bedrock_request_lists_only_bedrock_without_model(self):
-        message = FakeMessage()
-        run(ai_handler._copilot(message, "список игроков бедрок"))
-        text = message.sent[-1][0]
-        self.assertIn(".alominq", text)
-        self.assertIn(".Nast11k211", text)
-        self.assertNotIn("Zerohero19", text)
-        self.assertIn("(2)", text)
-
-    def test_nick_only_request_prints_nicks_only(self):
-        message = FakeMessage()
-        run(ai_handler._copilot(message, "список ников которые играют на бедрок"))
-        text = message.sent[-1][0]
-        self.assertIn("<code>.alominq</code>", text)
-        self.assertNotIn("Alominq", text)  # no @username column
-
-    def test_copilot_tool_filters_by_platform(self):
-        ctx = admin_tools.Context(7)
-        saved = admin_tools.bot_list_current_participants, admin_tools._allowed
-
-        async def allowed(admin_id, permission):
-            return True
-
-        async def participants():
-            return Result(ROWS)
-
-        admin_tools.bot_list_current_participants, admin_tools._allowed = participants, allowed
-        try:
-            out = run(admin_tools.execute("list_players", {"platform": "bedrock"}, ctx))
-        finally:
-            admin_tools.bot_list_current_participants, admin_tools._allowed = saved
-        self.assertEqual(out["total"], 2)
 
 
 class SectionTests(unittest.TestCase):

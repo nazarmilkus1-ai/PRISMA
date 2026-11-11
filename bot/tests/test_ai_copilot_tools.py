@@ -46,6 +46,33 @@ class DiagnosticsTests(unittest.TestCase):
             self.assertEqual(run(diagnostics.create_issue("t", "b"))[1], "not configured")
 
 
+class GroupMembershipTests(unittest.TestCase):
+    def test_counts_in_and_out_of_group(self):
+        rows = [{"display_name": "A", "username": "a", "telegram_id": 1, "nickname": ".A"},
+                {"display_name": "B", "username": "b", "telegram_id": 2, "nickname": ".B"},
+                {"display_name": "J", "username": "j", "telegram_id": 3, "nickname": "Java"}]
+
+        class FakeBot:
+            async def get_chat_member(self, chat, tg_id):
+                if tg_id == 2:
+                    raise RuntimeError("user not found")
+                return types.SimpleNamespace(status="member")
+
+        ctx = admin_tools.Context(1, FakeBot())
+        with mock.patch.object(admin_tools, "_allowed", mock.AsyncMock(return_value=True)), \
+             mock.patch.object(admin_tools, "bot_list_current_participants", mock.AsyncMock(return_value=ok(rows))), \
+             mock.patch("config.MODERATION_GROUP_ID", -100123):
+            result = run(admin_tools.execute("group_membership", {"platform": "bedrock"}, ctx))
+        self.assertEqual(result["total"], 2)
+        self.assertEqual([p["nickname"] for p in result["in_group"]], [".A"])
+        self.assertEqual([p["nickname"] for p in result["unknown"]], [".B"])
+        self.assertEqual(result["not_in_group"], [])
+
+    def test_needs_bot_and_group(self):
+        with mock.patch.object(admin_tools, "_allowed", mock.AsyncMock(return_value=True)):
+            self.assertIn("error", run(admin_tools.execute("group_membership", {}, admin_tools.Context(1))))
+
+
 class ToolTests(unittest.TestCase):
     def _ctx(self):
         return admin_tools.Context(1)

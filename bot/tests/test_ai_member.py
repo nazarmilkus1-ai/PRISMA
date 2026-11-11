@@ -122,5 +122,44 @@ class ToolTests(unittest.TestCase):
         self.assertIn("Заявка не подана", " ".join(mt._login_hints("NO_APPLICATION", {}, {})))
 
 
+
+class RoutingTests(unittest.TestCase):
+    """With a model configured, nothing is answered by canned code first."""
+
+    def test_model_first_and_code_only_as_fallback(self):
+        from handlers import ai as handler
+
+        calls = []
+        message = types.SimpleNamespace(from_user=types.SimpleNamespace(id=7), chat=types.SimpleNamespace(id=7))
+
+        async def fake_ask(msg, question, private):
+            calls.append(("ai", question))
+            return True
+
+        async def fake_code(msg, question, private):
+            calls.append(("code", question))
+
+        with mock.patch.object(handler, "is_configured", return_value=True), \
+             mock.patch.object(handler, "_ask_ai", fake_ask), mock.patch.object(handler, "_answer_by_code", fake_code):
+            run(handler._answer(message, "покажи правила", True))
+            run(handler._answer(message, "", True))
+        self.assertEqual(calls, [("ai", "покажи правила"), ("ai", "Привет")])
+
+        calls.clear()
+
+        async def failing_ask(msg, question, private):
+            return False
+
+        with mock.patch.object(handler, "is_configured", return_value=True), \
+             mock.patch.object(handler, "_ask_ai", failing_ask), mock.patch.object(handler, "_answer_by_code", fake_code):
+            run(handler._answer(message, "что такое призма", True))
+        self.assertEqual(calls, [("code", "что такое призма")])
+
+        calls.clear()
+        with mock.patch.object(handler, "is_configured", return_value=False), mock.patch.object(handler, "_answer_by_code", fake_code):
+            run(handler._answer(message, "правила", True))
+        self.assertEqual(calls, [("code", "правила")])
+
+
 if __name__ == "__main__":
     unittest.main()
