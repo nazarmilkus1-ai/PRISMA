@@ -61,6 +61,13 @@ def allowed(tg_id: int, now: float | None = None) -> bool:
     return True
 
 
+def is_limited(tg_id: int, now: float | None = None) -> bool:
+    """Read-only twin of allowed(): does not count the request."""
+    now = time.time() if now is None else now
+    window = [t for t in _recent[tg_id] if now - t <= 86400]
+    return len(window) >= LIMIT_PER_DAY or sum(1 for t in window if now - t < 60) >= LIMIT_PER_MINUTE
+
+
 async def ask_model(question: str, status: str) -> str:
     if not is_configured("user"):
         raise AIError("not configured")
