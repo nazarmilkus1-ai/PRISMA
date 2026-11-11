@@ -8,12 +8,12 @@ from aiogram import F, Router, types
 from aiogram.filters import Command, CommandObject, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.dispatcher.event.bases import SkipHandler
-from aiogram.types import BufferedInputFile, InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardMarkup
 
 from db.rpc import bot_get_profile, bot_get_user_status
 from fsm.states import AskForm
 from handlers.guide import build_guide
-from db.rpc import bot_check_admin_permission, bot_list_current_participants, bot_list_inactive_members
+from db.rpc import bot_check_admin_permission
 from services.ai import memory as ai_memory
 from services.ai import navigator, sections
 from services.ai.admin_tools import run_copilot
@@ -22,7 +22,6 @@ from services.ai.client import AIError, base_url, chat, fallback_model, is_confi
 from services.ai.links import link_buttons
 from services.ai.member_tools import peek_draft, publish, run_member, take_draft
 from services.ai.live import live_answer, live_intent
-from services.ai.players import apply_player_filter, parse_player_filter
 from utils.mdhtml import strip_markdown, to_telegram_html
 from utils.permissions import get_application_status, has_any_staff_permission, is_admin_mode, require_admin_mode
 from utils.rules import rules_text
@@ -52,10 +51,16 @@ def _is_short(question: str) -> bool:
 
 
 async def _answer(message: types.Message, question: str, private: bool = True):
-    question = (question or "").strip()
-    if len(question) < 2:
-        await message.answer("Напишите вопрос чуть подробнее.")
-        return
+    """PRISMA_AI thinks for itself: with a model configured every question goes to it (with tools).
+    The deterministic answers below are only the fallback when the model is not configured or fails."""
+    question = (question or "").strip() or "Привет"
+    if is_configured("user"):
+        if await _ask_ai(message, question, private):
+            return
+    await _answer_by_code(message, question, private)
+
+
+async def _answer_by_code(message: types.Message, question: str, private: bool):
     tg_id = message.from_user.id
     kind = navigator.fast_kind(question)
 
@@ -80,46 +85,41 @@ async def _answer(message: types.Message, question: str, private: bool = True):
         await message.answer(text, parse_mode="HTML", reply_markup=markup)
         return
 
-    configured = is_configured("user")
     matched = sections.match_sections(question)
-    # A short question that names a section is answered by code; longer ones go to the model (with the buttons attached).
-    if matched and (not configured or _is_short(question)):
+    if matched:
         status = str(await bot_get_user_status(tg_id) or "")
         built = sections.build_answer(question, status)
         if built:
             await message.answer(built[0], reply_markup=built[1])
             return
-
-    if not configured:
+    if is_configured("user"):
+        await _fallback_menu(message, "😕 Не получилось ответить. Выберите нужный раздел:")
+    else:
         await _fallback_menu(message, "🤖 PRISMA_AI пока не подключён, но вот куда можно нажать:")
-        return
+
+
+async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
+    """Returns True when the model answered; False sends the caller to the code fallback."""
+    tg_id = message.from_user.id
     if not navigator.allowed(tg_id):
         await message.answer("⏳ Слишком много вопросов подряд. Попробуйте чуть позже.")
-        return
+        return True
     status = str(await bot_get_user_status(tg_id) or "")
     waiting = await message.answer("🤖 PRISMA_AI думает…")
-    markup = None
-    if matched:
-        built = sections.build_answer(question, status)
-        markup = built[1] if built else None
     chat_id = message.chat.id
     try:
         text, cards = await run_member(tg_id, question, status, ai_memory.history(chat_id, tg_id), private)
-    except AIError as exc:
-        logger.warning("navigator model failed: %s", exc)
+    except Exception as exc:  # AIError or anything unexpected: never leave «думает…» hanging
+        logger.warning("member PRISMA_AI failed: %s", exc)
         try:
             await waiting.delete()
         except Exception:
             pass
-        built = sections.build_answer(question, status) if matched else None
-        if built:
-            await message.answer(built[0], reply_markup=built[1])
-        else:
-            await _fallback_menu(message, "😕 Не получилось ответить. Выберите нужный раздел:")
-        return
+        return False
     ai_memory.remember(chat_id, tg_id, "user", question)
     ai_memory.remember(chat_id, tg_id, "assistant", text)
-    rows = list(markup.inline_keyboard) if markup else []
+    built = sections.build_answer(question, status) if sections.match_sections(question) else None
+    rows = list(built[1].inline_keyboard) if built else []
     link_row = link_buttons(question, text)
     rows += [link_row[i:i + 2] for i in range(0, len(link_row), 2)]
     await _send_model_text(waiting, message, text, InlineKeyboardMarkup(inline_keyboard=rows) if rows else None)
@@ -218,85 +218,6 @@ async def ai_status(message: types.Message):
 
 # ---------------------------------------------------------------- admin PRISMA_AI
 
-_PLAYERS_RE = re.compile(r"(список|все|всех|выведи|покажи|склади|составь).*(игрок|участник|ник|юз|username|юзернейм)|^(ники|юзы)$", re.I)
-_PLATFORM_LIST_RE = re.compile(
-    r"(бедрок|бэдрок|bedrock|java|джав|жав)\w*.*(игрок|участник|ник)|(игрок|участник|ник)\w*.*(бедрок|бэдрок|bedrock|java|джав|жав)", re.I
-)
-_INACTIVE_RE = re.compile(r"неактив", re.I)
-
-
-def _days_from_text(text: str) -> int:
-    if re.search(r"месяц|month", text, re.I):
-        return 30
-    if re.search(r"недел|week", text, re.I):
-        return 7
-    match = re.search(r"\d+", text)
-    return max(1, min(30, int(match.group()))) if match else 7
-
-
-async def _send_long(message: types.Message, title: str, lines: list[str], filename: str):
-    """Chunk by Telegram's limit; very long lists go out as a text file instead."""
-    body = "\n".join(lines)
-    if len(lines) > 120:
-        await message.answer(f"{title} — {len(lines)} шт. Список файлом ⬇️", parse_mode="HTML")
-        plain = re.sub(r"<[^>]+>", "", body)
-        await message.answer_document(BufferedInputFile(plain.encode("utf-8"), filename=filename))
-        return
-    chunk = title
-    for line in lines:
-        if len(chunk) + len(line) + 1 > 3800:
-            await message.answer(chunk, parse_mode="HTML")
-            chunk = ""
-        chunk += ("\n" if chunk else "") + line
-    await message.answer(chunk, parse_mode="HTML")
-
-
-async def _players_report(message: types.Message, request: str = ""):
-    flt = parse_player_filter(request)
-    result = await bot_list_current_participants()
-    if result.error or not isinstance(result.data, list):
-        await message.answer("❌ Не удалось получить список участников.")
-        return
-    rows = apply_player_filter(result.data, flt)
-    if not result.data:
-        await message.answer("ℹ️ Участников пока нет.")
-        return
-    if not rows:
-        await message.answer(f"ℹ️ Подходящих участников нет ({escape(flt.describe())}).")
-        return
-    lines = []
-    for index, row in enumerate(rows, 1):
-        nick = escape(str(row.get("nickname") or "—"))
-        if flt.nicks_only:
-            lines.append(f"{index}. <code>{nick}</code>")
-            continue
-        name = escape(str(row.get("display_name") or "—"))
-        username = row.get("username")
-        user = f"@{escape(str(username))}" if username else "—"
-        lines.append(f"{index}. {name} · {user} · <code>{nick}</code>")
-    title = "👥 <b>Участники PRISMA" + (f" — {escape(flt.describe())}" if flt.is_filtered else "") + f" ({len(lines)})</b>"
-    if not flt.nicks_only:
-        title += "\nИмя · Telegram · Minecraft"
-    if flt.unsupported:
-        title += "\nℹ️ Часть условий без ИИ не применяется, показан список по платформе/юзернейму."
-    await _send_long(message, title, lines, "prisma_players.txt")
-
-
-async def _inactive_report(message: types.Message, days: int):
-    result = await bot_list_inactive_members(days, 100)
-    if result.error or not isinstance(result.data, list):
-        await message.answer("❌ Не удалось получить список неактивных.")
-        return
-    if not result.data:
-        await message.answer(f"✅ Неактивных больше {days} дн. нет.")
-        return
-    lines = []
-    for index, row in enumerate(result.data, 1):
-        name = escape(str(row.get("display_name") or row.get("username") or row.get("telegram_id") or "—"))
-        username = f" @{escape(str(row['username']))}" if row.get("username") else ""
-        lines.append(f"{index}. {name}{username}")
-    await _send_long(message, f"✖️ <b>Неактивны больше {days} дн. ({len(lines)})</b>", lines, "prisma_inactive.txt")
-
 
 async def _copilot(message: types.Message, request: str):
     request = (request or "").strip()
@@ -305,32 +226,15 @@ async def _copilot(message: types.Message, request: str):
         return
     admin_id = message.from_user.id
 
-    # Code-first: the common read requests need no model at all.
-    if _INACTIVE_RE.search(request):
-        if await _has(admin_id, "player.view"):
-            await _inactive_report(message, _days_from_text(request))
-        else:
-            await message.answer("❌ Недостаточно прав.")
-        return
-    if _PLAYERS_RE.search(request) or _PLATFORM_LIST_RE.search(request):
-        flt = parse_player_filter(request)
-        # Conditions the code cannot apply (online, clan, level…) go to the model when it is available.
-        if not (flt.unsupported and is_configured("admin")):
-            if await _has(admin_id, "player.view"):
-                await _players_report(message, request)
-            else:
-                await message.answer("❌ Недостаточно прав.")
-            return
-
     if not is_configured("admin"):
         await message.answer("🤖 PRISMA_AI не настроен: задайте AI_API_KEY_ADMIN.")
         return
     waiting = await message.answer("🤖 Работаю…")
     try:
-        text, cards = await run_copilot(admin_id, request)
-    except AIError as exc:
-        logger.warning("copilot model failed: %s", exc)
-        await waiting.edit_text("😕 Не получилось выполнить запрос. Попробуйте проще, например: «заявки», «игроки бедрок» или «неактив 14». Проверка связи: /ai_status")
+        text, cards = await run_copilot(admin_id, request, bot=message.bot)
+    except Exception as exc:  # the model, a tool or the gateway failed: say so honestly
+        logger.warning("copilot failed: %s", exc)
+        await waiting.edit_text("😕 Не получилось выполнить запрос (модель или данные недоступны). Попробуйте ещё раз или переформулируйте. Проверка связи: /ai_status")
         return
     await _send_model_text(waiting, message, text, None)
     for card_text, markup in cards:
