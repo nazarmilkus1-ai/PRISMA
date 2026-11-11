@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import re
@@ -8,7 +9,7 @@ from aiogram import F, Router, types
 from aiogram.filters import Command, CommandObject, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.dispatcher.event.bases import SkipHandler
-from aiogram.types import InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from db.rpc import bot_get_profile, bot_get_user_status
 from fsm.states import AskForm
@@ -108,6 +109,7 @@ async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
     waiting = await message.answer("🤖 PRISMA_AI думает…")
     chat_id = message.chat.id
     try:
+        await ai_memory.hydrate(chat_id, tg_id)
         text, cards = await run_member(tg_id, question, status, ai_memory.history(chat_id, tg_id), private)
     except Exception as exc:  # AIError or anything unexpected: never leave «думает…» hanging
         logger.warning("member PRISMA_AI failed: %s", exc)
@@ -116,16 +118,46 @@ async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
         except Exception:
             pass
         return False
+    answer_id = ai_memory.new_answer_id()
     ai_memory.remember(chat_id, tg_id, "user", question)
-    ai_memory.remember(chat_id, tg_id, "assistant", text)
+    ai_memory.remember(chat_id, tg_id, "assistant", text, answer_id=answer_id)
+    asyncio.create_task(ai_memory.persist(chat_id, tg_id, "user", question))
+    asyncio.create_task(ai_memory.persist(chat_id, tg_id, "assistant", text, answer_id))
     built = sections.build_answer(question, status) if sections.match_sections(question) else None
     rows = list(built[1].inline_keyboard) if built else []
     link_row = link_buttons(question, text)
     rows += [link_row[i:i + 2] for i in range(0, len(link_row), 2)]
+    rows.append(feedback_row(answer_id))
     await _send_model_text(waiting, message, text, InlineKeyboardMarkup(inline_keyboard=rows) if rows else None)
     for card_text, card_markup in cards:
         await message.answer(card_text, parse_mode="HTML", reply_markup=card_markup)
 
+
+
+def feedback_row(answer_id: str) -> list[InlineKeyboardButton]:
+    return [InlineKeyboardButton(text="👍", callback_data=f"aif:u:{answer_id}"),
+            InlineKeyboardButton(text="👎", callback_data=f"aif:d:{answer_id}")]
+
+
+@router.callback_query(F.data.startswith("aif:"))
+async def answer_feedback(callback: types.CallbackQuery):
+    parts = (callback.data or "").split(":")
+    if len(parts) != 3 or parts[1] not in {"u", "d"} or not callback.message:
+        await callback.answer("Кнопка устарела.", show_alert=True)
+        return
+    rating = 1 if parts[1] == "u" else -1
+    ok = await ai_memory.rate(callback.from_user.id, callback.message.chat.id, parts[2], rating)
+    if not ok:
+        await callback.answer("Оценить ответ может только тот, кому он адресован.", show_alert=True)
+        return
+    await callback.answer("Спасибо! 👍 Учту." if rating == 1 else "Понял, учту. 👎")
+    try:
+        markup = callback.message.reply_markup
+        rows = [r for r in (markup.inline_keyboard if markup else []) if not (r and (r[0].callback_data or "").startswith("aif:"))]
+        rows.append([InlineKeyboardButton(text="👍 Оценено" if rating == 1 else "👎 Оценено", callback_data=f"aif:{parts[1]}:{parts[2]}")])
+        await callback.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    except Exception:
+        pass
 
 
 async def _send_model_text(waiting, message, text, markup):
@@ -188,7 +220,7 @@ async def free_text(message: types.Message):
     text = (message.text or "").strip()
     if len(text) < 3 or message.from_user is None:
         return
-    # Staff in admin mode talk to the PRISMA_AI, everyone else to the navigator.
+    # Staff in admin mode talk to the PRISMA_AGENT, everyone else to the navigator.
     if await is_admin_mode(message.from_user.id):
         await _copilot(message, text)
         return
@@ -216,7 +248,7 @@ async def ai_status(message: types.Message):
     await message.answer("\n".join(lines), parse_mode="HTML")
 
 
-# ---------------------------------------------------------------- admin PRISMA_AI
+# ---------------------------------------------------------------- admin PRISMA_AGENT
 
 
 async def _copilot(message: types.Message, request: str):
@@ -227,7 +259,7 @@ async def _copilot(message: types.Message, request: str):
     admin_id = message.from_user.id
 
     if not is_configured("admin"):
-        await message.answer("🤖 PRISMA_AI не настроен: задайте AI_API_KEY_ADMIN.")
+        await message.answer("🤖 PRISMA_AGENT не настроен: задайте AI_API_KEY_ADMIN.")
         return
     waiting = await message.answer("🤖 Работаю…")
     try:
@@ -236,7 +268,9 @@ async def _copilot(message: types.Message, request: str):
         logger.warning("copilot failed: %s", exc)
         await waiting.edit_text("😕 Не получилось выполнить запрос (модель или данные недоступны). Попробуйте ещё раз или переформулируйте. Проверка связи: /ai_status")
         return
-    await _send_model_text(waiting, message, text, None)
+    answer_id = ai_memory.new_answer_id()
+    asyncio.create_task(ai_memory.persist(message.chat.id, admin_id, "assistant", text, answer_id, agent=True))
+    await _send_model_text(waiting, message, text, InlineKeyboardMarkup(inline_keyboard=[feedback_row(answer_id)]))
     for card_text, markup in cards:
         await message.answer(card_text, parse_mode="HTML", reply_markup=markup)
 
@@ -256,7 +290,7 @@ async def copilot_command(message: types.Message, command: CommandObject, state:
         return
     await state.set_state(AskForm.admin_waiting)
     await message.answer(
-        "🤖 <b>PRISMA_AI</b>\nНапишите задачу, например:\n• список игроков и их юзы\n• кто неактивен месяц\n• какие заявки ждут\n"
+        "🤖 <b>PRISMA_AGENT</b>\nНапишите задачу, например:\n• список игроков и их юзы\n• кто неактивен месяц\n• какие заявки ждут\n"
         "Изменения — только через кнопки подтверждения. /cancel — выйти.",
         parse_mode="HTML",
     )
@@ -270,13 +304,13 @@ async def copilot_button(callback: types.CallbackQuery, state: FSMContext):
     await callback.answer()
     if callback.message:
         await state.set_state(AskForm.admin_waiting)
-        await callback.message.answer("🤖 PRISMA_AI: напишите задачу (например «список игроков и их юзы»). /cancel — выйти.")
+        await callback.message.answer("🤖 PRISMA_AGENT: напишите задачу (например «список игроков и их юзы»). /cancel — выйти.")
 
 
 @router.message(Command("cancel"), StateFilter(AskForm.admin_waiting))
 async def copilot_cancel(message: types.Message, state: FSMContext):
     await state.clear()
-    await message.answer("Ок, PRISMA_AI закрыт.")
+    await message.answer("Ок, PRISMA_AGENT закрыт.")
 
 
 @router.message(StateFilter(AskForm.admin_waiting), F.text, ~F.text.startswith("/"))

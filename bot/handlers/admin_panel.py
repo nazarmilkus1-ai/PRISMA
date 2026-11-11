@@ -231,4 +231,4 @@ async def find_result(message: types.Message, state: FSMContext):
             f"Последняя активность: <code>{escape(str(last or 'нет данных'))}</code>",
             parse_mode="HTML",
         )
-    await message.answer("Дальше: /history ник · /warn · /mute · /ban — или спросите PRISMA_AI.", reply_markup=_back())
+    await message.answer("Дальше: /history ник · /warn · /mute · /ban — или спросите PRISMA_AGENT.", reply_markup=_back())

@@ -1,4 +1,4 @@
-"""Diagnostics for the admin Copilot: recent bot errors and bug reports.
+"""Diagnostics for the admin PRISMA_AGENT: recent bot errors and bug reports.
 
 The bot cannot edit its own code. A bug found by the Copilot becomes a GitHub Issue
 (when GITHUB_TOKEN + GITHUB_REPO are set); the fix is then a normal reviewed PR.

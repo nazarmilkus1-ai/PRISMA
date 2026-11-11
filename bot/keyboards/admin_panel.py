@@ -38,7 +38,7 @@ def home_keyboard(snap: dict | None = None, perms=None, panel_url: str | None = 
         sections.append(_btn("🛡 Модерация", "ap:mod"))
     if _can(perms, "system.health"):
         sections.append(_btn("🖥 Система", "ap:sys"))
-    sections.append(_btn("🤖 PRISMA_AI", "ai:admin"))
+    sections.append(_btn("🤖 PRISMA_AGENT", "ai:admin"))
     rows += _rows(sections)
     rows.append([_btn("🔄 Обновить", "ap:home")])
     if panel_url:

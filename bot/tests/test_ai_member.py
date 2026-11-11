@@ -44,11 +44,11 @@ class CalcTests(unittest.TestCase):
 class MemoryTests(unittest.TestCase):
     def test_window_and_ttl(self):
         memory.forget(1, 2)
-        for i in range(12):
+        for i in range(memory.MAX_MESSAGES + 4):
             memory.remember(1, 2, "user", f"m{i}", now=100.0 + i)
         hist = memory.history(1, 2, now=120.0)
         self.assertEqual(len(hist), memory.MAX_MESSAGES)
-        self.assertEqual(hist[-1]["content"], "m11")
+        self.assertEqual(hist[-1]["content"], f"m{memory.MAX_MESSAGES + 3}")
         self.assertEqual(memory.history(1, 2, now=100.0 + memory.TTL_SECONDS + 500), [])
 
     def test_isolated_per_user(self):
