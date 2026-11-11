@@ -1,4 +1,5 @@
 import logging
+import os
 import re
 import time
 from html import escape
@@ -463,3 +464,41 @@ async def _finish_card(callback: types.CallbackQuery, text: str) -> None:
         await callback.message.edit_text(text, reply_markup=None)
     except Exception:
         await callback.message.answer(text)
+
+
+@router.callback_query(F.data.startswith("aio:"))
+async def ops_card(callback: types.CallbackQuery):
+    """Confirm cards for top-staff operations. Ownership, admin mode and the top role are re-checked on every tap."""
+    parts = (callback.data or "").split(":")
+    if len(parts) != 4 or parts[1] not in {"rd", "an"} or parts[2] not in {"ok", "no"}:
+        await callback.answer("Кнопка устарела.", show_alert=True)
+        return
+    _, kind, action, draft_id = parts
+    admin_id = callback.from_user.id
+    draft = take_draft(draft_id, admin_id)
+    if not draft or draft["kind"] != kind:
+        await callback.answer("Карточка устарела или не ваша.", show_alert=True)
+        return
+    if action == "no":
+        await callback.answer("Отменено")
+        await _finish_card(callback, "✖ Отменено.")
+        return
+    from utils.permissions import staff_context
+    context = await staff_context(admin_id)
+    if not (context.get("is_staff") and "*" in context.get("permissions", [])) or not await is_admin_mode(admin_id):
+        await callback.answer("❌ Недостаточно прав.", show_alert=True)
+        return
+    if kind == "rd":
+        from services.ai import ops
+        ok, detail = await ops.render_redeploy()
+        text = f"🚀 Деплой запущен ({detail})." if ok else f"❌ Не удалось перезапустить: {detail}"
+    else:
+        chat = os.getenv("ANNOUNCE_CHAT_ID", "").strip()
+        try:
+            await callback.bot.send_message(int(chat), draft["payload"]["text"])
+            text, ok = "📣 Объявление отправлено.", True
+        except Exception as exc:
+            logger.warning("announcement failed: %s", exc)
+            text, ok = "❌ Не удалось отправить объявление.", False
+    await callback.answer("Готово" if ok else "Не получилось")
+    await _finish_card(callback, text)

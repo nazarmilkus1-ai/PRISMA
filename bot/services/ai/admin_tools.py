@@ -7,6 +7,7 @@ the admin, and nothing changes until they tap. The model never touches SQL.
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass, field
 from html import escape
 
@@ -19,7 +20,8 @@ from db.rpc import (
     bot_list_support_requests,
 )
 from keyboards.admin_actions import application_actions, appeal_actions, report_actions, support_actions
-from services.ai import diagnostics
+from services.ai import diagnostics, ops
+from services.ai.member_tools import new_draft
 from services.ai.client import AIError, chat_with_fallback
 from services.ai.players import PlayerFilter, apply_player_filter
 
@@ -76,6 +78,14 @@ TOOLS = [
         ["query", "kind", "reason"]),
     _fn("report_bug", "Завести задачу (GitHub Issue) о найденной ошибке. Только для старших ролей.",
         {"title": {"type": "string"}, "details": {"type": "string"}}, ["title", "details"]),
+    _fn("render_status", "Последние деплои бота на Render (статус, коммит)."),
+    _fn("render_logs", "Свежие логи бота на Render (секреты скрыты).", {"limit": {"type": "integer"}}),
+    _fn("vercel_status", "Последние деплои сайта на Vercel (состояние, ветка, коммит)."),
+    _fn("vercel_deployment", "Подробности деплоя Vercel: состояние и текст ошибки сборки.", {"id": {"type": "string"}}, ["id"]),
+    _fn("github_status", "Открытые PR репозитория и задачи, заведённые Copilot."),
+    _fn("propose_render_redeploy", "Предложить перезапуск деплоя бота на Render (только высшие роли, с подтверждением)."),
+    _fn("propose_announcement", "Подготовить объявление для сообщества (карточка с подтверждением, только высшие роли).",
+        {"text": {"type": "string"}}, ["text"]),
     _fn("propose_application_action", "Предложить одобрить/отклонить заявку (покажет кнопки подтверждения).",
         {"application_id": {"type": "string"}, "action": {"type": "string", "enum": ["approve", "reject"]}},
         ["application_id", "action"]),
@@ -95,10 +105,27 @@ _PERMISSION = {
     "server_status": "system.health", "recent_errors": "system.health", "report_bug": "system.health",
     "player_card": "player.view", "list_staff": "player.view", "list_clans": "player.view",
     "list_support_requests": "player.view", "propose_support_resolve": "player.view",
+    "render_status": "system.health", "render_logs": "system.health", "vercel_status": "system.health",
+    "vercel_deployment": "system.health", "github_status": "system.health",
+    "propose_render_redeploy": "system.health", "propose_announcement": "system.health",
     "punishment_history": "punishment.view_history", "propose_punishment": "punishment.view_history",
 }
 
 _PUNISH_RE = __import__("re").compile(r"^\d{1,4}[mhd]$")
+
+
+async def _is_owner(admin_id: int) -> bool:
+    from utils.permissions import staff_context
+    context = await staff_context(admin_id)
+    return bool(context.get("is_staff")) and "*" in context.get("permissions", [])
+
+
+def _ops_card(kind: str, draft_id: str, confirm: str) -> InlineKeyboardMarkup:
+    from aiogram.types import InlineKeyboardButton
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text=confirm, callback_data=f"aio:{kind}:ok:{draft_id}"),
+        InlineKeyboardButton(text="✖ Отмена", callback_data=f"aio:{kind}:no:{draft_id}"),
+    ]])
 
 
 async def _one_player(admin_id: int, query: str):
@@ -233,6 +260,35 @@ async def execute(name: str, args: dict, ctx: Context) -> dict:
         )
         return {"error": err} if err else {"issue": url}
 
+    if name == "render_status":
+        return await ops.render_status()
+    if name == "render_logs":
+        return await ops.render_logs(int(args.get("limit") or 40))
+    if name == "vercel_status":
+        return await ops.vercel_status()
+    if name == "vercel_deployment":
+        return await ops.vercel_deployment(str(args.get("id") or ""))
+    if name == "github_status":
+        return await ops.github_status()
+    if name in {"propose_render_redeploy", "propose_announcement"}:
+        if not await _is_owner(ctx.admin_id):
+            return {"error": "only the highest staff role can propose this"}
+        if name == "propose_render_redeploy":
+            if (err := ops.missing("RENDER_API_KEY", "RENDER_SERVICE_ID")):
+                return {"error": err}
+            draft = new_draft(ctx.admin_id, "rd", {})
+            ctx.cards.append(("🚀 <b>Предложение Copilot: перезапустить деплой бота на Render</b>\n"
+                              "Бот кратко перезапустится.", _ops_card("rd", draft, "✅ Перезапустить")))
+            return {"ok": "confirmation card shown to admin"}
+        text = str(args.get("text") or "").strip()[:1500]
+        if len(text) < 5:
+            return {"error": "text too short"}
+        if not os.getenv("ANNOUNCE_CHAT_ID", "").strip():
+            return {"error": "not configured: set ANNOUNCE_CHAT_ID"}
+        draft = new_draft(ctx.admin_id, "an", {"text": text})
+        ctx.cards.append((f"📣 <b>Объявление (черновик)</b>\n{escape(text)}\n\nОтправить в чат сообщества?",
+                          _ops_card("an", draft, "✅ Отправить")))
+        return {"ok": "draft card shown; nothing is sent until the admin taps the button"}
     if name == "propose_application_action":
         row = await _find(pending_applications, ctx.admin_id, str(args.get("application_id")))
         if not row:
