@@ -115,7 +115,6 @@ async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
     if not navigator.allowed(tg_id):
         await message.answer("⏳ Слишком много вопросов подряд. Попробуйте чуть позже.")
         return True
-    status = str(await bot_get_user_status(tg_id) or "")
     chat_id = message.chat.id
     # Private chat shows a «thinking» message; a group only gets the «typing…» indicator (no clutter, one message less).
     waiting = await message.answer("🤖 PRISMA_AI думает…") if private else None
@@ -125,7 +124,9 @@ async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
         except Exception:
             pass
     try:
-        await ai_memory.hydrate(chat_id, tg_id)
+        # Independent database reads run side by side (saves a round trip before the model call).
+        status_raw, _ = await asyncio.gather(bot_get_user_status(tg_id), ai_memory.hydrate(chat_id, tg_id))
+        status = str(status_raw or "")
         history = ai_memory.history(chat_id, tg_id)
         if private:
             text, cards = await run_member(tg_id, question, status, history, True)
