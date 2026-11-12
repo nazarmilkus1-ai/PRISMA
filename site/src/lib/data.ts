@@ -271,3 +271,27 @@ export async function getRankingEntry(_userId:string,category="rating"){
   if(error||!data||typeof data!=="object")return null;
   return data;
 }
+
+export type CommunityStatus={
+  checkedAt:string;
+  website:{ok:true};
+  database:{ok:boolean;latencyMs:number|null};
+  minecraft:{online:boolean;lastSeenSeconds:number|null};
+};
+
+/** Public, availability-only status: no addresses, versions or player lists (those stay members-only). */
+export async function getCommunityStatus():Promise<CommunityStatus>{
+  const db=createSupabasePublicClient();
+  const started=Date.now();
+  const{data,error}=await db.rpc(PUBLIC_RPC.serverStatus);
+  const latency=Date.now()-started;
+  const node=(!error&&data&&typeof data==="object")?data as any:null;
+  const last=node?.last_heartbeat_at?new Date(node.last_heartbeat_at).getTime():0;
+  const age=last?Math.max(0,Math.round((Date.now()-last)/1000)):null;
+  return{
+    checkedAt:new Date().toISOString(),
+    website:{ok:true},
+    database:{ok:!error,latencyMs:error?null:latency},
+    minecraft:{online:Boolean(node)&&String(node.status||"").toUpperCase()==="ONLINE"&&age!==null&&age<120,lastSeenSeconds:age},
+  };
+}

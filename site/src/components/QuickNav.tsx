@@ -21,6 +21,7 @@ const PUBLIC_PAGES: Page[] = [
   { href: "/wiki", label: "Wiki", keys: "wiki вики" },
   { href: "/rules", label: "Правила", keys: "rules" },
   { href: "/faq", label: "FAQ", keys: "faq вопросы" },
+  { href: "/status", label: "Состояние", keys: "status состояние работает статус" },
   { href: "/apply", label: "Подать анкету", keys: "apply заявка" },
   { href: "/search", label: "Поиск" },
   { href: "/login", label: "Войти", keys: "login вход" },
@@ -32,6 +33,7 @@ const GO: Record<Area, Record<string, Page>> = {
     c: { href: "/clans", label: "Кланы" }, e: { href: "/events", label: "События" }, w: { href: "/wiki", label: "Wiki" },
     r: { href: "/rules", label: "Правила" }, n: { href: "/news", label: "Новости" }, p: { href: "/players", label: "Игроки" },
     k: { href: "/map", label: "Карта" }, l: { href: "/rankings", label: "Рейтинг" }, a: { href: "/apply", label: "Анкета" },
+    t: { href: "/status", label: "Состояние" },
   },
   participant: {
     h: { href: "/app", label: "Главная" }, s: { href: "/app/server", label: "Сервер" }, m: { href: "/app/market", label: "Рынок" },

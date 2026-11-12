@@ -10,6 +10,7 @@ const MEMBER_LINKS = [
   ["/rules", "Правила", null],
   ["/faq", "FAQ", null],
   ["/guide", "Гайд новичка", null],
+  ["/status", "Состояние", null],
 ] as const;
 
 export async function SiteFooter() {
@@ -23,6 +24,7 @@ export async function SiteFooter() {
     : [
         ...(enabledModules["public-content"] ? ([["/wiki", "Wiki"]] as const) : []),
         ["/rules", "Правила"] as const,
+        ["/status", "Состояние"] as const,
         ...(enabledModules.applications ? ([["/apply", "Подать анкету"]] as const) : []),
         ...(user ? ([["/app", "Кабинет"]] as const) : ([["/login", "Войти"]] as const)),
       ];
