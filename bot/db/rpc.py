@@ -906,3 +906,15 @@ async def bot_market_reputation(nick):
 
 async def bot_market_risk_data(hours=72):
     return await call_rpc_async("bot_market_risk_data", {"p_hours": hours})
+
+
+async def bot_create_reminder(tg_id, text, at_iso):
+    return await call_rpc_async("bot_create_reminder", {"p_tg_id": tg_id, "p_text": text, "p_at": at_iso})
+
+
+async def bot_list_reminders(tg_id):
+    return await call_rpc_async("bot_list_reminders", {"p_tg_id": tg_id})
+
+
+async def bot_cancel_reminder(tg_id, reminder_id):
+    return await call_rpc_async("bot_cancel_reminder", {"p_tg_id": tg_id, "p_id": reminder_id})
