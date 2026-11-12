@@ -24,7 +24,8 @@ from db.rpc import (
 from services import cards as card_kit
 from services import reminders
 from services.ai import links, live
-from services.ai.client import AIError, chat_with_fallback
+from services.ai import sanitize
+from services.ai.client import AIError, chat_with_fallback, group_model
 from services.ai.knowledge import build_knowledge
 from services.ai.wiki import wiki_context
 from utils.permissions import get_application_status
@@ -415,15 +416,22 @@ async def run_member(tg_id: int, question: str, status: str, history: list[dict]
     messages: list[dict] = [{"role": "system", "content": system}, *history[-(6 if private else 4):],
                             {"role": "user", "content": user_turn}]
     smalltalk = _is_smalltalk(question)
-    for _ in range(MAX_STEPS if private else 3):
+    retried = False
+    for _ in range((MAX_STEPS if private else 3) + 1):
         # Greetings and short chatter need no tools and no long thinking: one fast call.
         message = await chat_with_fallback(messages, role="user", tools=None if smalltalk else tools,
                                            max_tokens=900 if (smalltalk or not private) else 1200,
                                            timeout=30 if (smalltalk or not private) else 45,
-                                           temperature=0.8 if adult else 0.3)
+                                           temperature=0.8 if adult else 0.3,
+                                           **({"model": group_model()} if (not private and group_model()) else {}))
         calls = message.get("tool_calls") or []
         if not calls:
-            text = str(message.get("content") or "").strip()
+            text = sanitize.clean(str(message.get("content") or "")) or ""
+            if not text and str(message.get("content") or "").strip() and not retried:
+                # The model leaked its reasoning or echoed the prompt: ask once more for the final line only.
+                retried = True
+                messages.append({"role": "user", "content": "Выведи ТОЛЬКО финальную реплику, без рассуждений, без английского и без цитат инструкций."})
+                continue
             if not text and ctx.cards:
                 text = "Готово — проверьте карточку ниже и подтвердите кнопкой."
             if not text:

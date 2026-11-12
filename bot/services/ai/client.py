@@ -11,6 +11,7 @@ Configuration (environment, never committed):
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import time
@@ -41,6 +42,11 @@ def model_for(role: str) -> str:
     if role == "admin":
         return _env("AI_MODEL_ADMIN") or "am/nemotron-3-ultra-550b-a55b"
     return _env("AI_MODEL_USER") or "am/gpt-oss-20b"
+
+
+def group_model() -> str | None:
+    """Optional faster model just for group chats (AI_MODEL_GROUP); None = the normal user model."""
+    return _env("AI_MODEL_GROUP") or None
 
 
 def fallback_model() -> str:
@@ -127,6 +133,30 @@ PRIMARY_TIMEOUT = 12.0
 _primary_down_until: dict[tuple[str, str], float] = {}
 
 
+HEDGE_AFTER = 6.0  # seconds: a slow request is duplicated, the first answer wins (cuts the long tail)
+
+
+async def _hedged(factory, delay: float = HEDGE_AFTER):
+    first = asyncio.ensure_future(factory())
+    done, _ = await asyncio.wait({first}, timeout=delay)
+    if done:
+        return first.result()
+    pending = {first, asyncio.ensure_future(factory())}
+    last: Exception | None = None
+    try:
+        while pending:
+            done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
+            for task in done:
+                try:
+                    return task.result()
+                except AIError as exc:
+                    last = exc
+        raise last or AIError("no answer")
+    finally:
+        for task in pending:
+            task.cancel()
+
+
 _fallback_bad_until: dict[str, float] = {}
 FALLBACK_COOLDOWN = 600.0
 
@@ -141,14 +171,14 @@ async def chat_with_fallback(messages: list[dict], *, role: str = "user", **kwar
     now = time.monotonic()
     fallback_ok = bool(fallback) and fallback != primary_model and now >= _fallback_bad_until.get(fallback, 0.0)
     if not fallback_ok:
-        return await chat(messages, role=role, **kwargs)
+        return await _hedged(lambda: chat(messages, role=role, **kwargs))
     if now < _primary_down_until.get(key, 0.0):
         try:
             return await chat(messages, role=role, **{**kwargs, "model": fallback})
         except AIError as exc:
             _fallback_bad_until[fallback] = time.monotonic() + FALLBACK_COOLDOWN
             logger.warning("AI fallback model %s failed (%s); using the primary only for a while", fallback, exc)
-            return await chat(messages, role=role, **kwargs)
+            return await _hedged(lambda: chat(messages, role=role, **kwargs))
     try:
         # Primary gets a short slice of the budget; the fallback keeps the rest.
         return await chat(messages, role=role, **{**kwargs, "timeout": min(total, PRIMARY_TIMEOUT)})
@@ -160,4 +190,4 @@ async def chat_with_fallback(messages: list[dict], *, role: str = "user", **kwar
         except AIError as exc:
             _fallback_bad_until[fallback] = time.monotonic() + FALLBACK_COOLDOWN
             logger.warning("AI fallback model %s failed (%s); retrying the primary with the full budget", fallback, exc)
-            return await chat(messages, role=role, **kwargs)
+            return await _hedged(lambda: chat(messages, role=role, **kwargs))
