@@ -84,13 +84,13 @@ def set_enabled(chat_id: int, value: bool) -> None:
 
 # ------------------------------------------------------------------ chat buffer
 def observe(chat_id: int, message_id: int, user_id: int, name: str, text: str,
-            reply_to: int | None = None, now: float | None = None) -> None:
+            reply_to: int | None = None, now: float | None = None, username: str | None = None) -> None:
     now = time.time() if now is None else now
     buf = _buffers[chat_id]
     while buf and now - buf[0]["ts"] > BUFFER_TTL:
         buf.popleft()
     buf.append({"ts": now, "id": message_id, "uid": user_id, "name": name[:32],
-                "text": text[:200], "reply_to": reply_to})
+                "text": text[:200], "reply_to": reply_to, "username": username})
 
 
 FOLLOWUP_WINDOW = 120  # seconds during which a person's next lines continue their talk with the bot
@@ -143,6 +143,29 @@ def context_lines(chat_id: int, now: float | None = None, limit: int = 12) -> st
     now = time.time() if now is None else now
     lines = [f"{e['name']}: {e['text']}" for e in _buffers[chat_id] if now - e["ts"] <= BUFFER_TTL]
     return "\n".join(lines[-limit:])
+
+
+def participants(chat_id: int, limit: int = 15, now: float | None = None) -> list[dict]:
+    """Recent distinct people (newest first) so the model can resolve «гусь» or @nick to a real member."""
+    now = time.time() if now is None else now
+    seen: dict[int, dict] = {}
+    for entry in reversed(_buffers[chat_id]):
+        if entry["uid"] and entry["uid"] not in seen and now - entry["ts"] <= BUFFER_TTL:
+            seen[entry["uid"]] = {"id": entry["uid"], "name": entry["name"], "username": entry.get("username")}
+    return list(seen.values())[:limit]
+
+
+def find_member(chat_id: int, query: str) -> tuple[dict | None, str]:
+    """Resolve a name or @username among recent participants: (member, '') or (None, reason)."""
+    q = (query or "").strip().lstrip("@").casefold()
+    if not q:
+        return None, "не указано, кого"
+    people = participants(chat_id, 40)
+    exact = [m for m in people if q in {(m.get("username") or "").casefold(), m["name"].casefold()}]
+    found = exact or [m for m in people if q in m["name"].casefold() or q in (m.get("username") or "").casefold()]
+    if len(found) == 1:
+        return found[0], ""
+    return None, ("несколько подходящих участников, уточните @username" if found else "такого участника не видно в последних сообщениях чата")
 
 
 def answered_by_human(chat_id: int, message_id: int, asker_id: int) -> bool:

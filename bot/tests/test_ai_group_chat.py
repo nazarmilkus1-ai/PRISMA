@@ -204,3 +204,68 @@ class LeakAndHedgeTests(unittest.TestCase):
 
         asyncio.run(client._hedged(factory, delay=0.5))
         self.assertEqual(len(attempts), 1)
+
+
+class GroupToolsTests(unittest.TestCase):
+    def setUp(self):
+        ambient._buffers.pop(-1001, None)
+        ambient.observe(-1001, 1, 11, "Гусь", "я тут", username="Goose5551803")
+        ambient.observe(-1001, 2, 12, "Миша", "и я", username="misha")
+        ambient.observe(-1001, 3, 7, "Назар", "дай мут гусю", username="nazar")
+
+    def test_find_member(self):
+        self.assertEqual(ambient.find_member(-1001, "@Goose5551803")[0]["id"], 11)
+        self.assertEqual(ambient.find_member(-1001, "гус")[0]["id"], 11)
+        self.assertIsNone(ambient.find_member(-1001, "никто")[0])
+        self.assertIsNone(ambient.find_member(-1001, "")[0])
+
+    def test_mute_card_is_a_draft_and_needs_permission(self):
+        ctx = member_tools.Context(7, False, True, -1001, can_mute=False)
+        denied = asyncio.run(member_tools.execute("propose_mute", {"member": "гусь"}, ctx))
+        self.assertIn("error", denied)
+        self.assertEqual(ctx.cards, [])
+        ctx = member_tools.Context(7, False, True, -1001, can_mute=True)
+        ok = asyncio.run(member_tools.execute("propose_mute", {"member": "@goose5551803", "minutes": 99999}, ctx))
+        self.assertIn("ok", ok)
+        self.assertEqual(len(ctx.cards), 1)
+        text, markup = ctx.cards[0]
+        self.assertIn("10080", text)  # clamped to a week
+        data = markup.inline_keyboard[0][0].callback_data
+        self.assertTrue(data.startswith("aim:mu:ok:"))
+        self.assertIsNotNone(member_tools.peek_draft(data.split(":")[3], 7))
+        self.assertIsNone(member_tools.peek_draft(data.split(":")[3], 8))  # only the asker can confirm
+
+    def test_cannot_mute_self(self):
+        ctx = member_tools.Context(7, False, True, -1001, can_mute=True)
+        result = asyncio.run(member_tools.execute("propose_mute", {"member": "назар"}, ctx))
+        self.assertIn("error", result)
+
+    def test_chat_tools_are_group_only(self):
+        private = member_tools.Context(7, True, True)
+        self.assertIn("error", asyncio.run(member_tools.execute("chat_summary", {}, private)))
+        group = member_tools.Context(7, False, True, -1001)
+        summary = asyncio.run(member_tools.execute("chat_summary", {}, group))
+        self.assertIn("Гусь: я тут", summary["messages"])
+        self.assertEqual({m["name"] for m in asyncio.run(member_tools.execute("chat_members", {}, group))["members"]},
+                         {"Гусь", "Миша", "Назар"})
+
+    def test_apply_mute_checks_permission_before_anything(self):
+        from services.ai import mod_actions
+        bot = SimpleNamespace(restrict_chat_member=mock.AsyncMock())
+        with mock.patch.object(mod_actions, "can_mute", mock.AsyncMock(return_value=False)):
+            ok, text = asyncio.run(mod_actions.apply_mute(bot, 7, {"tg_id": 11, "minutes": 5}))
+        self.assertFalse(ok)
+        bot.restrict_chat_member.assert_not_called()
+
+    def test_apply_mute_stores_punishment_then_restricts(self):
+        from services.ai import mod_actions
+        bot = SimpleNamespace(restrict_chat_member=mock.AsyncMock())
+        good = SimpleNamespace(error=None, data={"success": True})
+        with mock.patch.object(mod_actions, "can_mute", mock.AsyncMock(return_value=True)), \
+                mock.patch.object(mod_actions, "bot_create_punishment", mock.AsyncMock(return_value=good)) as create, \
+                mock.patch.object(mod_actions.config, "MODERATION_GROUP_ID", -1001):
+            ok, text = asyncio.run(mod_actions.apply_mute(bot, 7, {"tg_id": 11, "minutes": 30, "name": "@goose"}))
+        self.assertTrue(ok)
+        self.assertEqual(create.await_args.args[:3], (11, "mute", "по просьбе администратора в чате"))
+        bot.restrict_chat_member.assert_awaited_once()
+        self.assertIn("30 мин", text)

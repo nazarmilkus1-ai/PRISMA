@@ -16,7 +16,7 @@ from db.rpc import bot_get_profile, bot_get_user_status
 from fsm.states import AskForm
 from handlers.guide import build_guide
 from db.rpc import bot_check_admin_permission
-from services.ai import ambient, evals
+from services.ai import ambient, evals, mod_actions
 from services.ai import memory as ai_memory
 from services.ai import navigator, sections
 from services.ai.admin_tools import run_copilot
@@ -47,6 +47,9 @@ async def _fallback_menu(message: types.Message, text: str):
     from handlers.menu import _menu_for  # local import: menu imports this package's neighbours
 
     await message.answer(text, reply_markup=await _menu_for(message.from_user.id))
+
+
+_MUTE_WORDS = re.compile(r"(мут|замут|заглуш|mute|заткн|молч)", re.I)
 
 
 def _is_short(question: str) -> bool:
@@ -134,7 +137,8 @@ async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
             text, cards = await run_member(
                 tg_id, question, status, history, False,
                 chat_context=ambient.transcript(chat_id, 14, exclude_id=message.message_id),
-                asker=message.from_user.first_name or "участник", adult=ambient.adult(chat_id))
+                asker=message.from_user.first_name or "участник", adult=ambient.adult(chat_id), chat_id=chat_id,
+                can_mute=await mod_actions.can_mute(tg_id) if _MUTE_WORDS.search(question) else False)
     except Exception as exc:  # AIError or anything unexpected: never leave «думает…» hanging
         logger.warning("member PRISMA_AI failed: %s", exc)
         if waiting:
@@ -386,7 +390,7 @@ async def group_observe(message: types.Message):
     if not user or user.is_bot or message.via_bot or text.startswith("/"):
         raise SkipHandler
     ambient.observe(message.chat.id, message.message_id, user.id, user.first_name or "игрок", text,
-                    message.reply_to_message.message_id if message.reply_to_message else None)
+                    message.reply_to_message.message_id if message.reply_to_message else None, username=user.username)
     if not ambient.enabled(message.chat.id) or not ambient.worth_considering(text):
         raise SkipHandler
     task = asyncio.create_task(_ambient_reply(message))
@@ -405,6 +409,15 @@ async def group_ai(message: types.Message, command: CommandObject):
         await message.reply("🤖 PRISMA_AI: напишите вопрос после команды, например /ai что такое призма")
         return
     await _answer(message, question, private=False)
+
+
+@group_router.message(Command("recap", "summary", "итог"), F.chat.type.in_({"group", "supergroup"}))
+async def group_recap(message: types.Message):
+    """«Что я пропустил»: PRISMA_AI пересказывает последние сообщения чата (бот видит их только после запуска)."""
+    if message.from_user is None or navigator.is_limited(message.from_user.id):
+        return
+    await _answer(message, "Кратко перескажи, о чём шла речь в чате в последних сообщениях: кто что обсуждал и к чему пришли. "
+                           "Используй chat_summary. 3–6 строк.", private=False)
 
 
 @group_router.message(F.chat.type.in_({"group", "supergroup"}), F.text)
@@ -549,7 +562,7 @@ async def ai_adult_plus_toggle(message: types.Message, command: CommandObject):
 
 
 # ------------------------------------------------------------ confirm cards
-_CARD_KINDS = {"mk": "market", "sp": "support", "ev": "events", "of": "market"}
+_CARD_KINDS = {"mk": "market", "sp": "support", "ev": "events", "of": "market", "mu": "mute"}
 
 
 @router.callback_query(F.data.startswith("aim:"))
@@ -576,6 +589,11 @@ async def member_card(callback: types.CallbackQuery):
     if action == "no":
         await callback.answer("Отменено")
         await _finish_card(callback, "✖ Отменено.")
+        return
+    if kind == "mu":
+        ok, text = await mod_actions.apply_mute(callback.bot, tg_id, draft["payload"])
+        await callback.answer("Готово" if ok else "Не получилось")
+        await _finish_card(callback, text)
         return
     if kind in {"mk", "ev", "of"} and await get_application_status(tg_id) != "ACCEPTED":
         await callback.answer("Доступно после одобрения заявки.", show_alert=True)
