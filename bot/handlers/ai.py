@@ -11,11 +11,12 @@ from aiogram.fsm.context import FSMContext
 from aiogram.dispatcher.event.bases import SkipHandler
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+import config
 from db.rpc import bot_get_profile, bot_get_user_status
 from fsm.states import AskForm
 from handlers.guide import build_guide
 from db.rpc import bot_check_admin_permission
-from services.ai import ambient
+from services.ai import ambient, evals
 from services.ai import memory as ai_memory
 from services.ai import navigator, sections
 from services.ai.admin_tools import run_copilot
@@ -226,6 +227,31 @@ async def free_text(message: types.Message):
         await _copilot(message, text)
         return
     await _answer(message, text)
+
+
+@router.message(Command("ai_eval"), F.chat.type == "private")
+async def ai_eval(message: types.Message):
+    """Admins: run the golden questions through the real PRISMA_AI and report the pass rate."""
+    if not await has_any_staff_permission(message.from_user.id) or not await require_admin_mode(message):
+        return
+    if not is_configured("user"):
+        await message.answer("Ключ AI_API_KEY_USER не задан.")
+        return
+    waiting = await message.answer("🧪 Проверяю PRISMA_AI на эталонных вопросах…")
+    tg_id = message.from_user.id
+
+    async def ask(question: str) -> str:
+        text, _cards = await run_member(tg_id, question, "ACCEPTED", [], True)
+        return text
+
+    hosts = (re.sub(r"^https?://", "", config.SITE_URL).split("/")[0].lower(),)
+    passed, failures = await evals.run_live(ask, hosts)
+    problems = evals.deterministic_failures()
+    total = passed + len(failures)
+    lines = [f"🧪 <b>Оценка PRISMA_AI</b>: {passed}/{total} ответов прошли проверку"]
+    lines += [escape(f) for f in failures[:8]]
+    lines.append("Маршрутизация: " + ("✅ всё как задумано" if not problems else "❌ " + escape("; ".join(problems[:3]))))
+    await waiting.edit_text("\n".join(lines), parse_mode="HTML")
 
 
 @router.message(Command("ai_status"), F.chat.type == "private")
