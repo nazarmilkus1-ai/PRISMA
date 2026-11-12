@@ -21,6 +21,7 @@ from db.rpc import (
     bot_create_market_listing, bot_create_market_offer, bot_market_reputation, bot_my_reviewable_offers, bot_create_support_request, bot_get_market, bot_get_market_offers, bot_get_minecraft_auth_status, bot_get_profile,
     bot_list_events, bot_register_event,
 )
+from services import cards as card_kit
 from services.ai import links, live
 from services.ai.client import AIError, chat_with_fallback
 from services.ai.knowledge import build_knowledge
@@ -207,7 +208,11 @@ async def execute(name: str, args: dict, ctx: Context) -> dict:
     if name == "list_events":
         result = await bot_list_events(ctx.tg_id, 8)
         rows = result.data if not result.error and isinstance(result.data, list) else []
-        return {"events": [{k: r.get(k) for k in ("id", "title", "starts_at", "registered") if k in r} for r in rows[:8] if isinstance(r, dict)]}
+        for r in rows[:3]:
+            if isinstance(r, dict):
+                ctx.cards.append(card_kit.render(card_kit.event(r)))
+        return {"events": [{k: r.get(k) for k in ("id", "title", "starts_at", "registered") if k in r} for r in rows[:8] if isinstance(r, dict)],
+                "note": "cards for the first events are shown under the answer; do not repeat their buttons in text"}
     if name == "my_account":
         status = await get_application_status(ctx.tg_id)
         profile_result = await bot_get_profile(ctx.tg_id)
@@ -225,8 +230,12 @@ async def execute(name: str, args: dict, ctx: Context) -> dict:
     if name == "search_market":
         result = await bot_get_market(ctx.tg_id, query=str(args.get("query") or "")[:64], limit=8)
         rows = result.data if not result.error and isinstance(result.data, list) else []
+        for r in rows[:3]:
+            if isinstance(r, dict):
+                ctx.cards.append(card_kit.render(card_kit.market_listing(r)))
         return {"listings": [{k: r.get(k) for k in ("id", "kind", "title", "price_text", "minecraft_nickname") if k in r}
-                             for r in rows[:8] if isinstance(r, dict)]}
+                             for r in rows[:8] if isinstance(r, dict)],
+                "note": "cards for the first listings are shown under the answer with offer/reputation buttons"}
     if name == "market_reputation":
         result = await bot_market_reputation(str(args.get("nickname") or "")[:32])
         return result.data if not result.error and isinstance(result.data, dict) else {"error": "player not found"}
