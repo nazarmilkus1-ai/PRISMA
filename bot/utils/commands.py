@@ -34,6 +34,7 @@ PUBLIC_COMMANDS = [
 # when typed, it just does not clutter the "/" menu.
 GROUP_COMMANDS = [
     BotCommand(command="ai", description="Спросить PRISMA_AI"),
+    BotCommand(command="recap", description="Что было в чате"),
     BotCommand(command="server", description="Состояние сервера"),
     BotCommand(command="top", description="Топ активности чата"),
     BotCommand(command="stats", description="Статистика чата"),
