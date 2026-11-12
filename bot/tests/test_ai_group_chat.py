@@ -138,3 +138,13 @@ class FallbackTests(unittest.TestCase):
             self.assertEqual(len(calls), 1)
         client._primary_down_until.clear()
         client._fallback_bad_until.clear()
+
+
+class FallbackSwitchOffTests(unittest.TestCase):
+    def test_dash_disables_fallback(self):
+        from services.ai import client
+        for value in ("-", "none", "OFF"):
+            with mock.patch.dict(os.environ, {"AI_MODEL_FALLBACK": value}):
+                self.assertEqual(client.fallback_model(), "")
+        with mock.patch.dict(os.environ, {"AI_MODEL_FALLBACK": ""}):
+            self.assertTrue(client.fallback_model())

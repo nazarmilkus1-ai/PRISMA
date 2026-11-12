@@ -44,7 +44,11 @@ def model_for(role: str) -> str:
 
 
 def fallback_model() -> str:
-    return _env("AI_MODEL_FALLBACK") or "am/nemotron-3.5-lightning-30b-a3b"
+    """Empty string = no fallback (set AI_MODEL_FALLBACK to «-», «none» or «off»)."""
+    value = _env("AI_MODEL_FALLBACK")
+    if value.lower() in {"-", "none", "off", "no", "0"}:
+        return ""
+    return value or "am/nemotron-3.5-lightning-30b-a3b"
 
 
 def is_configured(role: str = "user") -> bool:
@@ -135,7 +139,7 @@ async def chat_with_fallback(messages: list[dict], *, role: str = "user", **kwar
     key = (role, primary_model)
     total = float(kwargs.get("timeout", 45.0))
     now = time.monotonic()
-    fallback_ok = fallback != primary_model and now >= _fallback_bad_until.get(fallback, 0.0)
+    fallback_ok = bool(fallback) and fallback != primary_model and now >= _fallback_bad_until.get(fallback, 0.0)
     if not fallback_ok:
         return await chat(messages, role=role, **kwargs)
     if now < _primary_down_until.get(key, 0.0):

@@ -283,6 +283,9 @@ async def ai_status(message: types.Message):
     checks = (("пользователи", "user", model_for("user")), ("админы", "admin", model_for("admin")),
               ("запасная модель", "user", fallback_model()))
     for title, role, model in checks:
+        if not model:
+            lines.append(f"• {title}: отключена (так и задумано)")
+            continue
         if not is_configured(role):
             lines.append(f"• {title}: ключ не задан")
             continue
