@@ -154,7 +154,7 @@ async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
     sent = await _send_model_text(waiting, message, text, InlineKeyboardMarkup(inline_keyboard=rows) if rows else None)
     ai_memory.bind(chat_id, sent.message_id, tg_id, answer_id)
     if not private:
-        ambient.observe_bot(chat_id, sent.message_id, text)
+        ambient.observe_bot(chat_id, sent.message_id, text, to_user=tg_id)
     for card_text, card_markup in cards:
         await message.answer(card_text, parse_mode="HTML", reply_markup=card_markup)
     return True  # the caller must not add the code fallback after a real answer
@@ -418,7 +418,10 @@ async def group_talk(message: types.Message):
     reply = message.reply_to_message
     replied = bool(reply and reply.from_user and reply.from_user.id == me.id)
     named = bool(ambient.addressed_by_name(text))
-    if not (mentioned or replied or named):
+    # The person is mid-conversation with the bot (it answered them seconds ago): no name needed.
+    # Their own line is already in the buffer, so look at the state before it.
+    continued = ambient.in_conversation(message.chat.id, message.from_user.id) if not (mentioned or replied or named) else False
+    if not (mentioned or replied or named or continued):
         raise SkipHandler
     if any(entity.type in {"url", "text_link"} for entity in (message.entities or [])):
         raise SkipHandler
@@ -488,7 +491,7 @@ async def _ambient_reply_inner(message: types.Message):
     except Exception:
         sent = await message.reply(strip_markdown(text), reply_markup=markup, allow_sending_without_reply=True)
     ai_memory.bind(chat_id, sent.message_id, user.id, answer_id)
-    ambient.observe_bot(chat_id, sent.message_id, text)
+    ambient.observe_bot(chat_id, sent.message_id, text, to_user=user.id)
     ambient.mark_spoke(chat_id, user.id)
 
 

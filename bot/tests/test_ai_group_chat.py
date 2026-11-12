@@ -49,6 +49,16 @@ class GroupChatTests(unittest.TestCase):
         text = ambient.transcript(-1001, 14, exclude_id=50)
         self.assertEqual(text, "Саша: это сервер вообще живой?\nPRISMA_AI: Да, онлайн 3 игрока")
 
+    def test_followup_without_name_while_in_conversation(self):
+        ambient.observe(-1001, 1, 7, "Назар", "Призма", now=1000)
+        ambient.observe_bot(-1001, 2, "Да?", now=1005, to_user=7)
+        ambient.observe(-1001, 3, 7, "Назар", "ты гей", now=1010)
+        self.assertTrue(ambient.in_conversation(-1001, 7, now=1011))
+        self.assertFalse(ambient.in_conversation(-1001, 8, now=1011))   # someone else
+        self.assertFalse(ambient.in_conversation(-1001, 7, now=1005 + ambient.FOLLOWUP_WINDOW + 1))  # too late
+        ambient.observe(-1001, 4, 9, "Вова", "привет всем", now=1012)
+        self.assertFalse(ambient.in_conversation(-1001, 7, now=1013))   # another person joined
+
     def test_adult_mode_toggle_and_env_default(self):
         self.assertFalse(ambient.adult(-1001))
         ambient.set_adult(-1001, 2)
