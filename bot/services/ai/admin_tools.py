@@ -84,6 +84,10 @@ TOOLS = [
         {"query": {"type": "string"}, "kind": {"type": "string", "enum": ["warn", "mute", "ban", "kick"]},
          "reason": {"type": "string"}, "duration": {"type": "string", "description": "например 10m, 2h, 7d"}},
         ["query", "kind", "reason"]),
+    _fn("set_reminder", "Поставить напоминание самому администратору (придёт сообщением от бота). Ровно одно из: in_minutes или at (время Киева 'YYYY-MM-DD HH:MM').",
+        {"text": {"type": "string"}, "in_minutes": {"type": "integer"}, "at": {"type": "string"}}, ["text"]),
+    _fn("list_reminders", "Мои активные напоминания."),
+    _fn("cancel_reminder", "Отменить напоминание по id.", {"id": {"type": "string"}}, ["id"]),
     _fn("report_bug", "Завести задачу (GitHub Issue) о найденной ошибке. Только для старших ролей.",
         {"title": {"type": "string"}, "details": {"type": "string"}}, ["title", "details"]),
     _fn("render_status", "Последние деплои бота на Render (статус, коммит)."),
@@ -199,6 +203,10 @@ async def _find(rows_fn, admin_id: int, row_id: str):
 
 
 async def execute(name: str, args: dict, ctx: Context) -> dict:
+    if name in {"set_reminder", "list_reminders", "cancel_reminder"}:
+        # Personal to the admin who asks; the caller is already a verified staff member in admin mode.
+        from services.ai.member_tools import reminders_tool
+        return await reminders_tool(name, args, ctx.admin_id)
     permission = _PERMISSION.get(name)
     if not permission:
         return {"error": "unknown tool"}
@@ -364,7 +372,9 @@ async def execute(name: str, args: dict, ctx: Context) -> dict:
 
 async def run_copilot(admin_id: int, request: str, bot=None) -> tuple[str, list[tuple[str, InlineKeyboardMarkup]]]:
     ctx = Context(admin_id, bot)
-    messages: list[dict] = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": request[:800]}]
+    from services import reminders as _reminders
+    system = SYSTEM + f" Сейчас {_reminders.now_local():%Y-%m-%d %H:%M} (Киев). Напоминания для админа ставь через set_reminder."
+    messages: list[dict] = [{"role": "system", "content": system}, {"role": "user", "content": request[:800]}]
     for _ in range(MAX_STEPS):
         message = await chat_with_fallback(messages, role="admin", tools=TOOLS, max_tokens=2000, timeout=60)
         calls = message.get("tool_calls") or []

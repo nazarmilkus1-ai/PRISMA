@@ -21,6 +21,7 @@ from db.rpc import (
     bot_create_market_listing, bot_create_market_offer, bot_create_support_request, bot_get_market, bot_get_market_offers, bot_get_minecraft_auth_status, bot_get_profile,
     bot_list_events, bot_register_event,
 )
+from services import reminders
 from services.ai import links, live
 from services.ai.client import AIError, chat_with_fallback
 from services.ai.knowledge import build_knowledge
@@ -67,6 +68,10 @@ TOOLS = [
     _fn("search_market", "Найти объявления рынка (id, заголовок, цена, продавец) — нужно для торга.",
         {"query": {"type": "string"}}),
     _fn("my_offers", "Мои предложения цены и торги по рынку."),
+    _fn("set_reminder", "Поставить напоминание пользователю (придёт сообщением от бота). Укажи ровно одно из: in_minutes или at (локальное время Киева 'YYYY-MM-DD HH:MM').",
+        {"text": {"type": "string"}, "in_minutes": {"type": "integer"}, "at": {"type": "string"}}, ["text"]),
+    _fn("list_reminders", "Мои активные напоминания."),
+    _fn("cancel_reminder", "Отменить напоминание по id из list_reminders.", {"id": {"type": "string"}}, ["id"]),
     _fn("draft_market_offer", "Подготовить предложение цены по объявлению (карточка с подтверждением).",
         {"listing_id": {"type": "string"}, "price": {"type": "string"}, "note": {"type": "string"}, "title": {"type": "string"}},
         ["listing_id", "price"]),
@@ -81,7 +86,7 @@ TOOLS = [
         {"event_id": {"type": "string"}, "title": {"type": "string"}}, ["event_id"]),
 ]
 
-_PERSONAL = {"my_account", "my_overview", "search_market", "my_offers", "draft_market_offer", "draft_market_listing", "draft_support_request", "propose_event_registration"}
+_PERSONAL = {"set_reminder", "list_reminders", "cancel_reminder", "my_account", "my_overview", "search_market", "my_offers", "draft_market_offer", "draft_market_listing", "draft_support_request", "propose_event_registration"}
 
 
 # ----------------------------------------------------------------------------- calc
@@ -185,12 +190,36 @@ def _login_hints(status: str, profile: dict, auth: dict) -> list[str]:
     return hints
 
 
+async def reminders_tool(name: str, args: dict, tg_id: int) -> dict:
+    """Shared by PRISMA_AI and PRISMA_AGENT. Reminders are only ever for the person asking."""
+    if name == "list_reminders":
+        return {"reminders": [{"id": r.get("id"), "at": reminders.fmt(r["at"]), "text": r.get("text")} for r in await reminders.listing(tg_id)]}
+    if name == "cancel_reminder":
+        return {"cancelled": await reminders.cancel(tg_id, str(args.get("id") or ""))}
+    text = str(args.get("text") or "").strip()[:300]
+    when = None
+    try:
+        if args.get("in_minutes") is not None:
+            when = reminders.now_local() + timedelta(minutes=int(args["in_minutes"]))
+        elif args.get("at"):
+            parsed = reminders.parse(f"{str(args['at']).strip()} x")
+            when = parsed[0] if parsed else None
+    except (TypeError, ValueError, OverflowError):
+        when = None
+    if not text or when is None:
+        return {"error": "need text and either in_minutes or at ('YYYY-MM-DD HH:MM', Kyiv time)"}
+    ok, message = await reminders.create(tg_id, text, when)
+    return {"ok": ok, "message": message}
+
+
 async def execute(name: str, args: dict, ctx: Context) -> dict:
     if name in _PERSONAL and not ctx.private:
         return {"error": "personal data and actions are only available in a private chat with the bot"}
     if name in {"draft_market_listing", "propose_event_registration", "draft_market_offer", "search_market", "my_offers"} and not ctx.accepted:
         return {"error": "available only after the application is accepted"}
 
+    if name in {"set_reminder", "list_reminders", "cancel_reminder"}:
+        return await reminders_tool(name, args, ctx.tg_id)
     if name == "calc":
         try:
             value = safe_calc(str(args.get("expression") or ""))
@@ -303,7 +332,8 @@ async def run_member(tg_id: int, question: str, status: str, history: list[dict]
     wiki_block = f"\n\nWIKI:\n{wiki}" if wiki else "\n\nWIKI: пока пуста или недоступна."
     messages: list[dict] = [
         {"role": "system", "content": SYSTEM + "\n\nСПРАВКА:\n" + build_knowledge() + wiki_block
-         + f"\n\nСтатус заявки спрашивающего: {status or 'неизвестно'}. Чат: {'личный' if private else 'групповой'}."},
+         + f"\n\nСтатус заявки спрашивающего: {status or 'неизвестно'}. Чат: {'личный' if private else 'групповой'}. "
+         f"Сейчас {reminders.now_local():%Y-%m-%d %H:%M} (Киев). Напоминания ставь через set_reminder и подтверди время в ответе."},
         *history[-6:],
         {"role": "user", "content": question[:500]},
     ]
