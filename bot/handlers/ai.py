@@ -16,6 +16,7 @@ from db.rpc import bot_get_profile, bot_get_user_status
 from fsm.states import AskForm
 from handlers.guide import build_guide
 from db.rpc import bot_check_admin_permission
+from services import digest
 from services.ai import ambient, evals, mod_actions
 from services.ai import memory as ai_memory
 from services.ai import navigator, sections
@@ -23,6 +24,7 @@ from services.ai.admin_tools import run_copilot
 from services.ai.bench import run_bench
 from services.ai.client import AIError, base_url, chat, fallback_model, is_configured, model_for
 from services.ai.links import link_buttons
+from services.ai import member_tools
 from services.ai.member_tools import peek_draft, publish, run_member, take_draft
 from services.ai.live import live_answer, live_intent
 from utils.mdhtml import strip_markdown, to_telegram_html
@@ -160,9 +162,20 @@ async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
     ai_memory.bind(chat_id, sent.message_id, tg_id, answer_id)
     if not private:
         ambient.observe_bot(chat_id, sent.message_id, text, to_user=tg_id)
-    for card_text, card_markup in cards:
-        await message.answer(card_text, parse_mode="HTML", reply_markup=card_markup)
+    await _send_cards(message, cards)
     return True  # the caller must not add the code fallback after a real answer
+
+
+async def _send_cards(message: types.Message, cards) -> None:
+    for card_text, card_markup in cards:
+        if card_text == member_tools.POLL_MARK:  # a poll requested by the model (group only)
+            try:
+                await message.bot.send_poll(message.chat.id, card_markup["question"], card_markup["options"],
+                                            is_anonymous=False, allows_multiple_answers=card_markup["multiple"])
+            except Exception as exc:
+                logger.warning("poll failed: %s", exc)
+            continue
+        await message.answer(card_text, parse_mode="HTML", reply_markup=card_markup)
 
 
 _LIKE = {"👍", "❤", "🔥", "👏", "🥰", "💯", "🎉", "🤩", "🙏", "👌", "😍", "❤\u200d🔥"}
@@ -409,6 +422,35 @@ async def group_ai(message: types.Message, command: CommandObject):
         await message.reply("🤖 PRISMA_AI: напишите вопрос после команды, например /ai что такое призма")
         return
     await _answer(message, question, private=False)
+
+
+@group_router.message(Command("digest", "дайджест"), F.chat.type.in_({"group", "supergroup"}))
+async def group_digest(message: types.Message):
+    """The evening digest on demand (once per 15 minutes per chat)."""
+    if message.from_user is None or not digest.manual_allowed(message.chat.id):
+        await message.reply("Дайджест уже был недавно — загляните чуть позже.")
+        return
+    try:
+        await message.bot.send_chat_action(message.chat.id, "typing")
+    except Exception:
+        pass
+    await message.reply(await digest.build(message.chat.id))
+
+
+@group_router.message(Command("ai_digest"), F.chat.type.in_({"group", "supergroup"}))
+async def digest_toggle(message: types.Message, command: CommandObject):
+    """Chat admins switch the daily evening digest for this chat."""
+    member = await message.bot.get_chat_member(message.chat.id, message.from_user.id)
+    if member.status not in {"creator", "administrator"}:
+        await message.reply("Только администраторы чата могут менять это.")
+        return
+    arg = (command.args or "").strip().lower()
+    if arg in {"on", "вкл", "1"}:
+        digest.set_enabled(message.chat.id, True)
+    elif arg in {"off", "выкл", "0"}:
+        digest.set_enabled(message.chat.id, False)
+    state = "включён" if digest.enabled(message.chat.id) else "выключен"
+    await message.reply(f"📰 Вечерний дайджест чата: {state} (в {digest.HOUR}:00 по Киеву). /ai_digest on | off, прямо сейчас: /digest")
 
 
 @group_router.message(Command("recap", "summary", "итог"), F.chat.type.in_({"group", "supergroup"}))

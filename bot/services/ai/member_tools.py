@@ -87,6 +87,9 @@ TOOLS = [
         ["kind", "title"]),
     _fn("chat_summary", "Последние сообщения этого группового чата (кто что писал): для «что я пропустил», «о чём спор», «кто что сказал». Только групповой чат."),
     _fn("chat_members", "Недавние участники этого группового чата: имя, @username, id. Нужно, чтобы понять, о ком речь («гусь», «Миша»)."),
+    _fn("create_poll", "Запустить опрос в групповом чате (например «во сколько играем»): вопрос и 2–10 вариантов. Только по просьбе участника.",
+        {"question": {"type": "string"}, "options": {"type": "array", "items": {"type": "string"}},
+         "multiple": {"type": "boolean", "description": "можно ли выбрать несколько ответов"}}, ["question", "options"]),
     _fn("propose_mute", "Подготовить мут участника группового чата (карточка с подтверждением). Только для админов PRISMA, которые просят об этом сами.",
         {"member": {"type": "string", "description": "@username или имя из chat_members"}, "minutes": {"type": "integer"}, "reason": {"type": "string"}},
         ["member"]),
@@ -232,6 +235,16 @@ async def _group_tool(name: str, args: dict, ctx: Context) -> dict:
         return {"messages": ambient.transcript(ctx.chat_id, 40) or "(чат пока пуст — бот видит только сообщения после своего запуска)"}
     if name == "chat_members":
         return {"members": ambient.participants(ctx.chat_id, 20)}
+    if name == "create_poll":
+        question = str(args.get("question") or "").strip()[:290]
+        options = [str(o).strip()[:95] for o in (args.get("options") or []) if str(o).strip()]
+        options = list(dict.fromkeys(options))[:10]
+        if len(question) < 3 or len(options) < 2:
+            return {"error": "нужен вопрос и минимум 2 разных варианта"}
+        if not _poll_allowed(ctx.tg_id):
+            return {"error": "лимит: не больше 3 опросов в час от одного человека"}
+        ctx.cards.append((POLL_MARK, {"question": question, "options": options, "multiple": bool(args.get("multiple"))}))
+        return {"ok": "опрос будет отправлен в чат сразу после твоего ответа"}
     # propose_mute
     if not ctx.can_mute:
         return {"error": "мут доступен только администраторам PRISMA в режиме админа с правом на муты; скажи об этом спрашивающему"}
@@ -257,7 +270,7 @@ async def execute(name: str, args: dict, ctx: Context) -> dict:
     if name in {"draft_market_listing", "propose_event_registration", "draft_market_offer", "search_market", "my_offers", "market_reputation", "my_reviewable_offers"} and not ctx.accepted:
         return {"error": "available only after the application is accepted"}
 
-    if name in {"chat_summary", "chat_members", "propose_mute"}:
+    if name in {"chat_summary", "chat_members", "propose_mute", "create_poll"}:
         return await _group_tool(name, args, ctx)
     if name in {"set_reminder", "list_reminders", "cancel_reminder"}:
         return await reminders_tool(name, args, ctx.tg_id)
@@ -418,8 +431,23 @@ ADULT_NOTE_PLUS = (
     + _ADULT_HARD
 )
 
+POLL_MARK = "__poll__"
+_poll_times: dict[int, list[float]] = {}
+
+
+def _poll_allowed(user_id: int, now: float | None = None) -> bool:
+    """At most 3 requested polls per person per hour."""
+    now = time.time() if now is None else now
+    recent = [t for t in _poll_times.get(user_id, []) if now - t < 3600]
+    if len(recent) >= 3:
+        _poll_times[user_id] = recent
+        return False
+    _poll_times[user_id] = recent + [now]
+    return True
+
+
 _GROUP_TOOLS = {"calc", "server_status", "list_events", "site_links", "search_market", "market_reputation",
-                "chat_summary", "chat_members"}
+                "chat_summary", "chat_members", "create_poll"}
 
 
 def _looks_factual(question: str) -> bool:
