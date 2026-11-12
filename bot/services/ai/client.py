@@ -44,7 +44,11 @@ def model_for(role: str) -> str:
 
 
 def fallback_model() -> str:
-    return _env("AI_MODEL_FALLBACK") or "am/nemotron-3.5-lightning-30b-a3b"
+    """Empty string = no fallback (set AI_MODEL_FALLBACK to «-», «none» or «off»)."""
+    value = _env("AI_MODEL_FALLBACK")
+    if value.lower() in {"-", "none", "off", "no", "0"}:
+        return ""
+    return value or "am/nemotron-3.5-lightning-30b-a3b"
 
 
 def is_configured(role: str = "user") -> bool:
@@ -123,19 +127,37 @@ PRIMARY_TIMEOUT = 12.0
 _primary_down_until: dict[tuple[str, str], float] = {}
 
 
+_fallback_bad_until: dict[str, float] = {}
+FALLBACK_COOLDOWN = 600.0
+
+
 async def chat_with_fallback(messages: list[dict], *, role: str = "user", **kwargs) -> dict:
+    """Primary model first with a short slice of the budget, then the fallback. If the fallback itself is broken
+    (e.g. HTTP 404 model_not_found), the slow primary gets the full budget instead of the user getting an error."""
     primary_model = kwargs.get("model") or model_for(role)
     fallback = fallback_model()
     key = (role, primary_model)
-    if primary_model == fallback:
-        return await chat(messages, role=role, **kwargs)
-    if time.monotonic() < _primary_down_until.get(key, 0.0):
-        return await chat(messages, role=role, **{**kwargs, "model": fallback})
     total = float(kwargs.get("timeout", 45.0))
+    now = time.monotonic()
+    fallback_ok = bool(fallback) and fallback != primary_model and now >= _fallback_bad_until.get(fallback, 0.0)
+    if not fallback_ok:
+        return await chat(messages, role=role, **kwargs)
+    if now < _primary_down_until.get(key, 0.0):
+        try:
+            return await chat(messages, role=role, **{**kwargs, "model": fallback})
+        except AIError as exc:
+            _fallback_bad_until[fallback] = time.monotonic() + FALLBACK_COOLDOWN
+            logger.warning("AI fallback model %s failed (%s); using the primary only for a while", fallback, exc)
+            return await chat(messages, role=role, **kwargs)
     try:
         # Primary gets a short slice of the budget; the fallback keeps the rest.
         return await chat(messages, role=role, **{**kwargs, "timeout": min(total, PRIMARY_TIMEOUT)})
     except AIError as primary:
         _primary_down_until[key] = time.monotonic() + PRIMARY_COOLDOWN
         logger.warning("AI primary model failed (%s); using fallback for %ds", primary, int(PRIMARY_COOLDOWN))
-        return await chat(messages, role=role, **{**kwargs, "model": fallback})
+        try:
+            return await chat(messages, role=role, **{**kwargs, "model": fallback})
+        except AIError as exc:
+            _fallback_bad_until[fallback] = time.monotonic() + FALLBACK_COOLDOWN
+            logger.warning("AI fallback model %s failed (%s); retrying the primary with the full budget", fallback, exc)
+            return await chat(messages, role=role, **kwargs)

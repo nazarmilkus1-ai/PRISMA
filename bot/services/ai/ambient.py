@@ -93,9 +93,25 @@ def observe(chat_id: int, message_id: int, user_id: int, name: str, text: str,
                 "text": text[:200], "reply_to": reply_to})
 
 
-def observe_bot(chat_id: int, message_id: int, text: str, now: float | None = None) -> None:
+FOLLOWUP_WINDOW = 120  # seconds during which a person's next lines continue their talk with the bot
+
+
+def observe_bot(chat_id: int, message_id: int, text: str, now: float | None = None, to_user: int | None = None) -> None:
     """The bot's own replies belong to the transcript too, so a follow-up like «что за бред?» has a subject."""
     observe(chat_id, message_id, 0, "PRISMA_AI", text, None, now)
+    _buffers[chat_id][-1]["to"] = to_user
+
+
+def in_conversation(chat_id: int, user_id: int, now: float | None = None) -> bool:
+    """True when the bot answered this person a moment ago and nobody else has spoken since:
+    their next message is a continuation («Призма» → «ты гей»), so no name or mention is needed."""
+    now = time.time() if now is None else now
+    for entry in reversed(_buffers[chat_id]):
+        if entry["uid"] == 0:
+            return entry.get("to") == user_id and now - entry["ts"] <= FOLLOWUP_WINDOW
+        if entry["uid"] != user_id:
+            return False
+    return False
 
 
 def transcript(chat_id: int, limit: int = 14, exclude_id: int | None = None, now: float | None = None) -> str:
