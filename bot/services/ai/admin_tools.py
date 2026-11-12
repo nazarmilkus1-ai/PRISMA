@@ -84,6 +84,8 @@ TOOLS = [
         {"query": {"type": "string"}, "kind": {"type": "string", "enum": ["warn", "mute", "ban", "kick"]},
          "reason": {"type": "string"}, "duration": {"type": "string", "description": "например 10m, 2h, 7d"}},
         ["query", "kind", "reason"]),
+    _fn("market_risk", "Подозрительные объявления рынка за последние часы: оценка риска и причины (антифрод). Ничего не блокирует.",
+        {"hours": {"type": "integer"}}),
     _fn("report_bug", "Завести задачу (GitHub Issue) о найденной ошибке. Только для старших ролей.",
         {"title": {"type": "string"}, "details": {"type": "string"}}, ["title", "details"]),
     _fn("render_status", "Последние деплои бота на Render (статус, коммит)."),
@@ -106,7 +108,7 @@ TOOLS = [
 ]
 
 _PERMISSION = {
-    "list_players": "player.view", "group_membership": "player.view", "find_player": "player.view", "list_inactive": "player.view",
+    "market_risk": "report.view", "list_players": "player.view", "group_membership": "player.view", "find_player": "player.view", "list_inactive": "player.view",
     "list_pending_applications": "application.view", "propose_application_action": "application.view",
     "list_open_reports": "report.view", "propose_report_action": "report.view",
     "list_open_appeals": "appeal.view", "propose_appeal_action": "appeal.view",
@@ -205,6 +207,18 @@ async def execute(name: str, args: dict, ctx: Context) -> dict:
     if not await _allowed(ctx.admin_id, permission):
         return {"error": "no permission"}
 
+    if name == "market_risk":
+        from db.rpc import bot_market_risk_data
+        from services.market_risk import score_listings
+        try:
+            hours = max(1, min(int(args.get("hours") or 72), 720))
+        except (TypeError, ValueError):
+            hours = 72
+        result = await bot_market_risk_data(hours)
+        rows = result.data if not result.error and isinstance(result.data, list) else []
+        flagged = score_listings(rows)
+        return {"checked_listings": len(rows), "flagged": flagged[:MAX_ROWS],
+                "note": "оценка — подсказка для проверки человеком, не доказательство мошенничества"}
     if name == "list_players":
         result = await bot_list_current_participants()
         rows = result.data if not result.error and isinstance(result.data, list) else []

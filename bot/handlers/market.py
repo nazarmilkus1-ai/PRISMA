@@ -10,6 +10,9 @@ from db.rpc import (
     bot_close_market_listing,
     bot_create_market_inquiry,
     bot_create_market_offer,
+    bot_create_market_review,
+    bot_market_reputation,
+    bot_my_reviewable_offers,
     bot_get_market_offers,
     bot_respond_market_offer,
     bot_withdraw_market_offer,
@@ -19,9 +22,19 @@ from db.rpc import (
     bot_update_market_listing,
     bot_respond_market_inquiry,
 )
+from services.market_risk import stars
 from utils.permissions import is_approved
 
 router = Router(name="market")
+
+_REVIEW_ERRORS = {
+    "REVIEW_OFFER_NOT_ACCEPTED": "Отзыв можно оставить только по принятому торгу.",
+    "REVIEW_NOT_A_PARTY": "Это не ваша сделка.",
+    "REVIEW_ALREADY_LEFT": "Вы уже оставили отзыв по этой сделке.",
+    "REVIEW_WINDOW_CLOSED": "Прошло больше 60 дней — отзыв уже нельзя оставить.",
+    "REVIEW_RATING_INVALID": "Оценка — число от 1 до 5.",
+    "REVIEW_TEXT_TOO_LONG": "Комментарий — до 300 символов.",
+}
 
 KIND_LABELS = {
     "SELL": "Продам",
@@ -258,6 +271,46 @@ async def market_command(message: types.Message):
         await message.answer("✅ Предложение отправлено. Продавец ответит в течение 72 часов.\nСмотреть: <code>/рынок торг</code>", parse_mode="HTML")
         return
 
+    if command in {"отзыв", "review"}:
+        fields = _split_pipe(rest)
+        offer_id = _uuid(fields[0]) if fields else None
+        if not offer_id or len(fields) not in {2, 3} or not fields[1].strip().isdigit():
+            await message.answer("Использование: <code>/рынок отзыв ID | 1-5 | комментарий</code>\nID — из <code>/рынок отзывы</code>", parse_mode="HTML")
+            return
+        result = await bot_create_market_review(message.from_user.id, offer_id, int(fields[1]), fields[2] if len(fields) == 3 else None)
+        if result.error:
+            await message.answer(f"❌ {_REVIEW_ERRORS.get(next((c for c in _REVIEW_ERRORS if c in str(result.error)), ''), 'Не удалось сохранить отзыв.')}")
+            return
+        await message.answer("✅ Спасибо! Отзыв сохранён и виден в репутации продавца.")
+        return
+
+    if command in {"отзывы", "reviews"}:
+        result = await bot_my_reviewable_offers(message.from_user.id)
+        rows = result.data if not result.error and isinstance(result.data, list) else []
+        if not rows:
+            await message.answer("⭐ Сделок, которые ждут отзыва, нет. Отзыв можно оставить после принятого торга (60 дней).")
+            return
+        lines = ["⭐ <b>Оцените сделки</b>"] + [
+            f"• <b>{escape(str(r.get('listing_title') or ''))}</b> · {escape(str(r.get('partner_nickname') or '—'))} · {escape(str(r.get('price_text') or ''))}\n"
+            f"  <code>/рынок отзыв {r.get('offer_id')} | 5 | всё отлично</code>" for r in rows[:8]]
+        await message.answer("\n".join(lines), parse_mode="HTML")
+        return
+
+    if command in {"репутация", "reputation"}:
+        nick = rest.strip().lstrip("@")[:32]
+        if not nick:
+            await message.answer("Использование: <code>/рынок репутация ник</code>", parse_mode="HTML")
+            return
+        result = await bot_market_reputation(nick)
+        data = result.data if not result.error and isinstance(result.data, dict) else None
+        if not data:
+            await message.answer("Игрок не найден.")
+            return
+        lines = [f"⭐ <b>{escape(str(data.get('nickname')))}</b>: {escape(stars(data.get('average'), int(data.get('reviews') or 0)))}"]
+        lines += [f"• {r.get('rating')}/5 — {escape(str(r.get('comment') or 'без комментария'))}" for r in (data.get("recent") or [])]
+        await message.answer("\n".join(lines), parse_mode="HTML")
+        return
+
     if command in {"встречная", "counter"}:
         fields = _split_pipe(rest)
         offer_id = _uuid(fields[0]) if fields else None
@@ -426,6 +479,8 @@ async def market_command(message: types.Message):
         "<code>/рынок предложить ID | цена | заметка</code> — торг: предложить цену\n"
         "<code>/рынок торг</code> — ваши предложения, принять/отклонить\n"
         "<code>/рынок встречная ID | цена</code> — встречная цена\n"
+        "<code>/рынок отзывы</code> · <code>/рынок отзыв ID | 1-5 | текст</code> — оценить сделку\n"
+        "<code>/рынок репутация ник</code> — рейтинг продавца\n"
         "<code>/рынок ответ ID | текст</code> — ответить\n"
         "<code>/рынок закрыть ID</code> — закрыть запрос\n"
         "<code>/рынок снять ID</code> — снять своё объявление",
