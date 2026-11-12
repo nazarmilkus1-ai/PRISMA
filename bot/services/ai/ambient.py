@@ -93,6 +93,35 @@ def observe(chat_id: int, message_id: int, user_id: int, name: str, text: str,
                 "text": text[:200], "reply_to": reply_to})
 
 
+def observe_bot(chat_id: int, message_id: int, text: str, now: float | None = None) -> None:
+    """The bot's own replies belong to the transcript too, so a follow-up like «что за бред?» has a subject."""
+    observe(chat_id, message_id, 0, "PRISMA_AI", text, None, now)
+
+
+def transcript(chat_id: int, limit: int = 14, exclude_id: int | None = None, now: float | None = None) -> str:
+    """Last chat lines as «Имя: текст», oldest first, without the message being answered."""
+    now = time.time() if now is None else now
+    rows = [e for e in _buffers[chat_id] if now - e["ts"] <= BUFFER_TTL and e["id"] != exclude_id]
+    return "\n".join(f"{e['name']}: {e['text']}" for e in rows[-limit:])
+
+
+# ------------------------------------------------------------------ 18+ mode
+_adult: dict[int, bool] = {}
+
+
+def _env_adult() -> set[int]:
+    return {int(x) for x in re.findall(r"-?\d+", os.getenv("AI_ADULT_CHATS", ""))}
+
+
+def adult(chat_id: int) -> bool:
+    """Chat admins switch this with /ai_18; AI_ADULT_CHATS (chat ids) makes it the default after restarts."""
+    return _adult.get(chat_id, chat_id in _env_adult())
+
+
+def set_adult(chat_id: int, value: bool) -> None:
+    _adult[chat_id] = value
+
+
 def context_lines(chat_id: int, now: float | None = None, limit: int = 12) -> str:
     now = time.time() if now is None else now
     lines = [f"{e['name']}: {e['text']}" for e in _buffers[chat_id] if now - e["ts"] <= BUFFER_TTL]
