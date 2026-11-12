@@ -18,7 +18,7 @@ from html import escape
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from db.rpc import (
-    bot_create_market_listing, bot_create_market_offer, bot_create_support_request, bot_get_market, bot_get_market_offers, bot_get_minecraft_auth_status, bot_get_profile,
+    bot_create_market_listing, bot_create_market_offer, bot_market_reputation, bot_my_reviewable_offers, bot_create_support_request, bot_get_market, bot_get_market_offers, bot_get_minecraft_auth_status, bot_get_profile,
     bot_list_events, bot_register_event,
 )
 from services import reminders
@@ -68,6 +68,9 @@ TOOLS = [
     _fn("search_market", "Найти объявления рынка (id, заголовок, цена, продавец) — нужно для торга.",
         {"query": {"type": "string"}}),
     _fn("my_offers", "Мои предложения цены и торги по рынку."),
+    _fn("market_reputation", "Репутация продавца/покупателя на рынке по нику: средняя оценка, число отзывов, последние отзывы.",
+        {"nickname": {"type": "string"}}, ["nickname"]),
+    _fn("my_reviewable_offers", "Мои принятые сделки, по которым я ещё не оставил отзыв (отзыв оставляется командой /рынок отзыв ID | 1-5 | текст)."),
     _fn("set_reminder", "Поставить напоминание пользователю (придёт сообщением от бота). Укажи ровно одно из: in_minutes или at (локальное время Киева 'YYYY-MM-DD HH:MM').",
         {"text": {"type": "string"}, "in_minutes": {"type": "integer"}, "at": {"type": "string"}}, ["text"]),
     _fn("list_reminders", "Мои активные напоминания."),
@@ -86,7 +89,7 @@ TOOLS = [
         {"event_id": {"type": "string"}, "title": {"type": "string"}}, ["event_id"]),
 ]
 
-_PERSONAL = {"set_reminder", "list_reminders", "cancel_reminder", "my_account", "my_overview", "search_market", "my_offers", "draft_market_offer", "draft_market_listing", "draft_support_request", "propose_event_registration"}
+_PERSONAL = {"set_reminder", "list_reminders", "cancel_reminder", "my_account", "my_overview", "search_market", "my_offers", "market_reputation", "my_reviewable_offers", "draft_market_offer", "draft_market_listing", "draft_support_request", "propose_event_registration"}
 
 
 # ----------------------------------------------------------------------------- calc
@@ -215,7 +218,7 @@ async def reminders_tool(name: str, args: dict, tg_id: int) -> dict:
 async def execute(name: str, args: dict, ctx: Context) -> dict:
     if name in _PERSONAL and not ctx.private:
         return {"error": "personal data and actions are only available in a private chat with the bot"}
-    if name in {"draft_market_listing", "propose_event_registration", "draft_market_offer", "search_market", "my_offers"} and not ctx.accepted:
+    if name in {"draft_market_listing", "propose_event_registration", "draft_market_offer", "search_market", "my_offers", "market_reputation", "my_reviewable_offers"} and not ctx.accepted:
         return {"error": "available only after the application is accepted"}
 
     if name in {"set_reminder", "list_reminders", "cancel_reminder"}:
@@ -253,6 +256,12 @@ async def execute(name: str, args: dict, ctx: Context) -> dict:
         rows = result.data if not result.error and isinstance(result.data, list) else []
         return {"listings": [{k: r.get(k) for k in ("id", "kind", "title", "price_text", "minecraft_nickname") if k in r}
                              for r in rows[:8] if isinstance(r, dict)]}
+    if name == "market_reputation":
+        result = await bot_market_reputation(str(args.get("nickname") or "")[:32])
+        return result.data if not result.error and isinstance(result.data, dict) else {"error": "player not found"}
+    if name == "my_reviewable_offers":
+        result = await bot_my_reviewable_offers(ctx.tg_id)
+        return {"offers": result.data if not result.error and isinstance(result.data, list) else []}
     if name == "my_offers":
         result = await bot_get_market_offers(ctx.tg_id)
         rows = result.data if not result.error and isinstance(result.data, list) else []

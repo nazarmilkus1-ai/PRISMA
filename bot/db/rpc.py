@@ -890,6 +890,24 @@ async def bot_ai_feedback_stats(days=7):
     return await call_rpc_async("bot_ai_feedback_stats", {"p_days": days})
 
 
+async def bot_create_market_review(tg_id, offer_id, rating, comment=None):
+    return await call_rpc_async("bot_create_market_review", {
+        "p_tg_id": tg_id, "p_offer_id": offer_id, "p_rating": rating, "p_comment": comment,
+    })
+
+
+async def bot_my_reviewable_offers(tg_id):
+    return await call_rpc_async("bot_my_reviewable_offers", {"p_tg_id": tg_id})
+
+
+async def bot_market_reputation(nick):
+    return await call_rpc_async("bot_market_reputation", {"p_nick": nick})
+
+
+async def bot_market_risk_data(hours=72):
+    return await call_rpc_async("bot_market_risk_data", {"p_hours": hours})
+
+
 async def bot_create_reminder(tg_id, text, at_iso):
     return await call_rpc_async("bot_create_reminder", {"p_tg_id": tg_id, "p_text": text, "p_at": at_iso})
 
