@@ -110,3 +110,31 @@ class GroupChatTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FallbackTests(unittest.TestCase):
+    def test_broken_fallback_gives_primary_the_full_budget(self):
+        from services.ai import client
+
+        calls = []
+
+        async def fake_chat(messages, *, role="user", model=None, timeout=45.0, **kw):
+            calls.append((model, timeout))
+            if model == "fb":
+                raise client.AIError("HTTP 404: model_not_found")
+            if timeout <= client.PRIMARY_TIMEOUT:
+                raise client.AIError("TimeoutError")
+            return {"content": "ok"}
+
+        client._primary_down_until.clear()
+        client._fallback_bad_until.clear()
+        with mock.patch.object(client, "chat", fake_chat), mock.patch.object(client, "model_for", return_value="pm"), \
+                mock.patch.object(client, "fallback_model", return_value="fb"):
+            result = asyncio.run(client.chat_with_fallback([{"role": "user", "content": "x"}], timeout=45))
+            self.assertEqual(result["content"], "ok")
+            self.assertEqual([m for m, _ in calls], [None, "fb", None])
+            calls.clear()  # fallback is known broken now: straight to the primary
+            asyncio.run(client.chat_with_fallback([{"role": "user", "content": "x"}], timeout=45))
+            self.assertEqual(len(calls), 1)
+        client._primary_down_until.clear()
+        client._fallback_bad_until.clear()
