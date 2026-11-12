@@ -14,7 +14,7 @@ import sentry_sdk
 from config import BOT_TOKEN, ADMIN_GROUP_ID, MODERATION_GROUP_ID, REDIS_URL, LOG_LEVEL, PRISMA_ENV
 from handlers import (
     start, application, profile, link, moderation, reports, polls, clans, menu, news, errors,
-    player, admin, admin_panel, quick, reminders, automod, chat_commands, social, market, minecraft_commands, support,
+    player, admin, admin_panel, cards, quick, reminders, automod, chat_commands, social, market, minecraft_commands, support,
     help as help_, admin_actions, rules, guide, ai,
 )
 from services.notifications import run_notification_worker
@@ -384,7 +384,7 @@ async def main():
 
     for r in (
         start.router, application.router, profile.router, link.router, moderation.router,
-        reports.router, polls.router, clans.router, news.router, help_.router, ai.router, quick.router, reminders.router, player.router,
+        reports.router, polls.router, clans.router, news.router, help_.router, ai.router, cards.router, quick.router, reminders.router, player.router,
         admin_panel.router, admin.router,
         admin_actions.router,
         # Social and market callbacks are private UI callbacks; they must be
