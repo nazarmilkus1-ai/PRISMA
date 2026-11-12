@@ -418,7 +418,7 @@ async def run_member(tg_id: int, question: str, status: str, history: list[dict]
     for _ in range(MAX_STEPS if private else 3):
         # Greetings and short chatter need no tools and no long thinking: one fast call.
         message = await chat_with_fallback(messages, role="user", tools=None if smalltalk else tools,
-                                           max_tokens=500 if (smalltalk or not private) else 1200,
+                                           max_tokens=900 if (smalltalk or not private) else 1200,
                                            timeout=30 if (smalltalk or not private) else 45,
                                            temperature=0.8 if adult else 0.3)
         calls = message.get("tool_calls") or []

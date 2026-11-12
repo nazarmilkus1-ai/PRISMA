@@ -95,7 +95,7 @@ class GroupChatTests(unittest.TestCase):
             self.assertEqual("18++" in system, adult == 2)
             if adult:
                 self.assertIn("не выдумывать факты", system)
-            self.assertEqual(captured["kw"]["max_tokens"], 500)
+            self.assertEqual(captured["kw"]["max_tokens"], 900)
 
 
 if __name__ == "__main__":

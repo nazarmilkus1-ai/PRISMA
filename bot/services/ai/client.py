@@ -106,11 +106,15 @@ async def chat(
         raise AIError("malformed response") from exc
     if not str(message.get("content") or "").strip() and not message.get("tool_calls"):
         # Reasoning models can spend the whole budget on thinking and return no text.
-        reason = "token budget used up by reasoning" if choice.get("finish_reason") == "length" else "empty answer"
-        raise AIError(reason)
+        if choice.get("finish_reason") == "length" and max_tokens < MAX_RETRY_TOKENS:
+            # The model thought for the whole budget: retry once with a much bigger one instead of failing the user.
+            return await chat(messages, role=role, model=payload["model"], tools=tools,
+                              max_tokens=min(max_tokens * 4, MAX_RETRY_TOKENS), temperature=temperature, timeout=timeout)
+        raise AIError("token budget used up by reasoning" if choice.get("finish_reason") == "length" else "empty answer")
     return message
 
 
+MAX_RETRY_TOKENS = 4000
 _no_effort: dict[str, bool] = {}
 # Circuit breaker: when the primary model just timed out or errored, the next requests go straight to
 # the fallback for a few minutes instead of making every user wait for the full timeout again.
