@@ -115,7 +115,7 @@ _no_effort: dict[str, bool] = {}
 # Circuit breaker: when the primary model just timed out or errored, the next requests go straight to
 # the fallback for a few minutes instead of making every user wait for the full timeout again.
 PRIMARY_COOLDOWN = 180.0
-PRIMARY_TIMEOUT = 18.0
+PRIMARY_TIMEOUT = 12.0
 _primary_down_until: dict[tuple[str, str], float] = {}
 
 

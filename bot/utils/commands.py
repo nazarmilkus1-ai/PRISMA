@@ -56,6 +56,8 @@ GROUP_ADMIN_COMMANDS = GROUP_COMMANDS + [
     BotCommand(command="warns", description="Варны"),
     BotCommand(command="inactive", description="Кто неактивен"),
     BotCommand(command="ai_chat", description="PRISMA_AI в чате: вкл/выкл"),
+    BotCommand(command="ai_18", description="PRISMA_AI: режим 18+ вкл/выкл"),
+    BotCommand(command="ai_18plus", description="PRISMA_AI: режим 18++ (без цензуры)"),
 ]
 
 
