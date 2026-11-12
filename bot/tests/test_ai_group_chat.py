@@ -51,9 +51,9 @@ class GroupChatTests(unittest.TestCase):
 
     def test_adult_mode_toggle_and_env_default(self):
         self.assertFalse(ambient.adult(-1001))
-        ambient.set_adult(-1001, True)
-        self.assertTrue(ambient.adult(-1001))
-        ambient.set_adult(-1001, False)
+        ambient.set_adult(-1001, 2)
+        self.assertEqual(ambient.adult(-1001), 2)
+        ambient.set_adult(-1001, 0)
         with mock.patch.dict(os.environ, {"AI_ADULT_CHATS": "-1001, -1002"}):
             ambient._adult.clear()
             self.assertTrue(ambient.adult(-1001))
@@ -83,7 +83,7 @@ class GroupChatTests(unittest.TestCase):
             captured["messages"], captured["kw"] = messages, kw
             return {"content": "ок"}
 
-        for adult in (False, True):
+        for adult in (0, 1, 2):
             with mock.patch.object(member_tools, "chat_with_fallback", fake_chat), \
                     mock.patch.object(member_tools, "wiki_context", mock.AsyncMock(return_value="")):
                 asyncio.run(member_tools.run_member(7, "что за бред", "ACCEPTED", [], False,
@@ -91,7 +91,10 @@ class GroupChatTests(unittest.TestCase):
             system, user = captured["messages"][0]["content"], captured["messages"][-1]["content"]
             self.assertIn("Саша: цены бред", user)
             self.assertIn("Назар", user)
-            self.assertEqual("РЕЖИМ 18+" in system, adult)
+            self.assertEqual("РЕЖИМ 18" in system, bool(adult))
+            self.assertEqual("18++" in system, adult == 2)
+            if adult:
+                self.assertIn("не выдумывать факты", system)
             self.assertEqual(captured["kw"]["max_tokens"], 500)
 
 

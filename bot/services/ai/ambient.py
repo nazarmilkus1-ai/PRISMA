@@ -106,20 +106,21 @@ def transcript(chat_id: int, limit: int = 14, exclude_id: int | None = None, now
 
 
 # ------------------------------------------------------------------ 18+ mode
-_adult: dict[int, bool] = {}
+_adult: dict[int, int] = {}
 
 
 def _env_adult() -> set[int]:
     return {int(x) for x in re.findall(r"-?\d+", os.getenv("AI_ADULT_CHATS", ""))}
 
 
-def adult(chat_id: int) -> bool:
-    """Chat admins switch this with /ai_18; AI_ADULT_CHATS (chat ids) makes it the default after restarts."""
-    return _adult.get(chat_id, chat_id in _env_adult())
+def adult(chat_id: int) -> int:
+    """0 = normal, 1 = 18+, 2 = 18++. Chat admins switch it with /ai_18 and /ai_18+;
+    AI_ADULT_CHATS (chat ids) makes level 1 the default after restarts."""
+    return _adult.get(chat_id, 1 if chat_id in _env_adult() else 0)
 
 
-def set_adult(chat_id: int, value: bool) -> None:
-    _adult[chat_id] = value
+def set_adult(chat_id: int, level: int) -> None:
+    _adult[chat_id] = max(0, min(2, int(level)))
 
 
 def context_lines(chat_id: int, now: float | None = None, limit: int = 12) -> str:

@@ -508,23 +508,37 @@ async def ai_chat_toggle(message: types.Message, command: CommandObject):
     await message.reply(f"🤖 PRISMA_AI сам отвечает в этом чате: {state}. Команда: /ai_chat on | off")
 
 
-@group_router.message(Command("ai_18"), F.chat.type.in_({"group", "supergroup"}))
-async def ai_adult_toggle(message: types.Message, command: CommandObject):
-    """Chat admins switch the 18+ style (swearing, dark humour, slang) of PRISMA_AI for this chat."""
+async def _set_adult_mode(message: types.Message, command: CommandObject, plus: bool):
     member = await message.bot.get_chat_member(message.chat.id, message.from_user.id)
     if member.status not in {"creator", "administrator"}:
         await message.reply("Только администраторы чата могут менять это.")
         return
     arg = (command.args or "").strip().lower()
+    if arg.startswith("+"):  # «/ai_18 + on»
+        plus, arg = True, arg[1:].strip()
     if arg in {"on", "вкл", "1"}:
-        ambient.set_adult(message.chat.id, True)
+        ambient.set_adult(message.chat.id, 2 if plus else 1)
     elif arg in {"off", "выкл", "0"}:
-        ambient.set_adult(message.chat.id, False)
-    if ambient.adult(message.chat.id):
-        await message.reply("🔞 Режим 18+ включён: PRISMA_AI общается без цензуры по стилю — мат, чёрный юмор, сленг. "
-                            "Выключить: /ai_18 off. (Сбрасывается при перезапуске бота, если чат не указан в AI_ADULT_CHATS.)")
+        ambient.set_adult(message.chat.id, 0)
+    level = ambient.adult(message.chat.id)
+    if level >= 2:
+        await message.reply("🔞🔞 Режим 18++: PRISMA_AI без цензуры и без вежливости — жёсткий мат, прожарка, чёрный и пошлый юмор. "
+                            "Выключить: /ai_18 off")
+    elif level == 1:
+        await message.reply("🔞 Режим 18+: мат, чёрный юмор, сленг, подколы. Ещё жёстче: /ai_18+ on. Выключить: /ai_18 off")
     else:
-        await message.reply("Режим 18+ выключен. Включить: /ai_18 on (только админы чата).")
+        await message.reply("Режим 18 выключен. Включить: /ai_18 on или /ai_18+ on (только админы чата). "
+                            "Чтобы не сбрасывался после перезапуска, добавьте id чата в AI_ADULT_CHATS.")
+
+
+@group_router.message(Command("ai_18"), F.chat.type.in_({"group", "supergroup"}))
+async def ai_adult_toggle(message: types.Message, command: CommandObject):
+    await _set_adult_mode(message, command, False)
+
+
+@group_router.message(Command("ai_18+", "ai_18plus", "ai_18p"), F.chat.type.in_({"group", "supergroup"}))
+async def ai_adult_plus_toggle(message: types.Message, command: CommandObject):
+    await _set_adult_mode(message, command, True)
 
 
 # ------------------------------------------------------------ confirm cards
