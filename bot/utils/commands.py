@@ -29,24 +29,36 @@ PUBLIC_COMMANDS = [
 ]
 
 
-# Visible to everyone in group chats.
+# Visible to everyone in group chats. Only what is useful in a chat; everything else still works
+# when typed, it just does not clutter the "/" menu.
 GROUP_COMMANDS = [
-    BotCommand(command="help", description="Команды"),
-    BotCommand(command="who", description="Кто я / кто ты"),
-    BotCommand(command="top", description="Топ активности"),
-    BotCommand(command="stats", description="Моя стата"),
-    BotCommand(command="inactive", description="Кто неактивен (неделя)"),
-    BotCommand(command="server", description="Сервер"),
+    BotCommand(command="ai", description="Спросить PRISMA_AI"),
+    BotCommand(command="server", description="Состояние сервера"),
+    BotCommand(command="top", description="Топ активности чата"),
+    BotCommand(command="stats", description="Статистика чата"),
+    BotCommand(command="clan", description="Кланы"),
     BotCommand(command="wiki", description="Wiki PRISMA"),
     BotCommand(command="rules", description="Правила"),
-    BotCommand(command="clan", description="Кланы"),
-    BotCommand(command="marriage", description="Брак"),
-    BotCommand(command="relationship", description="Отношения"),
+    BotCommand(command="help", description="Команды чата"),
 ]
 
 
 # Extra commands shown only to chat administrators.
 GROUP_ADMIN_COMMANDS = GROUP_COMMANDS + [
+    BotCommand(command="warn", description="Предупреждение"),
+    BotCommand(command="mute", description="Мут"),
+    BotCommand(command="ban", description="Бан"),
+    BotCommand(command="kick", description="Кик"),
+    BotCommand(command="unmute", description="Снять мут"),
+    BotCommand(command="unban", description="Снять бан"),
+    BotCommand(command="unwarn", description="Снять варн"),
+    BotCommand(command="warns", description="Варны"),
+    BotCommand(command="inactive", description="Кто неактивен"),
+    BotCommand(command="ai_chat", description="PRISMA_AI в чате: вкл/выкл"),
+]
+
+
+ADMIN_COMMANDS = GROUP_COMMANDS + [
     BotCommand(command="warn", description="Варн"),
     BotCommand(command="mute", description="Мут"),
     BotCommand(command="ban", description="Бан"),

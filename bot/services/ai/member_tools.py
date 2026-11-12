@@ -296,6 +296,15 @@ async def publish(kind: str, payload: dict, tg_id: int):
     return False, "❌ Неизвестное действие."
 
 
+_TASKISH = re.compile(r"(\?|как|где|когда|сколько|почему|что\s|кто\s|хочу|помоги|покажи|найди|напомни|рынок|заявк|ивент|клан|сервер|онлайн|профил|стат|наказан|бан|мут|цена|продам|куплю|поддерж|вход|ник)", re.I)
+
+
+def _is_smalltalk(question: str) -> bool:
+    """Short messages without a task keyword («ты тут?», «привет», «спасибо»): answer without tools."""
+    text = (question or "").strip()
+    return len(text) <= 40 and not _TASKISH.search(text.replace("ты тут?", "").replace("ти тут?", ""))
+
+
 async def run_member(tg_id: int, question: str, status: str, history: list[dict], private: bool):
     """Tool loop for members. Returns (text, cards)."""
     ctx = Context(tg_id, private, status == "ACCEPTED")
@@ -307,8 +316,11 @@ async def run_member(tg_id: int, question: str, status: str, history: list[dict]
         *history[-6:],
         {"role": "user", "content": question[:500]},
     ]
+    smalltalk = _is_smalltalk(question)
     for _ in range(MAX_STEPS):
-        message = await chat_with_fallback(messages, role="user", tools=TOOLS, max_tokens=1200, timeout=45)
+        # Greetings and short chatter need no tools and no long thinking: one fast call.
+        message = await chat_with_fallback(messages, role="user", tools=None if smalltalk else TOOLS,
+                                           max_tokens=500 if smalltalk else 1200, timeout=30 if smalltalk else 45)
         calls = message.get("tool_calls") or []
         if not calls:
             text = str(message.get("content") or "").strip()

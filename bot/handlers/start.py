@@ -58,6 +58,17 @@ async def _send_status_menu(message: types.Message, status: str):
 
 @router.message(Command("start"))
 async def cmd_start(message: types.Message, state: FSMContext, command: CommandObject):
+    if message.chat.type != "private":
+        # The member menu is private: in a group just point to the bot's private chat.
+        me = await message.bot.me()
+        from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+        await message.reply(
+            "Меню и личные действия — в личных сообщениях с ботом.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
+                text="Открыть бота", url=f"https://t.me/{me.username}?start=onboarding")]]),
+            allow_sending_without_reply=True,
+        )
+        return
     await state.clear()
 
     # Panel login uses a random session token; onboarding deep-link uses the

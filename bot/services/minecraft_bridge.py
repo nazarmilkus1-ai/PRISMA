@@ -59,6 +59,7 @@ class MinecraftChatBridge(BaseMiddleware):
     def __init__(self) -> None:
         self.community_chat_id: int | None = None
         self._target_refresh_at = 0.0
+        self._claim_pause = 0.0  # grows while the queue RPC keeps failing (e.g. migration missing)
 
     async def __call__(self, handler, event: Any, data: dict[str, Any]) -> Any:
         if isinstance(event, Message):
@@ -151,8 +152,10 @@ class MinecraftChatBridge(BaseMiddleware):
 
         result = await bot_bridge_claim_for_telegram(20)
         if result.error:
-            logger.warning("Minecraft chat bridge queue claim failed (%s)", result.error[:120])
+            self._claim_pause = min(max(self._claim_pause * 2, 10.0), 300.0)
+            logger.warning("Minecraft chat bridge queue claim failed (%s); next try in %ds", result.error[:120], int(self._claim_pause))
             return
+        self._claim_pause = 0.0
         payload = result.data
         rows = payload.get("data", []) if isinstance(payload, dict) else []
         if not isinstance(rows, list):
@@ -219,6 +222,6 @@ class MinecraftChatBridge(BaseMiddleware):
                 logger.warning("Minecraft chat bridge worker iteration failed (%s)", type(exc).__name__)
 
             try:
-                await asyncio.wait_for(stop_event.wait(), timeout=2.0)
+                await asyncio.wait_for(stop_event.wait(), timeout=max(2.0, self._claim_pause))
             except asyncio.TimeoutError:
                 pass

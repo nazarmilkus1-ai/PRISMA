@@ -20,8 +20,8 @@ from html import escape
 
 from services.ai.client import AIError, chat_with_fallback, is_configured
 
-BUFFER_LINES = 12
-BUFFER_TTL = 1800
+BUFFER_LINES = 40
+BUFFER_TTL = 3 * 3600
 MAX_TEXT = 400
 MIN_TEXT = 10
 CHAT_COOLDOWN = 60            # seconds between the bot's own initiatives in one chat
@@ -47,6 +47,20 @@ _WORTH = re.compile(
     re.I,
 )
 _LINK = re.compile(r"(https?://|t\.me/|www\.)", re.I)
+
+# "Призма, ты тут?" — addressing the bot by name counts as talking to it (no @mention needed).
+_NAME = r"(?:призма|прізма|присма|prisma(?:[_ ]?ai)?|прізма_?ai|призма_?аи)"
+_NAME_FIRST = re.compile(rf"^\s*{_NAME}\b[\s,:!?.\-—]*", re.I)
+_NAME_LAST = re.compile(rf"[\s,]+{_NAME}[\s!?.]*$", re.I)
+
+
+def addressed_by_name(text: str) -> bool:
+    return bool(_NAME_FIRST.search(text or "") or _NAME_LAST.search(text or ""))
+
+
+def strip_name(text: str) -> str:
+    return _NAME_LAST.sub("", _NAME_FIRST.sub("", text or "", count=1), count=1).strip()
+
 
 _buffers: dict[int, deque] = defaultdict(lambda: deque(maxlen=BUFFER_LINES))
 _spoke_chat: dict[int, float] = {}
@@ -79,9 +93,10 @@ def observe(chat_id: int, message_id: int, user_id: int, name: str, text: str,
                 "text": text[:200], "reply_to": reply_to})
 
 
-def context_lines(chat_id: int, now: float | None = None) -> str:
+def context_lines(chat_id: int, now: float | None = None, limit: int = 12) -> str:
     now = time.time() if now is None else now
-    return "\n".join(f"{e['name']}: {e['text']}" for e in _buffers[chat_id] if now - e["ts"] <= BUFFER_TTL)
+    lines = [f"{e['name']}: {e['text']}" for e in _buffers[chat_id] if now - e["ts"] <= BUFFER_TTL]
+    return "\n".join(lines[-limit:])
 
 
 def answered_by_human(chat_id: int, message_id: int, asker_id: int) -> bool:
