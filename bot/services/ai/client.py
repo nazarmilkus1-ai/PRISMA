@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 
 import aiohttp
 
@@ -71,8 +72,8 @@ async def chat(
         "temperature": temperature,
         "stream": False,
     }
-    effort = _env("AI_REASONING_EFFORT").lower()
-    if effort in {"low", "medium", "high"}:
+    effort = (_env("AI_REASONING_EFFORT") or "low").lower()
+    if effort in {"low", "medium", "high"} and not _no_effort.get(payload["model"]):
         payload["reasoning_effort"] = effort
     if tools:
         payload["tools"] = tools
@@ -89,7 +90,12 @@ async def chat(
                     # Log status and provider error text only: never headers or keys.
                     detail = (body.get("error") if isinstance(body, dict) else None) or ""
                     raise AIError(f"HTTP {response.status}: {str(detail)[:200]}")
-    except AIError:
+    except AIError as exc:
+        # A model that rejects reasoning_effort: remember it and retry once without the parameter.
+        if "reasoning_effort" in payload and str(exc).startswith("HTTP 400") and "reason" in str(exc).lower():
+            _no_effort[payload["model"]] = True
+            return await chat(messages, role=role, model=payload["model"], tools=tools, max_tokens=max_tokens,
+                              temperature=temperature, timeout=timeout)
         raise
     except Exception as exc:  # network, timeout, bad JSON
         raise AIError(type(exc).__name__) from exc
@@ -105,9 +111,27 @@ async def chat(
     return message
 
 
+_no_effort: dict[str, bool] = {}
+# Circuit breaker: when the primary model just timed out or errored, the next requests go straight to
+# the fallback for a few minutes instead of making every user wait for the full timeout again.
+PRIMARY_COOLDOWN = 180.0
+PRIMARY_TIMEOUT = 18.0
+_primary_down_until: dict[tuple[str, str], float] = {}
+
+
 async def chat_with_fallback(messages: list[dict], *, role: str = "user", **kwargs) -> dict:
-    try:
+    primary_model = kwargs.get("model") or model_for(role)
+    fallback = fallback_model()
+    key = (role, primary_model)
+    if primary_model == fallback:
         return await chat(messages, role=role, **kwargs)
+    if time.monotonic() < _primary_down_until.get(key, 0.0):
+        return await chat(messages, role=role, **{**kwargs, "model": fallback})
+    total = float(kwargs.get("timeout", 45.0))
+    try:
+        # Primary gets a short slice of the budget; the fallback keeps the rest.
+        return await chat(messages, role=role, **{**kwargs, "timeout": min(total, PRIMARY_TIMEOUT)})
     except AIError as primary:
-        logger.warning("AI primary model failed (%s); trying fallback", primary)
-        return await chat(messages, role=role, model=fallback_model(), **kwargs)
+        _primary_down_until[key] = time.monotonic() + PRIMARY_COOLDOWN
+        logger.warning("AI primary model failed (%s); using fallback for %ds", primary, int(PRIMARY_COOLDOWN))
+        return await chat(messages, role=role, **{**kwargs, "model": fallback})

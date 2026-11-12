@@ -36,6 +36,21 @@ def history(chat_id: int, user_id: int, now: float | None = None) -> list[dict]:
     return [{"role": e["role"], "content": e["text"] + _RATING_NOTE.get(e.get("rating"), "")} for e in window]
 
 
+_bound: dict[tuple[int, int], tuple[int, str]] = {}
+
+
+def bind(chat_id: int, message_id: int, owner_id: int, answer_id: str) -> None:
+    """Remember which answer a bot message carries, so a Telegram reaction (👍/👎) can be matched to it."""
+    _bound[(chat_id, message_id)] = (owner_id, answer_id)
+    if len(_bound) > 3000:
+        for key in list(_bound)[:1000]:
+            _bound.pop(key, None)
+
+
+def owner_of(chat_id: int, message_id: int) -> tuple[int, str] | None:
+    return _bound.get((chat_id, message_id))
+
+
 def new_answer_id() -> str:
     return uuid.uuid4().hex[:12]
 
