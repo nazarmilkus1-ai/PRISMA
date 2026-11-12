@@ -23,6 +23,7 @@ PUBLIC_COMMANDS = [
     BotCommand(command="ask", description="Спросить помощника"),
     BotCommand(command="guide", description="Что дальше? (пошаговый гайд)"),
     BotCommand(command="quick", description="Быстрые действия"),
+    BotCommand(command="remind", description="Поставить напоминание"),
     BotCommand(command="application", description="Подать заявку"),
     BotCommand(command="rules", description="Правила"),
     BotCommand(command="help", description="Все команды"),
