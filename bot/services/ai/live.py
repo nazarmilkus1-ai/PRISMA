@@ -9,6 +9,8 @@ import re
 from html import escape
 
 from db.player import get_online_players, get_own_punishments, get_server_metrics, get_stats, list_events, _user
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+
 from db.rpc import bot_get_clan_info, bot_get_server_status
 
 _INTENTS: tuple[tuple[str, re.Pattern, bool], ...] = (
@@ -84,17 +86,58 @@ async def _punish(tg_id: int) -> str:
     return "\n".join(lines)
 
 
-async def _events(tg_id: int) -> str:
+async def _events_card(tg_id: int) -> tuple[str, InlineKeyboardMarkup | None]:
     rows, err = await list_events(tg_id)
     if err:
-        return "❌ Не удалось загрузить ивенты."
+        return "❌ Не удалось загрузить ивенты.", None
     if not rows:
-        return "🎯 Сейчас активных ивентов нет."
+        return "🎯 Сейчас активных ивентов нет.", links_markup("events")
     lines = ["🎯 <b>Ивенты</b>"]
+    buttons: list[list[InlineKeyboardButton]] = []
     for event in rows[:5]:
-        lines.append(f"• <b>{escape(str(event.get('title') or event.get('slug') or 'Ивент'))}</b> — {escape(str(event.get('starts_at') or 'время уточняется'))}")
-    lines.append("Регистрация: раздел «Ивенты» в боте.")
-    return "\n".join(lines)
+        lines.append(f"• <b>{escape(str(event.get('title') or event.get('slug') or 'Ивент'))}</b> — {escape(str(event.get('starts_at') or 'время уточняется'))}"
+                     + (" ✅" if event.get("registered") else ""))
+        if event.get("id") and not event.get("registered") and len(buttons) < 3:
+            buttons.append([InlineKeyboardButton(text=f"🎯 Записаться: {str(event.get('title') or 'ивент')[:28]}",
+                                                 callback_data=f"cd:evr:{event['id']}")])
+    markup = links_markup("events")
+    return "\n".join(lines), InlineKeyboardMarkup(inline_keyboard=buttons + list(markup.inline_keyboard))
+
+
+async def _events(tg_id: int) -> str:
+    return (await _events_card(tg_id))[0]
+
+
+_LINKS = {
+    "online": [("🖥 Сервер на сайте", "/server"), ("📈 Состояние", "/status")],
+    "stats": [("🏆 Рейтинги", "/rankings"), ("📜 Достижения: /guide", "/guide")],
+    "clan": [("⚔️ Все кланы", "/clans")],
+    "punish": [("📜 Правила", "/rules")],
+    "events": [("🌐 Все ивенты", "/events")],
+}
+
+
+def links_markup(kind: str) -> InlineKeyboardMarkup | None:
+    """Site shortcuts under a live answer: members tap instead of typing the next question."""
+    links = _LINKS.get(kind)
+    if not links:
+        return None
+    from services.cards import site
+    return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=t, url=site(path)) for t, path in links]])
+
+
+async def live_card(question: str, tg_id: int, accepted: bool, private: bool) -> tuple[str, InlineKeyboardMarkup | None] | None:
+    """Same answers as live_answer, plus buttons (event registration, site pages)."""
+    found = live_intent(question)
+    if not found:
+        return None
+    kind, personal = found
+    if kind == "events" and accepted and (private or not personal):
+        return await _events_card(tg_id)
+    text = await live_answer(question, tg_id, accepted, private)
+    if text is None:
+        return None
+    return text, (None if text.startswith(("🔒", "❌")) else links_markup(kind))
 
 
 async def live_answer(question: str, tg_id: int, accepted: bool, private: bool) -> str | None:
