@@ -89,7 +89,7 @@ public final class PrismaPlugin extends JavaPlugin {
         PlayerStatsTask playerStatsTask = new PlayerStatsTask(this, supabase, cache, modules, getLogger());
         PlayerRoleDisplay roleDisplay = new PlayerRoleDisplay(this, supabase, cache);
 
-        getServer().getPluginManager().registerEvents(new WhitelistListener(supabase, getLogger()), this);
+        getServer().getPluginManager().registerEvents(new WhitelistListener(supabase, getLogger(), cache), this);
         getServer().getPluginManager().registerEvents(
             new MinecraftAuthListener(this, minecraftAuth, config.authTimeoutSeconds()), this
         );

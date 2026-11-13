@@ -11,12 +11,23 @@ function isValidCalendarDate(value: string): boolean {
   return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
 
+function isNicknameValidForPlatform(nickname: string, platform: "JAVA" | "BEDROCK"): boolean {
+  if (platform === "JAVA") return /^[A-Za-z0-9_]{3,16}$/.test(nickname);
+  const gamertag = nickname
+    .replace(/^\./, "")
+    .replace(/#[0-9]{1,6}$/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return /^[A-Za-z0-9_ ]{3,15}$/.test(gamertag);
+}
+
 const ApplicationSchema = z.object({
   full_name: z.string().trim().min(2).max(100),
   birth_date: z.string().refine(isValidCalendarDate, {
     message: "INVALID_BIRTH_DATE",
   }),
-  nickname: z.string().trim().regex(/^[A-Za-z0-9_]{3,16}$/),
+  // Java: 3-16 of [A-Za-z0-9_]. Bedrock: a real Gamertag (spaces allowed, up to 15; the database turns it into ".D1lan_ok").
+  nickname: z.string().trim().min(3).max(24).regex(/^\.?[A-Za-z0-9_ ]+(#[0-9]{1,6})?$/),
   platform: z.enum(["JAVA", "BEDROCK"]),
   goal: z.string().trim().max(1000).optional().or(z.literal("")),
   about: z.string().trim().max(1000).optional().or(z.literal("")),
@@ -77,6 +88,13 @@ export async function POST(request: Request) {
   const parsed = ApplicationSchema.safeParse(payload);
   if (!parsed.success) {
     return redirectBack(request, { error: "Проверьте заполнение всех обязательных полей заявки." });
+  }
+  if (!isNicknameValidForPlatform(parsed.data.nickname, parsed.data.platform)) {
+    return redirectBack(request, {
+      error: parsed.data.platform === "JAVA"
+        ? "Java-ник: 3–16 символов, только латиница, цифры и «_», без пробелов."
+        : "Bedrock Gamertag: 3–15 символов, латиница, цифры и пробелы.",
+    });
   }
 
   const { error } = await supabase.rpc(PARTICIPANT_APPLICATION_MUTATION_RPC.submit, {
