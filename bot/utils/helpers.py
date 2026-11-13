@@ -23,14 +23,50 @@ def validate_birth_date(value: str):
     return True, age, None
 
 
-def validate_minecraft_nick(nick: str):
+_JAVA_NICK = re.compile(r"[A-Za-z0-9_]{3,16}")
+_BEDROCK_NICK = re.compile(r"[A-Za-z0-9_ ]{3,15}")
+
+
+def bedrock_gamertag(raw: str) -> str | None:
+    """Canonical Bedrock Gamertag, or None. Mirrors private.prisma_bedrock_gamertag in the database.
+
+    Players type what they see in Xbox: "D1lan ok", sometimes with a leading "." (the server form) or a
+    modern "#1234" suffix. 15 characters is Floodgate's 16-character username limit minus the "." prefix.
+    """
+    value = (raw or "").strip()
+    value = re.sub(r"^\.", "", value)
+    value = re.sub(r"#[0-9]{1,6}$", "", value)
+    value = re.sub(r"\s+", " ", value).strip()
+    return value if _BEDROCK_NICK.fullmatch(value) else None
+
+
+def bedrock_server_nick(gamertag: str) -> str:
+    """The name the server sees for that Gamertag (Floodgate: "." prefix, spaces become "_")."""
+    return "." + gamertag.replace(" ", "_")
+
+
+def validate_minecraft_nick(nick: str, platform: str | None = None):
+    """platform: "java" / "bedrock" (any case) or None while it is not chosen yet — then either form is fine."""
+    nick = (nick or "").strip()
     if not nick:
         return False, "Ник не может быть пустым."
-    if len(nick) < 3 or len(nick) > 16:
-        return False, "Длина ника должна быть от 3 до 16 символов."
-    if not re.fullmatch(r"[A-Za-z0-9_]+", nick):
-        return False, "Разрешены только латинские буквы, цифры и символ подчёркивания."
-    return True, None
+    kind = (platform or "").strip().lower()
+    java_ok = bool(_JAVA_NICK.fullmatch(nick))
+    bedrock_ok = bedrock_gamertag(nick) is not None
+    if kind == "java":
+        if java_ok:
+            return True, None
+        return False, "Java-ник: 3–16 символов, только латиница, цифры и «_», без пробелов."
+    if kind == "bedrock":
+        if bedrock_ok:
+            return True, None
+        return False, "Bedrock Gamertag: 3–15 символов, латиница, цифры и пробелы (можно с «_»)."
+    if java_ok or bedrock_ok:
+        return True, None
+    if len(nick) < 3:
+        return False, "Ник слишком короткий: минимум 3 символа."
+    return False, ("Ник не подходит. Java: 3–16 символов, латиница/цифры/«_». "
+                   "Bedrock: Gamertag до 15 символов, пробелы разрешены (например, D1lan ok).")
 
 
 def validate_text(value: str, min_length=1, max_length=MAX_TEXT):

@@ -148,6 +148,20 @@ public final class PlayerStateCache {
         if (clan == null) clanId.remove(playerUuid); else clanId.put(playerUuid, clan);
     }
 
+    /**
+     * One profile may own a Java and a Bedrock account, but never plays both at once. Returns the UUID of
+     * ANOTHER online account of the same profile, or null. Only online players are in this map.
+     */
+    public UUID otherOnlineAccount(String supabaseUserId, UUID self) {
+        if (supabaseUserId == null || supabaseUserId.isBlank()) return null;
+        for (Map.Entry<UUID, String> entry : userId.entrySet()) {
+            if (!entry.getKey().equals(self) && supabaseUserId.equalsIgnoreCase(entry.getValue())) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
     public String userIdOf(UUID playerUuid) {
         return userId.get(playerUuid);
     }

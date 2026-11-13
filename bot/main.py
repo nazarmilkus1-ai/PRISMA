@@ -15,7 +15,7 @@ from config import BOT_TOKEN, ADMIN_GROUP_ID, MODERATION_GROUP_ID, REDIS_URL, LO
 from handlers import (
     start, application, profile, link, moderation, reports, polls, clans, menu, news, errors,
     player, admin, admin_panel, cards, quick, reminders, automod, chat_commands, social, market, minecraft_commands, support,
-    help as help_, admin_actions, rules, guide, ai, quiz, activity,
+    help as help_, admin_actions, rules, guide, ai, quiz, activity, accounts as accounts_handler,
 )
 from services.notifications import run_notification_worker
 from services.minecraft_bridge import MinecraftChatBridge
@@ -202,6 +202,9 @@ async def main():
     minecraft_chat_bridge = MinecraftChatBridge()
     dp.message.outer_middleware(minecraft_chat_bridge)
     dp.callback_query.outer_middleware(quick.QuickUsageMiddleware())
+    # A linked second Telegram account acts as its profile in the private chat (must run before the handlers).
+    dp.message.outer_middleware(accounts_handler.TelegramAliasMiddleware())
+    dp.callback_query.outer_middleware(accounts_handler.TelegramAliasMiddleware())
 
     # Feature-specific routers are gated independently; mixed player handlers
     # are intentionally not gated as a whole.
@@ -385,7 +388,7 @@ async def main():
     private.callback_query.filter(F.message.chat.type == "private")
 
     for r in (
-        start.router, application.router, profile.router, link.router, moderation.router,
+        accounts_handler.router, start.router, application.router, profile.router, link.router, moderation.router,
         reports.router, polls.router, clans.router, news.router, help_.router, ai.router, cards.router, quick.router, reminders.router, player.router,
         admin_panel.router, admin.router,
         admin_actions.router,

@@ -94,6 +94,12 @@ public final class JoinQuitListener implements Listener {
                         if (!isCurrentConnection(player, playerUuid, sessionToken)) return;
 
                         identityRetryAttempts.remove(playerUuid);
+                        // Second line of defence for the simultaneous-play rule (two logins racing past pre-login).
+                        if (cache.otherOnlineAccount(userId, playerUuid) != null) {
+                            player.kick(net.kyori.adventure.text.Component.text(
+                                "С этого профиля уже играет другой ваш аккаунт.\nВыйдите с него и зайдите снова."));
+                            return;
+                        }
                         cache.onJoin(playerUuid, userId, platform, clanId, muted ? muteExpiry : null, 0L);
                         if (muted && muteExpiry == null) cache.onJoinMutedForever(playerUuid);
 

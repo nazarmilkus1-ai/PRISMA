@@ -31,6 +31,8 @@ SECTIONS = {
         "<code>/me</code> — центр игрока\n"
         "<code>/profile</code> — подробный профиль\n"
         "<code>/link</code> — изменить Minecraft-ник\n"
+        "<code>/accounts</code> — Minecraft-аккаунты · <code>/addaccount</code> — Java + Bedrock в одном профиле\n"
+        "<code>/addtg</code> — привязать второй Telegram-аккаунт\n"
         "<code>/stats</code> — игровая статистика\n"
         "<code>/achievements</code> — достижения\n"
         "<code>/top</code> — топ игроков\n"

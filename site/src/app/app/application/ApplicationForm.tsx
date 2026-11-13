@@ -77,13 +77,13 @@ export function ApplicationForm({
             />
           </FormField>
 
-          <FormField label="Minecraft-ник" required description="Для Bedrock вводите ник без точки.">
+          <FormField label="Minecraft-ник" required description="Java: 3–16 символов. Bedrock: Gamertag как в Xbox, пробелы можно (например, D1lan ok) — на сервере он станет .D1lan_ok.">
             <MinecraftNicknameAutocomplete
               name="nickname"
               required
               minLength={3}
-              maxLength={16}
-              pattern="[A-Za-z0-9_]+"
+              maxLength={24}
+              pattern="\.?[A-Za-z0-9_ ]+(#[0-9]{1,6})?"
               autoComplete="off"
               defaultValue={defaults.nickname}
             />

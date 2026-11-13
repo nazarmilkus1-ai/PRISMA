@@ -9,6 +9,7 @@ import org.bukkit.event.player.AsyncPlayerPreLoginEvent.Result;
 import team.prisma.plugin.http.SupabaseClient;
 import team.prisma.plugin.http.RpcNames;
 import team.prisma.plugin.auth.FloodgateSupport;
+import team.prisma.plugin.cache.PlayerStateCache;
 
 import java.util.UUID;
 
@@ -18,10 +19,12 @@ public final class WhitelistListener implements Listener {
 
     private final SupabaseClient supabase;
     private final Logger log;
+    private final PlayerStateCache cache;
 
-    public WhitelistListener(SupabaseClient supabase, Logger log) {
+    public WhitelistListener(SupabaseClient supabase, Logger log, PlayerStateCache cache) {
         this.supabase = supabase;
         this.log = log;
+        this.cache = cache;
     }
 
     @EventHandler
@@ -85,6 +88,16 @@ public final class WhitelistListener implements Listener {
                 event.disallow(Result.KICK_WHITELIST, deny(
                     message,
                     "§7Проверьте статус в Telegram-боте PRISMA."
+                ));
+                return;
+            }
+
+            // Java + Bedrock accounts of one profile share it, but only one may be online at a time.
+            String profileId = textOrNull(user, "id");
+            if (cache != null && cache.otherOnlineAccount(profileId, playerUuid) != null) {
+                event.disallow(Result.KICK_OTHER, deny(
+                    "§cС этого профиля уже играет другой ваш аккаунт.",
+                    "§7Выйдите с него и зайдите снова."
                 ));
                 return;
             }

@@ -918,3 +918,28 @@ async def bot_list_reminders(tg_id):
 
 async def bot_cancel_reminder(tg_id, reminder_id):
     return await call_rpc_async("bot_cancel_reminder", {"p_tg_id": tg_id, "p_id": reminder_id})
+
+
+# --- one profile, several accounts (Java + Bedrock, second Telegram account) ---
+async def bot_add_minecraft_account(tg_id, platform, nickname):
+    return await call_rpc_async("bot_add_minecraft_account", {"p_tg_id": tg_id, "p_platform": platform, "p_nickname": nickname})
+
+
+async def bot_remove_minecraft_account(tg_id):
+    return await call_rpc_async("bot_remove_minecraft_account", {"p_tg_id": tg_id})
+
+
+async def bot_list_minecraft_accounts(tg_id):
+    return await call_rpc_async("bot_list_minecraft_accounts", {"p_tg_id": tg_id})
+
+
+async def bot_telegram_alias_create(primary_tg, alias_tg):
+    return await call_rpc_async("bot_telegram_alias_create", {"p_primary_tg": primary_tg, "p_alias_tg": alias_tg})
+
+
+async def bot_telegram_alias_resolve(tg_id):
+    return await call_rpc_async("bot_telegram_alias_resolve", {"p_tg": tg_id})
+
+
+async def bot_telegram_alias_remove(primary_tg):
+    return await call_rpc_async("bot_telegram_alias_remove", {"p_primary_tg": primary_tg})

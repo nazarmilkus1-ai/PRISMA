@@ -21,7 +21,7 @@ from config import ADMIN_GROUP_ID
 from db.rpc import bot_get_pending_count, bot_get_user_status, bot_submit_application, bot_touch_user
 from fsm.states import ApplicationForm
 from keyboards.inline import agreement_keyboard, platform_keyboard, preview_keyboard, discovery_source_keyboard, APPLICATION_DISCOVERY_SOURCES
-from utils.helpers import validate_birth_date, validate_minecraft_nick, validate_text
+from utils.helpers import bedrock_gamertag, bedrock_server_nick, validate_birth_date, validate_minecraft_nick, validate_text
 
 from services.community_membership import clear_onboarding_restriction
 
@@ -133,7 +133,10 @@ async def _ask_birth(message: types.Message, state: FSMContext):
 
 async def _ask_nick(message: types.Message, state: FSMContext):
     await state.set_state(ApplicationForm.minecraft_nick)
-    await message.answer(_step(4, "Ваш Minecraft-ник."), parse_mode="HTML")
+    await message.answer(
+        _step(4, "Ваш Minecraft-ник.\nBedrock: пишите Gamertag как в Xbox, пробелы можно (например, D1lan ok) — "
+                 "на сервере он станет .D1lan_ok сам."),
+        parse_mode="HTML")
 
 
 async def _ask_platform(message: types.Message, state: FSMContext):
@@ -159,6 +162,14 @@ async def _ask_source(message: types.Message, state: FSMContext):
     )
 
 
+def _server_nick_line(data: dict) -> str:
+    if data.get("platform") == "Bedrock" and data.get("minecraft_nick"):
+        gamertag = bedrock_gamertag(data["minecraft_nick"])
+        if gamertag:
+            return f"<b>Ник на сервере:</b> {escape(bedrock_server_nick(gamertag))}\n"
+    return ""
+
+
 async def _show_preview(message: types.Message, state: FSMContext, *, edit: bool = False):
     data = await state.get_data()
     await state.set_state(ApplicationForm.preview)
@@ -167,6 +178,7 @@ async def _show_preview(message: types.Message, state: FSMContext, *, edit: bool
         f"<b>Имя:</b> {escape(data['full_name'])}\n"
         f"<b>Дата:</b> {escape(data['birth_date'])} ({data['age']} лет)\n"
         f"<b>Minecraft:</b> {escape(data['minecraft_nick'])}\n"
+        f"{_server_nick_line(data)}"
         f"<b>Платформа:</b> {escape(data['platform'])}\n"
         f"<b>О себе:</b> {escape(data.get('about') or 'Не указано')}\n"
         f"<b>Источник:</b> {escape(data.get('discovery_source') or 'Не указано')}\n\n"
@@ -261,8 +273,20 @@ async def process_minecraft_nick(message: types.Message, state: FSMContext):
 @router.callback_query(F.data.in_({"platform_java", "platform_bedrock"}), StateFilter(ApplicationForm.platform))
 async def process_platform(callback: types.CallbackQuery, state: FSMContext):
     await callback.answer()
-    await state.update_data(platform="Java" if callback.data == "platform_java" else "Bedrock")
+    platform = "Java" if callback.data == "platform_java" else "Bedrock"
+    data = await state.get_data()
+    valid, error = validate_minecraft_nick(data.get("minecraft_nick", ""), platform)
     await callback.message.edit_reply_markup(reply_markup=None)
+    if not valid:
+        # The nick was fine for the other platform (for example a Gamertag with a space on Java): ask again.
+        await callback.message.answer(f"❌ {error}")
+        await _ask_nick(callback.message, state)
+        return
+    update = {"platform": platform}
+    if platform == "Bedrock":
+        gamertag = bedrock_gamertag(data["minecraft_nick"])
+        update["minecraft_nick"] = gamertag
+    await state.update_data(**update)
     await _after_field(callback.message, state, _ask_about)
 
 
