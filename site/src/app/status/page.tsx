@@ -15,7 +15,7 @@ function ago(seconds: number | null) {
 
 export default async function StatusPage() {
   const status = await getCommunityStatus();
-  const allOk = status.database.ok && status.minecraft.online;
+  const allOk = status.database.ok && status.minecraft.online && (!status.bot.checked || status.bot.online);
   const rows = [
     { name: "Сайт", ok: true, detail: "Страница отдаётся" },
     {
@@ -28,6 +28,13 @@ export default async function StatusPage() {
       ok: status.minecraft.online,
       detail: status.minecraft.online ? `Онлайн · связь ${ago(status.minecraft.lastSeenSeconds)}` : `Не на связи · последний сигнал: ${ago(status.minecraft.lastSeenSeconds)}`,
     },
+    ...(status.bot.checked
+      ? [{
+          name: "Telegram-бот",
+          ok: status.bot.online,
+          detail: status.bot.online ? `Отвечает за ${status.bot.latencyMs} мс` : "Не отвечает — заявки и уведомления могут задерживаться",
+        }]
+      : []),
   ];
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">

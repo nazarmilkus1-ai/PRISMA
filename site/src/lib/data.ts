@@ -277,13 +277,27 @@ export type CommunityStatus={
   website:{ok:true};
   database:{ok:boolean;latencyMs:number|null};
   minecraft:{online:boolean;lastSeenSeconds:number|null};
+  /** Telegram bot health. `checked:false` when BOT_HEALTH_URL is not configured (then nothing is claimed). */
+  bot:{checked:boolean;online:boolean;latencyMs:number|null};
 };
+
+async function probeBot():Promise<CommunityStatus["bot"]>{
+  const url=process.env.BOT_HEALTH_URL?.trim();
+  if(!url||!/^https:\/\//i.test(url))return{checked:false,online:false,latencyMs:null};
+  const started=Date.now();
+  try{
+    const res=await fetch(url,{cache:"no-store",signal:AbortSignal.timeout(4000)});
+    return{checked:true,online:res.ok,latencyMs:res.ok?Date.now()-started:null};
+  }catch{
+    return{checked:true,online:false,latencyMs:null};
+  }
+}
 
 /** Public, availability-only status: no addresses, versions or player lists (those stay members-only). */
 export async function getCommunityStatus():Promise<CommunityStatus>{
   const db=createSupabasePublicClient();
   const started=Date.now();
-  const{data,error}=await db.rpc(PUBLIC_RPC.serverStatus);
+  const[{data,error},bot]=await Promise.all([db.rpc(PUBLIC_RPC.serverStatus),probeBot()]);
   const latency=Date.now()-started;
   const node=(!error&&data&&typeof data==="object")?data as any:null;
   const last=node?.last_heartbeat_at?new Date(node.last_heartbeat_at).getTime():0;
@@ -293,5 +307,6 @@ export async function getCommunityStatus():Promise<CommunityStatus>{
     website:{ok:true},
     database:{ok:!error,latencyMs:error?null:latency},
     minecraft:{online:Boolean(node)&&String(node.status||"").toUpperCase()==="ONLINE"&&age!==null&&age<120,lastSeenSeconds:age},
+    bot,
   };
 }

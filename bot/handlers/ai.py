@@ -26,7 +26,7 @@ from services.ai.client import AIError, base_url, chat, fallback_model, is_confi
 from services.ai.links import link_buttons
 from services.ai import member_tools
 from services.ai.member_tools import peek_draft, publish, run_member, take_draft
-from services.ai.live import live_answer, live_intent
+from services.ai.live import live_card, live_intent
 from utils.mdhtml import strip_markdown, to_telegram_html
 from utils.permissions import get_application_status, has_any_staff_permission, is_admin_mode, require_admin_mode
 from utils.rules import rules_text
@@ -75,9 +75,9 @@ async def _answer_by_code(message: types.Message, question: str, private: bool):
     # Code-first: deterministic answers, no model call and no database lookup needed.
     if kind is None and live_intent(question):
         accepted = str(await bot_get_user_status(tg_id) or "") == "ACCEPTED"
-        live = await live_answer(question, tg_id, accepted, private)
+        live = await live_card(question, tg_id, accepted, private)
         if live:
-            await message.answer(live, parse_mode="HTML")
+            await message.answer(live[0], parse_mode="HTML", reply_markup=live[1])
             return
     if kind == "rules":
         await message.answer(rules_text(), parse_mode="HTML")
