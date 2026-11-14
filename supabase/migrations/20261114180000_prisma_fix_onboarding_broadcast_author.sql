@@ -65,3 +65,6 @@ begin
   );
 end;
 $function$;
+
+revoke all on function public.staff_broadcast_onboarding(text,text) from public,anon;
+grant execute on function public.staff_broadcast_onboarding(text,text) to authenticated;
