@@ -177,6 +177,11 @@ commands:
     usage: /menu
     aliases: [меню, pmenu]
     permission: prisma.command.menu
+  pp:
+    description: PRISMA Points — баланс, продажа ресурсов серверу и магазин
+    usage: /pp [sell <предмет> [кол-во|all] | buy <товар>]
+    aliases: [points, баланс]
+    permission: prisma.command.menu
   worldmap:
     description: Личная карта мира: только места, где вы были, и ваши точки
     usage: /worldmap
