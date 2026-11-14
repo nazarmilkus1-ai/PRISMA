@@ -33,7 +33,7 @@ import java.util.UUID;
  * the same as when the command is typed.
  */
 public final class MainMenu implements Listener {
-    private enum Kind { MAIN, CHECKPOINTS }
+    private enum Kind { MAIN, CHECKPOINTS, POINTS }
 
     private static final class Holder implements InventoryHolder {
         final Kind kind;
@@ -102,6 +102,49 @@ public final class MainMenu implements Listener {
             "§7Все команды PRISMA"), "prismacommands", "prismacommands");
         put(holder, inventory, 24, Material.KNOWLEDGE_BOOK, "Помощь", NamedTextColor.BLUE, List.of(
             "§7Правила, связь с администрацией"), "help", "help");
+        put(holder, inventory, 4, Material.GOLD_INGOT, "PRISMA Points", NamedTextColor.GOLD, List.of(
+            "§7Баланс, продажа ресурсов и магазин", "§aЛКМ§7 — открыть"), "pp", "pp");
+        player.openInventory(inventory);
+    }
+
+    /** The PP screen: balance, resources the server buys, and the shop. Built from the catalog the database returned. */
+    public void openPoints(Player player, com.google.gson.JsonObject catalog) {
+        Holder holder = new Holder(Kind.POINTS);
+        Inventory inventory = Bukkit.createInventory(holder, 36, Component.text("PRISMA · Points", NamedTextColor.GOLD));
+        holder.inventory = inventory;
+        fill(inventory, Material.BLACK_STAINED_GLASS_PANE);
+        long balance = catalog.has("balance") ? catalog.get("balance").getAsLong() : 0L;
+        put(holder, inventory, 4, Material.GOLD_INGOT, "Баланс: " + balance + " PP", NamedTextColor.GOLD, List.of(
+            "§7Команда §f/pp §7— то же самое"), "@back", "@back");
+        int slot = 10;
+        if (catalog.has("sell") && catalog.get("sell").isJsonArray()) {
+            for (com.google.gson.JsonElement element : catalog.getAsJsonArray("sell")) {
+                if (slot > 17) break;
+                com.google.gson.JsonObject row = element.getAsJsonObject();
+                String item = row.get("item").getAsString();
+                Material material = Material.matchMaterial(item);
+                put(holder, inventory, slot++, material == null ? Material.PAPER : material,
+                    "Продать: " + row.get("title").getAsString(), NamedTextColor.GREEN, List.of(
+                        "§7Цена: §f" + row.get("pp_per_16").getAsInt() + " PP §7за 16 шт.",
+                        "§7Лимит на сегодня: §f" + row.get("cap_left").getAsInt() + " шт.",
+                        "§aЛКМ§7 — продать всё", "§eПКМ§7 — продать 16"),
+                    "pp sell " + item + " all", "pp sell " + item + " 16");
+            }
+        }
+        int shopSlot = 19;
+        if (catalog.has("shop") && catalog.get("shop").isJsonArray()) {
+            for (com.google.gson.JsonElement element : catalog.getAsJsonArray("shop")) {
+                if (shopSlot > 25) break;
+                com.google.gson.JsonObject row = element.getAsJsonObject();
+                String sku = row.get("sku").getAsString();
+                String description = row.has("description") && !row.get("description").isJsonNull()
+                    ? row.get("description").getAsString() : "";
+                put(holder, inventory, shopSlot++, Material.POTION, row.get("title").getAsString(), NamedTextColor.AQUA, List.of(
+                    "§7" + description, "§7Цена: §f" + row.get("price").getAsInt() + " PP", "§aЛКМ§7 — купить"),
+                    "pp buy " + sku, "pp buy " + sku);
+            }
+        }
+        put(holder, inventory, 31, Material.ARROW, "Назад", NamedTextColor.WHITE, List.of(), "@back", "@back");
         player.openInventory(inventory);
     }
 

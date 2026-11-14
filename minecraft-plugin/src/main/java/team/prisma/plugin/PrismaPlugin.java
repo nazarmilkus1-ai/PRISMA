@@ -10,6 +10,7 @@ import team.prisma.plugin.clans.VillageManager;
 import team.prisma.plugin.clans.VillageProtectionListener;
 import team.prisma.plugin.commands.ClanCommand;
 import team.prisma.plugin.commands.DiagnosticsCommand;
+import team.prisma.plugin.commands.PointsCommand;
 import team.prisma.plugin.commands.VillageCommand;
 import team.prisma.plugin.config.PluginConfig;
 import team.prisma.plugin.http.SupabaseClient;
@@ -195,6 +196,12 @@ public final class PrismaPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(mainMenu, this);
         var menuCmd = getCommand("menu");
         if (menuCmd != null) menuCmd.setExecutor(new MenuCommand(mainMenu));
+        var ppCmd = getCommand("pp");
+        if (ppCmd != null) {
+            PointsCommand pointsCommand = new PointsCommand(this, supabase, cache, mainMenu);
+            ppCmd.setExecutor(pointsCommand);
+            ppCmd.setTabCompleter(pointsCommand);
+        }
         var mapCmd = getCommand("worldmap");
         if (mapCmd != null) mapCmd.setExecutor(new MapCommand(exploreMaps));
 

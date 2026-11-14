@@ -30,6 +30,11 @@ public final class RpcNames {
     public static final String GET_STAFF_PERMISSION = "mc_get_staff_permission";
     public static final String GET_STAFF_IDENTITY = "mc_get_staff_identity";
 
+    public static final String MC_PP_CATALOG = "mc_pp_catalog";
+    public static final String MC_PP_SELL = "mc_pp_sell";
+    public static final String MC_PP_BUY = "mc_pp_buy";
+    public static final String MC_PP_REFUND = "mc_pp_refund";
+
     public static final String CREATE_CLAN = "mc_create_clan";
     public static final String JOIN_CLAN = "mc_join_clan";
     public static final String LEAVE_CLAN = "mc_leave_clan";
