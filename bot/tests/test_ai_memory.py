@@ -16,11 +16,11 @@ class MemoryTests(unittest.TestCase):
         memory.forget(1, 2)
 
     def test_history_keeps_last_messages(self):
-        for i in range(20):
+        for i in range(memory.MAX_MESSAGES + 4):
             memory.remember(1, 2, "user", f"q{i}")
         h = memory.history(1, 2)
         self.assertEqual(len(h), memory.MAX_MESSAGES)
-        self.assertEqual(h[-1]["content"], "q19")
+        self.assertEqual(h[-1]["content"], f"q{memory.MAX_MESSAGES + 3}")
 
     def test_rating_is_visible_to_model(self):
         aid = memory.new_answer_id()
