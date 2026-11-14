@@ -3,7 +3,7 @@
 RAM is the fast path; every message is also written to the database (best effort), so after a
 restart the last messages of a chat are loaded back (`hydrate`). Answers carry an `answer_id`
 and the user's 👍/👎 rating, which the model sees in the history, so it knows how its previous
-answers were received. Only the last 16 messages (7 days) are used; rows are trimmed in the DB.
+answers were received. Only the last 40 messages (7 days) are used; rows are trimmed in the DB.
 """
 from __future__ import annotations
 
@@ -15,8 +15,8 @@ from collections import defaultdict, deque
 logger = logging.getLogger(__name__)
 
 TTL_SECONDS = 7 * 24 * 3600
-MAX_MESSAGES = 16
-MAX_CHARS = 600
+MAX_MESSAGES = 40
+MAX_CHARS = 1500
 
 _RATING_NOTE = {1: " [пользователь поставил 👍 этому ответу]", -1: " [пользователь поставил 👎 этому ответу — ответ не помог, постарайся лучше]"}
 
