@@ -12,6 +12,7 @@ from aiogram.types import (
 PUBLIC_COMMANDS = [
     BotCommand(command="start", description="Главное меню"),
     BotCommand(command="profile", description="Мой профиль"),
+    BotCommand(command="pp", description="Баланс PRISMA Points"),
     BotCommand(command="server", description="Состояние сервера"),
     BotCommand(command="top", description="Топ игроков"),
     BotCommand(command="events", description="Ивенты"),

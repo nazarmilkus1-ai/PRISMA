@@ -15,7 +15,7 @@ from config import BOT_TOKEN, ADMIN_GROUP_ID, MODERATION_GROUP_ID, REDIS_URL, LO
 from handlers import (
     start, application, profile, link, moderation, reports, polls, clans, menu, news, errors,
     player, admin, admin_panel, cards, quick, reminders, automod, chat_commands, social, minecraft_commands, support,
-    help as help_, admin_actions, rules, guide, ai, quiz, activity, accounts as accounts_handler,
+    help as help_, admin_actions, rules, guide, ai, quiz, activity, accounts as accounts_handler, pp,
 )
 from services.notifications import run_notification_worker
 from services.minecraft_bridge import MinecraftChatBridge
@@ -216,6 +216,7 @@ async def main():
         (clans.router, "clans"),
         (news.router, "public-content"),
         (social.router, "social"),
+        (pp.router, "points"),
         (minecraft_commands.router, "minecraft"),
         (moderation.router, "moderation"),
         (automod.router, "moderation"),
@@ -387,7 +388,7 @@ async def main():
     private.callback_query.filter(F.message.chat.type == "private")
 
     for r in (
-        accounts_handler.router, start.router, application.router, profile.router, link.router, moderation.router,
+        accounts_handler.router, pp.router, start.router, application.router, profile.router, link.router, moderation.router,
         reports.router, polls.router, clans.router, news.router, help_.router, ai.router, cards.router, quick.router, reminders.router, player.router,
         admin_panel.router, admin.router,
         admin_actions.router,

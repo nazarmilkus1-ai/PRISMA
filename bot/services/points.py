@@ -1,0 +1,62 @@
+"""PRISMA Points (PP): text for the bot. All money logic lives in the database (private.pp_apply)."""
+from __future__ import annotations
+
+from html import escape
+
+_ERRORS = {
+    "USER_NOT_FOUND": "Профиль не найден. Сначала /start.",
+    "TARGET_NOT_FOUND": "Не нашёл такого игрока (укажи @username или ник в игре).",
+    "SELF_TRANSFER": "Себе переводить нельзя.",
+    "INVALID_AMOUNT": "Сумма должна быть целым числом от 1 до 100 000.",
+    "NOT_A_MEMBER": "Переводить PP могут только участники с одобренной заявкой.",
+    "INSUFFICIENT_PP": "Не хватает PP.",
+    "PERMISSION_DENIED": "Нет права управлять PP.",
+}
+
+_KINDS = {
+    "transfer_in": "перевод от игрока", "transfer_out": "перевод игроку", "event_fee": "взнос в ивент",
+    "event_prize": "приз ивента", "shop": "магазин", "sell": "продажа ресурсов", "reward": "награда",
+    "admin": "корректировка", "refund": "возврат", "commission": "комиссия проекта",
+}
+
+
+def error_text(code: object) -> str:
+    return _ERRORS.get(str(code), "Не получилось. Попробуй позже.")
+
+
+def fmt(value: object) -> str:
+    try:
+        return f"{int(value):,}".replace(",", " ")
+    except (TypeError, ValueError):
+        return "0"
+
+
+def parse_amount(raw: str) -> int | None:
+    raw = raw.strip().replace(" ", "")
+    if raw.lstrip("+-").isdigit():
+        return int(raw)
+    return None
+
+
+def render_history(data: dict) -> str:
+    lines = [f"💎 <b>Баланс: {fmt(data.get('balance'))} PP</b>"]
+    items = data.get("items") or []
+    if not items:
+        lines.append("\nОпераций пока нет.")
+    else:
+        lines.append("\n<b>Последние операции</b>")
+        for row in items:
+            delta = int(row.get("delta") or 0)
+            sign = "+" if delta > 0 else "−"
+            what = _KINDS.get(str(row.get("kind")), str(row.get("kind")))
+            note = f" — {escape(str(row['note']))}" if row.get("note") else ""
+            lines.append(f"{sign}{fmt(abs(delta))} PP · {what}{note}")
+    return "\n".join(lines)
+
+
+HELP = (
+    "💎 <b>PRISMA Points (PP)</b>\n"
+    "/pp — баланс и последние операции\n"
+    "/pp send @ник 50 — перевести PP игроку\n\n"
+    "PP тратятся на взносы в ивенты, косметику и улучшения; получать их можно за ивенты, задания и продажу ресурсов."
+)
