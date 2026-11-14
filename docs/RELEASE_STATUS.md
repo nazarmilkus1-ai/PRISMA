@@ -4,12 +4,16 @@
 
 The inspected integration snapshot reports VERSION=2.1.0. Component package manifests and the Minecraft command catalog are aligned to 2.1.0. The Paper plugin build targets Paper API 26.3.build.195-stable and Java 25.
 
-## Verification state at publication preparation
+## Scope of the release
 
-- Inspected integration branch: integration/2.1.0-bot-site.
-- Inspected integration commit: 7b81c30f6bab34892501c80fd477ae6c58f4bc7c.
-- No GitHub Actions workflow run was returned for that branch or commit when checked on 2026-11-08.
-- Live Paper 26.3 runtime validation was not confirmed.
+PRISMA 2.1.0 ships for a plain survival server. Maze Runner, the market and the Escape-From/wipe ideas are out of scope and were removed. Added since the first candidate: `/menu` chest GUI (Java and Bedrock), personal fog-of-war `/worldmap`, Bedrock gamertags with spaces, one extra account per player on the other platform (never online at the same time), graves that last 15 minutes, and the weekly inactivity warning (off until `ACTIVITY_WARN=1`).
+
+## Verification state
+
+- Production branch: PRISMA, commit fd193ece3196b9c485945bf49999f9188b788fd7, checked on 2026-11-14.
+- GitHub Actions on that branch (architecture, bot, site, panel, minecraft-plugin) passed. The plugin job is a compile check only.
+- Production migrations are applied through 20261114180000.
+- Live Paper 26.3 runtime validation (menu, map, multi-account block, graves, Floodgate `replace-spaces`) was not confirmed yet.
 
 These are point-in-time observations. Re-check the exact commit before making a release statement.
 
