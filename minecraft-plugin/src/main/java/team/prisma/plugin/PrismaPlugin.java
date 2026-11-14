@@ -26,6 +26,11 @@ import team.prisma.plugin.commands.MinecraftCommandCatalogCommand;
 import team.prisma.plugin.commands.MinecraftAuthCommand;
 import team.prisma.plugin.commands.PlayerHomeCommand;
 import team.prisma.plugin.homes.PlayerHomesStore;
+import team.prisma.plugin.explore.ExploreMapManager;
+import team.prisma.plugin.explore.ExploreStore;
+import team.prisma.plugin.menu.MainMenu;
+import team.prisma.plugin.commands.MapCommand;
+import team.prisma.plugin.commands.MenuCommand;
 import team.prisma.plugin.spawn.SpawnPointsStore;
 import team.prisma.plugin.commands.SpawnCommand;
 import team.prisma.plugin.commands.TpAllCommand;
@@ -53,6 +58,8 @@ import java.time.Duration;
 public final class PrismaPlugin extends JavaPlugin {
     private SupabaseClient supabase;
     private PlayerHomesStore playerHomes;
+    private ExploreStore exploreStore;
+    private ExploreMapManager exploreMaps;
     private SpawnPointsStore spawnPoints;
     private PlayerJourneyStore journeyStore;
     private GraveStore graveStore;
@@ -183,6 +190,17 @@ public final class PrismaPlugin extends JavaPlugin {
             }
         }
 
+        exploreStore = new ExploreStore(this);
+        exploreMaps = new ExploreMapManager(this, cache, exploreStore, playerHomes, journeyStore, spawnPoints);
+        getServer().getPluginManager().registerEvents(exploreMaps, this);
+        exploreMaps.start();
+        MainMenu mainMenu = new MainMenu(this, playerHomes, journeyStore, spawnPoints);
+        getServer().getPluginManager().registerEvents(mainMenu, this);
+        var menuCmd = getCommand("menu");
+        if (menuCmd != null) menuCmd.setExecutor(new MenuCommand(mainMenu));
+        var mapCmd = getCommand("worldmap");
+        if (mapCmd != null) mapCmd.setExecutor(new MapCommand(exploreMaps));
+
         ModerationCommand moderationCommand = new ModerationCommand(this, supabase, cache);
         getServer().getPluginManager().registerEvents(moderationCommand, this);
         for (String name : new String[]{"warn", "mute", "unmute", "kick", "ban", "tempban", "unban", "history"}) {
@@ -297,6 +315,8 @@ public final class PrismaPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (exploreMaps != null) exploreMaps.stop();
+        if (exploreStore != null) exploreStore.close();
         if (playerHomes != null) playerHomes.close();
         if (spawnPoints != null) spawnPoints.close();
         if (journeyStore != null) journeyStore.close();

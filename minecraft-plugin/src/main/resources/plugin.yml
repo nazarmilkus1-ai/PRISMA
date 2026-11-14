@@ -28,6 +28,9 @@ permissions:
   prisma.command.journey:
     description: Доступ к координатам, контрольным точкам и последнему месту смерти
     default: false
+  prisma.command.menu:
+    description: Доступ к главному меню PRISMA и личной карте мира
+    default: false
   prisma.command.hud:
     description: Доступ к персональному HUD и информации TAB
     default: false
@@ -169,6 +172,16 @@ commands:
     description: Удалить переопределение точки появления
     usage: /delspawn <0–999>
     permission: prisma.command.spawnmanage
+  menu:
+    description: Главное меню PRISMA (Java и Bedrock)
+    usage: /menu
+    aliases: [меню, pmenu]
+    permission: prisma.command.menu
+  worldmap:
+    description: Личная карта мира: только места, где вы были, и ваши точки
+    usage: /worldmap
+    aliases: [карта, pmap]
+    permission: prisma.command.menu
   coords:
     description: Показать координаты или поделиться ими
     usage: /coords [share]
