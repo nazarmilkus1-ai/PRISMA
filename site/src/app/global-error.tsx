@@ -22,7 +22,7 @@ export default function GlobalError({
             <p style={{ margin: 0, fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", opacity: .6 }}>PRISMA</p>
             <h2 style={{ margin: "10px 0 8px", fontSize: 24 }}>Произошла ошибка</h2>
             <p style={{ margin: 0, opacity: .7 }}>Страница не смогла корректно загрузиться.</p>
-            <button onClick={() => reset()} style={{ marginTop: 20, border: 0, borderRadius: 10, padding: "10px 14px", cursor: "pointer" }}>
+            <button onClick={() => reset()} style={{ marginTop: 20, border: 0, borderRadius: 10, padding: "12px 24px", cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap", background: "#2dd4a0", color: "#04130d", boxShadow: "0 2px 8px rgba(0,0,0,.35)" }}>
               Попробовать ещё раз
             </button>
           </div>
