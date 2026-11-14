@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   title: { default: "PRISMA", template: "%s — PRISMA" },
   description: "Сообщество Minecraft-сервера PRISMA.",
   applicationName: "PRISMA",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://prisma-fawn-seven.vercel.app"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://prisma-minecraft.vercel.app"),
   icons: { icon: [{ url: "/favicon.svg", type: "image/svg+xml" }], apple: "/apple-icon" },
   openGraph: {
     type: "website",
