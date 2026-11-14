@@ -129,5 +129,4 @@ Do not test moderation commands against real community players during initial se
 - [Architecture](ARCHITECTURE.md)
 - [Operations](OPERATIONS.md)
 - [Minecraft authentication](MINECRAFT_AUTH.md)
-- [Maze Runner scope](MAZE_RUNNER.md)
 - [Release status](RELEASE_STATUS.md)

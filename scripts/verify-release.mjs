@@ -133,7 +133,6 @@ for (const file of [
   "minecraft-plugin/src/main/java/team/prisma/plugin/commands/MinecraftCommandCatalogCommand.java",
   "minecraft-plugin/src/main/java/team/prisma/plugin/commands/PrismaHelpCommand.java",
   "minecraft-plugin/src/main/java/team/prisma/plugin/tasks/ServerHudTask.java",
-  "minecraft-plugin/src/main/java/team/prisma/plugin/maze/MazeRunnerController.java",
   "minecraft-plugin/src/main/java/team/prisma/plugin/commands/TpAllCommand.java",
   "minecraft-plugin/src/main/java/team/prisma/plugin/commands/PlayerHomeCommand.java",
   "minecraft-plugin/src/main/java/team/prisma/plugin/homes/PlayerHomesStore.java",
@@ -204,9 +203,6 @@ if (!/main:\s*team\.prisma\.plugin\.PrismaPlugin/.test(pluginYml)) {
 const catalog = JSON.parse(read("packages/contracts/minecraft-commands.json"));
 if (catalog.release !== expected) {
   failures.push("packages/contracts/minecraft-commands.json: catalog release does not match VERSION");
-}
-if (!catalog.commands.some((command) => command.command === "/maze")) {
-  failures.push("Minecraft command catalog: /maze is missing");
 }
 if (!catalog.commands.some((command) => command.command === "/prismacommands")) {
   failures.push("Minecraft command catalog: /prismacommands is missing");
@@ -327,12 +323,6 @@ requireText("site/src/app/api/health/route.ts", "createSupabasePublicClient");
 requireText("docs/MINECRAFT_AUTH.md", "PRISMA Auth");
 requireText("packages/contracts/src/index.ts", "export const STAFF_RPC");
 const gameplayToggleMigration = read("supabase/migrations/20261024150000_prisma_minecraft_gameplay_toggles.sql");
-if (!gameplayToggleMigration.includes("('minecraft-maze-runner', false)")) {
-  failures.push("Maze Runner must remain disabled until the map is configured");
-}
-requireText("minecraft-plugin/src/main/resources/plugin.yml", "  maze:");
-requireText("minecraft-plugin/src/main/java/team/prisma/plugin/maze/MazeRunnerController.java", "preventGrieverDamageInGlade");
-requireText("minecraft-plugin/src/main/java/team/prisma/plugin/maze/MazeRunnerController.java", "dropCompassForManagedGriever");
 for (const moduleId of [
   "minecraft-teleport-requests", "minecraft-homes", "minecraft-spawns", "minecraft-journey",
   "minecraft-graves", "minecraft-hud", "minecraft-moderation", "minecraft-tpall",
@@ -427,7 +417,7 @@ requireText("minecraft-plugin/src/main/java/team/prisma/plugin/tasks/ServerHudTa
 requireText("minecraft-plugin/src/main/java/team/prisma/plugin/tasks/ServerHudTask.java", "Bukkit.getServer().getTPS()");
 requireText("minecraft-plugin/src/main/java/team/prisma/plugin/tasks/ServerHudTask.java", "Component.text(\"/help\", NamedTextColor.YELLOW)");
 requireText("minecraft-plugin/src/main/java/team/prisma/plugin/tasks/ServerHudTask.java", "public void onQuit(PlayerQuitEvent event)");
-requireText("minecraft-plugin/src/main/java/team/prisma/plugin/graves/GraveStore.java", "TTL_MILLIS = TimeUnit.MINUTES.toMillis(10)");
+requireText("minecraft-plugin/src/main/java/team/prisma/plugin/graves/GraveStore.java", "TTL_MILLIS = TimeUnit.MINUTES.toMillis(15)");
 requireText("minecraft-plugin/src/main/java/team/prisma/plugin/graves/GraveStore.java", "StandardCopyOption.ATOMIC_MOVE");
 requireText("minecraft-plugin/src/main/java/team/prisma/plugin/graves/GraveStore.java", "State.CLAIMING");
 requireText("minecraft-plugin/src/main/java/team/prisma/plugin/listeners/GraveListener.java", "event.getDrops().clear()");

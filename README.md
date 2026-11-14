@@ -60,7 +60,6 @@ The following describes functionality present in the PRISMA 2.1.0 integration so
 - Staff teleportation, including confirmation-based \`/tpall\`.
 - Server-side moderation commands and moderation history.
 - A queued Minecraft ↔ Telegram chat bridge with identity checks, rate limits, and retry/lease handling.
-- An optional, partial Maze Runner controller. It is not a complete implementation of all original map mechanics; see [Maze Runner notes](docs/MAZE_RUNNER.md).
 
 ## Architecture
                          ┌──────────────────────────┐
@@ -192,7 +191,6 @@ The distributable JAR is written to \`minecraft-plugin/build/libs/\`. Create the
 | [Architecture](docs/ARCHITECTURE.md) | Component responsibilities, contracts, backend boundaries, and modules |
 | [Operations](docs/OPERATIONS.md) | Deployment model, migrations, health checks, backups, diagnostics, and rollback |
 | [Minecraft authentication](docs/MINECRAFT_AUTH.md) | Java PRISMA Auth and Bedrock Geyser/Floodgate flow |
-| [Maze Runner notes](docs/MAZE_RUNNER.md) | Current scope and limitations of the optional Maze Runner controller |
 | [Development](docs/DEVELOPMENT.md) | Coding workflow, migrations, checks, and review requirements |
 | [Release status](docs/RELEASE_STATUS.md) | What has and has not been verified for the 2.1.0 integration candidate |
 | [FAQ](docs/FAQ.md) | Common deployment and compatibility questions |

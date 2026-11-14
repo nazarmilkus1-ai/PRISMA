@@ -30,7 +30,7 @@ import java.util.logging.Level;
  * The death drop list is only cleared after its file has been durably written.
  */
 public final class GraveStore {
-    public static final long TTL_MILLIS = TimeUnit.MINUTES.toMillis(10);
+    public static final long TTL_MILLIS = TimeUnit.MINUTES.toMillis(15);
     public static final int MAX_GRAVES = 256;
     public static final int MAX_ITEMS_PER_GRAVE = 256;
 

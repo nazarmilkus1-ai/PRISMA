@@ -239,10 +239,6 @@ commands:
     description: Массовая телепортация с подтверждением
     usage: /tpall [confirm|cancel]
     permission: prisma.command.tpall
-  maze:
-    description: Настройка и управление режимом Maze Runner
-    usage: /maze <status|setglade|gladesize|maze-radius|start|stop|clear>
-    permission: prisma.command.spawnmanage
   prismadiag:
     description: Проверка соединения Prisma с Supabase
     usage: /prismadiag <minecraft_nickname>

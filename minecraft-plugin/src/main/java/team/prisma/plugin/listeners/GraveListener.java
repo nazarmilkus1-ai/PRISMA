@@ -103,7 +103,7 @@ public final class GraveListener implements Listener {
         scheduleExpiry(grave);
         player.sendMessage("§6Предметы сохранены в могиле §e#" + grave.id()
             + "§6. Подойдите к метке и используйте §e/grave claim " + grave.id()
-            + "§6 в течение 10 минут.");
+            + "§6 в течение 15 минут.");
     }
 
     @EventHandler(priority = EventPriority.NORMAL)

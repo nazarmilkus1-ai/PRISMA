@@ -16,10 +16,6 @@ The 2.1.0 plugin build targets Paper API 26.3.build.195-stable and Java 25. Comp
 
 The plugin integrates with Geyser/Floodgate. Bedrock identity behavior must be tested with the actual server/proxy setup.
 
-## Is Maze Runner complete?
-
-No. The current source includes a partial first-stage controller. It does not implement all original map mechanics; see docs/MAZE_RUNNER.md.
-
 ## Why does the bot need Redis?
 
 Redis provides persistent FSM state when REDIS_URL is configured. In-memory storage is suitable only for local smoke tests; it is not durable across process restarts.

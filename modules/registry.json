@@ -1123,33 +1123,6 @@
       },
       "runtimeManaged": true,
       "runtimeToggleProtected": false
-    },
-    {
-      "id": "minecraft-maze-runner",
-      "title": "Игровой режим Maze Runner",
-      "status": "active",
-      "owner": "minecraft",
-      "dependsOn": [
-        "minecraft"
-      ],
-      "surfaces": [
-        "panel",
-        "plugin",
-        "supabase"
-      ],
-      "contractNamespaces": [],
-      "sourceRoots": [
-        "minecraft-plugin/src/main/java",
-        "supabase/migrations"
-      ],
-      "removal": {
-        "entrypoints": true,
-        "contracts": true,
-        "database": "forward-migration",
-        "acl": true
-      },
-      "runtimeManaged": true,
-      "runtimeToggleProtected": false
     }
   ]
 }

@@ -51,7 +51,6 @@ import team.prisma.plugin.teleport.StaffTeleportCommand;
 import team.prisma.plugin.teleport.TpaCommand;
 import team.prisma.plugin.teleport.TpaManager;
 import team.prisma.plugin.teleport.TpaCleanupListener;
-import team.prisma.plugin.maze.MazeRunnerController;
 
 import java.time.Duration;
 
@@ -79,7 +78,6 @@ public final class PrismaPlugin extends JavaPlugin {
         supabase = new SupabaseClient(config);
         ModuleStateCache modules = new ModuleStateCache(this, supabase);
         modules.start();
-        MazeRunnerController mazeRunner = new MazeRunnerController(this, modules);
 
         boolean geyserPresent = getServer().getPluginManager().getPlugin("Geyser-Spigot") != null;
         boolean floodgatePresent = getServer().getPluginManager().getPlugin("floodgate") != null;
@@ -110,7 +108,6 @@ public final class PrismaPlugin extends JavaPlugin {
         graveListener.initialize();
         getServer().getPluginManager().registerEvents(new BlockPlaceListener(cache, modules), this);
         getServer().getPluginManager().registerEvents(new VillageProtectionListener(villages, cache, staff, modules), this);
-        getServer().getPluginManager().registerEvents(mazeRunner, this);
 
         PrismaHelpCommand helpCommand = new PrismaHelpCommand(cache, modules);
         var help = getCommand("help");
@@ -252,13 +249,6 @@ public final class PrismaPlugin extends JavaPlugin {
             bindGatedCommand(ptphere, staffTeleport, staffTeleport, modules, "minecraft-staff-teleport");
         }
 
-        var maze = getCommand("maze");
-        if (maze != null) {
-            maze.setExecutor(mazeRunner);
-        } else {
-            getLogger().warning("'maze' command not found -- check plugin.yml.");
-        }
-        getServer().getScheduler().runTaskTimer(this, mazeRunner, 200L, 200L);
 
         TpaManager tpaManager = new TpaManager(Duration.ofSeconds(30));
         TpaCommand tpaCommand = new TpaCommand(tpaManager);
@@ -289,7 +279,7 @@ public final class PrismaPlugin extends JavaPlugin {
             playerStatsTask,
             statsInitialDelayTicks, statsTicks);
 
-        getLogger().info("PRISMA plugin enabled -- clans, villages, personal homes, spawn points, graves, protected territories, TPA, staff teleport and configurable Maze Runner are loaded.");
+        getLogger().info("PRISMA plugin enabled -- clans, villages, personal homes, spawn points, graves, protected territories, TPA, staff teleport, the main menu and the personal world map are loaded.");
     }
 
     private void bindGatedCommand(
