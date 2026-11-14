@@ -24,7 +24,6 @@ KIND_TO_PREF = {
     "CLAN_NEWS": "clan_news",
     "SOCIAL": "social",
     "BATTLE": "battles",
-    "MARKET": "market",
     "MODERATION": "moderation",
     "POLL": "polls",
 }

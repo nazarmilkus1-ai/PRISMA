@@ -604,7 +604,7 @@ async def ai_adult_plus_toggle(message: types.Message, command: CommandObject):
 
 
 # ------------------------------------------------------------ confirm cards
-_CARD_KINDS = {"mk": "market", "sp": "support", "ev": "events", "of": "market", "mu": "mute"}
+_CARD_KINDS = {"sp": "support", "ev": "events", "mu": "mute"}
 
 
 @router.callback_query(F.data.startswith("aim:"))
@@ -637,7 +637,7 @@ async def member_card(callback: types.CallbackQuery):
         await callback.answer("Готово" if ok else "Не получилось")
         await _finish_card(callback, text)
         return
-    if kind in {"mk", "ev", "of"} and await get_application_status(tg_id) != "ACCEPTED":
+    if kind in {"ev"} and await get_application_status(tg_id) != "ACCEPTED":
         await callback.answer("Доступно после одобрения заявки.", show_alert=True)
         return
     ok, text = await publish(kind, draft["payload"], tg_id)

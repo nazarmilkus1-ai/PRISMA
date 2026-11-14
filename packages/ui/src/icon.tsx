@@ -33,7 +33,6 @@ import {
   Search,
   Server,
   Settings2,
-  ShoppingBag,
   Shield,
   ShieldCheck,
   Swords,
@@ -88,7 +87,6 @@ export type IconName =
   | "security"
   | "audit"
   | "ranking"
-  | "market"
   | "wiki";
 
 const icons: Record<IconName, LucideIcon> = {
@@ -133,7 +131,6 @@ const icons: Record<IconName, LucideIcon> = {
   security: LockKeyhole,
   audit: FileClock,
   ranking: Trophy,
-  market: ShoppingBag,
   wiki: BookMarked,
 };
 

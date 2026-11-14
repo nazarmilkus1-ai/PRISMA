@@ -29,7 +29,6 @@ const TILES: readonly Tile[] = [
   { href: "/clans", icon: "clans", title: "Кланы", text: "Территории, войны, ранги и сравнение кланов между собой.", moduleId: "clans", open: false },
   { href: "/events", icon: "calendar", title: "События", text: "Календарь ивентов, регистрация и итоговые результаты.", moduleId: "events", open: false },
   { href: "/rankings", icon: "ranking", title: "Рейтинги", text: "Таблицы лидеров, сезоны и паспорт каждого игрока.", moduleId: "players", open: false },
-  { href: "/market", icon: "market", title: "Рынок", text: "Объявления сообщества: обмен, продажа и помощь.", moduleId: "market", open: false },
   { href: "/wiki", icon: "wiki", title: "Wiki", text: "Правила, инструкции и описание систем PRISMA.", moduleId: "public-content", open: true },
 ];
 
@@ -147,7 +146,7 @@ export default async function HomePage() {
           </h2>
           <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-foreground-light">
             {isMember
-              ? "Профиль, клан, события и рынок собраны в одном месте."
+              ? "Профиль, клан и события собраны в одном месте."
               : "Это займёт пару минут. Результат придёт в Telegram и в личный кабинет."}
           </p>
           <div className="mt-7 flex justify-center">

@@ -108,7 +108,6 @@ async def set_notification_preference(tg_id: int, key: str, enabled: bool):
         "clan_news",
         "social",
         "battles",
-        "market",
         "moderation",
         "polls",
     }

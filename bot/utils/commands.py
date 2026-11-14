@@ -16,7 +16,6 @@ PUBLIC_COMMANDS = [
     BotCommand(command="top", description="Топ игроков"),
     BotCommand(command="events", description="Ивенты"),
     BotCommand(command="clan", description="Мой клан"),
-    BotCommand(command="market", description="Рынок"),
     BotCommand(command="news", description="Новости"),
     BotCommand(command="report", description="Подать жалобу"),
     BotCommand(command="support", description="Поддержка"),

@@ -36,7 +36,6 @@ const GROUPS: Group[] = [
       { href: "/app/clan", label: "Кланы", icon: "clans", moduleId: "clans" },
       { href: "/app/events", label: "События", icon: "calendar", moduleId: "events" },
       { href: "/app/calendar", label: "Календарь", icon: "calendar", moduleId: "events" },
-      { href: "/app/market", label: "Рынок", icon: "market", moduleId: "market" },
       { href: "/app/news", label: "Новости", icon: "news", moduleId: "public-content" },
       { href: "/app/wiki", label: "Wiki", icon: "wiki", moduleId: "public-content" },
     ],
@@ -80,23 +79,18 @@ export function ParticipantSidebar({
   onMobileClose,
   notificationsCount = 0,
   enabledModules,
-  canUseMarket,
 }: {
   collapsed: boolean;
   mobileOpen: boolean;
   onMobileClose: () => void;
   notificationsCount?: number;
   enabledModules: ModuleEnabledMap;
-  canUseMarket: boolean;
 }) {
   const pathname = usePathname() || "/app";
   const visibleGroups = GROUPS
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) =>
-        (!item.moduleId || enabledModules[item.moduleId] === true) &&
-        (item.href !== "/app/market" || canUseMarket),
-      ),
+      items: group.items.filter((item) => !item.moduleId || enabledModules[item.moduleId] === true),
     }))
     .filter((group) => group.items.length > 0);
   const activeGroupId = visibleGroups.find((group) => group.items.some((item) => activeFor(pathname, item.href)))?.id ?? "overview";

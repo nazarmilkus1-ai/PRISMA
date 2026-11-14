@@ -286,7 +286,6 @@ const guardedMutationRoutes = new Map([
   ["site/src/app/api/settings/notifications/route.ts", "notifications"],
   ["site/src/app/api/clans/create/route.ts", "clans"],
   ["site/src/app/api/events/register/route.ts", "events"],
-  ["site/src/app/api/market/route.ts", "market"],
   ["site/src/app/api/polls/vote/route.ts", "voting"],
   ["site/src/app/api/reports/route.ts", "reports"],
   ["site/src/app/api/battles/route.ts", "battles"],
@@ -305,7 +304,6 @@ const guardedReadPages = new Map([
   ["site/src/app/app/voting/page.tsx", "voting"],
   ["site/src/app/app/reports/page.tsx", "reports"],
   ["site/src/app/app/reports/[id]/page.tsx", "reports"],
-  ["site/src/app/market/page.tsx", "market"],
   ["site/src/app/events/page.tsx", "events"],
   ["site/src/app/events/[slug]/page.tsx", "events"],
   ["site/src/app/app/calendar/page.tsx", "events"],
@@ -343,15 +341,15 @@ const guardedReadRoutes = new Map([
 const guardedConditionalPages = new Map([
   ["site/src/app/app/settings/page.tsx", { moduleIds: ["notifications"], markers: ["enabledModules.notifications"] }],
   ["site/src/app/page.tsx", {
-    moduleIds: ["minecraft", "clans", "events", "players", "market", "public-content", "applications"],
+    moduleIds: ["minecraft", "clans", "events", "players", "public-content", "applications"],
     markers: ["const tiles = TILES.filter((tile) => enabledModules[tile.moduleId]);", 'enabledModules["public-content"] ?', "enabledModules.applications ? ("],
   }],
   ["site/src/app/search/page.tsx", {
-    moduleIds: ["players", "clans", "public-content", "market"],
+    moduleIds: ["players", "clans", "public-content"],
     markers: ["groups.filter(([moduleId])=>enabledModules[moduleId])"],
   }],
   ["site/src/components/SiteHeader.tsx", {
-    moduleIds: ["minecraft", "map", "market", "public-content", "events", "applications"],
+    moduleIds: ["minecraft", "map", "public-content", "events", "applications"],
     markers: ["const nav = sourceNav.filter(([href, , moduleId]) =>", "(!moduleId || enabledModules[moduleId]) &&"],
   }],
   ["site/src/app/app/profile/page.tsx", {

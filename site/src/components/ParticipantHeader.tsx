@@ -24,7 +24,6 @@ const LABELS: Record<string, string> = {
   rankings: "Рейтинги",
   events: "События",
   calendar: "Календарь",
-  market: "Рынок",
   news: "Новости",
   wiki: "Wiki",
   battles: "Player Battle",

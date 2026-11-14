@@ -1,7 +1,7 @@
 """Test stand: a member's journey played through the real bot logic against an in-memory fake database.
 
 No Telegram, no Supabase, no Docker: every RPC goes to FakeDb, so the scenario runs in CI and shows
-that the pieces work *together* (memory across a restart, reminders, market trust, unprompted talk, cards).
+that the pieces work *together* (memory across a restart, reminders, unprompted talk, cards).
 """
 import os
 import sys
@@ -15,7 +15,7 @@ os.environ.setdefault("MODERATION_GROUP_ID", "-100123")
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from db import rpc  # noqa: E402
-from services import market_risk, reminders  # noqa: E402
+from services import reminders  # noqa: E402
 from services.ai import ambient, member_tools, memory  # noqa: E402
 
 UUID = "123e4567-e89b-12d3-a456-426614174000"
@@ -59,9 +59,6 @@ class FakeDb:
 
     def rpc_bot_cancel_reminder(self, p):
         return self.reminders.pop(p["p_id"], None) is not None
-
-    def rpc_bot_get_market(self, p):
-        return [{"id": UUID, "kind": "SELL", "title": "Алмазы", "price_text": "5", "minecraft_nickname": "Steve"}]
 
 
 class MemberJourney(unittest.IsolatedAsyncioTestCase):
@@ -122,26 +119,6 @@ class MemberJourney(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(decision, {"action": "invite", "intent": "apply"})
         url = ambient.invite_url("prisma_eco_bot", decision["intent"])
         self.assertEqual(ambient.intent_from_start(url.split("start=")[1])[0], "apply")
-
-    async def test_market_search_shows_cards_with_actions(self):
-        ctx = member_tools.Context(42, True, True)
-        result = await member_tools.execute("search_market", {"query": "алмазы"}, ctx)
-        self.assertEqual(result["listings"][0]["title"], "Алмазы")
-        _, markup = ctx.cards[0]
-        data = [b.callback_data for row in markup.inline_keyboard for b in row if b.callback_data]
-        self.assertEqual(data, [f"cd:off:{UUID}", "cd:rep:Steve"])
-
-    def test_market_anti_fraud_ranks_the_scammer_first(self):
-        now = datetime.now(timezone.utc)
-        rows = [
-            {"id": "ok", "title": "Продам железо", "description": "стак", "seller_nickname": "Old",
-             "seller_created_at": (now - timedelta(days=90)).isoformat(), "seller_listings_24h": 1},
-            {"id": "bad", "title": "АЛМАЗНЫЙ НАБОР", "description": "предоплата, пиши t.me/x_scam",
-             "seller_nickname": "New", "seller_created_at": (now - timedelta(hours=2)).isoformat(), "seller_listings_24h": 7},
-        ]
-        flagged = market_risk.score_listings(rows, now)
-        self.assertEqual([f["id"] for f in flagged], ["bad"])
-        self.assertEqual(flagged[0]["level"], "high")
 
 
 if __name__ == "__main__":

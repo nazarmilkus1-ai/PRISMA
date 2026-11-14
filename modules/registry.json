@@ -359,45 +359,6 @@
       "runtimeToggleProtected": false
     },
     {
-      "id": "market",
-      "title": "Рынок сообщества",
-      "status": "active",
-      "owner": "community",
-      "dependsOn": [
-        "players"
-      ],
-      "surfaces": [
-        "site",
-        "panel",
-        "bot",
-        "contracts",
-        "supabase"
-      ],
-      "contractNamespaces": [
-        "MARKET_LISTING_KINDS",
-        "PARTICIPANT_MARKET_RPC",
-        "PARTICIPANT_MARKET_MUTATION_RPC"
-      ],
-      "uses": [
-        "STAFF_RPC"
-      ],
-      "sourceRoots": [
-        "packages/contracts/src",
-        "supabase/migrations",
-        "site/src/app",
-        "panel/src/app",
-        "bot"
-      ],
-      "removal": {
-        "entrypoints": true,
-        "contracts": true,
-        "database": "forward-migration",
-        "acl": true
-      },
-      "runtimeManaged": true,
-      "runtimeToggleProtected": false
-    },
-    {
       "id": "voting",
       "title": "Голосования",
       "status": "active",

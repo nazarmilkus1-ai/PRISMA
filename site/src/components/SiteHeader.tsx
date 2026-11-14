@@ -10,7 +10,6 @@ const NAV = [
   ["/server", "О сервере", "minecraft"],
   ["/community", "Сообщество", null],
   ["/map", "Карта", "map"],
-  ["/market", "Рынок", "market"],
   ["/commands", "Команды", "minecraft"],
   ["/news", "Новости", "public-content"],
   ["/events", "События", "events"],
@@ -32,8 +31,7 @@ export async function SiteHeader() {
   const sourceNav = canAccessCommunity ? NAV : publicNav;
   const nav = sourceNav.filter(([href, , moduleId]) =>
     (!moduleId || enabledModules[moduleId]) &&
-    (canAccessCommunity || href === "/apply" || href === "/wiki" || href === "/rules") &&
-    (href !== "/market" || canAccessCommunity),
+    (canAccessCommunity || href === "/apply" || href === "/wiki" || href === "/rules"),
   );
   const displayName = user?.minecraft_nickname || user?.first_name || "Кабинет";
 

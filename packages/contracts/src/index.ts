@@ -347,9 +347,6 @@ export const STAFF_RPC = {
   events: "staff_list_events",
   manageEvent: "staff_manage_event",
   setEventResult: "staff_set_event_result",
-  market: "staff_get_market",
-  marketInquiries: "staff_get_market_inquiries",
-  manageMarket: "staff_manage_market",
   news: "staff_list_news",
   manageNews: "staff_manage_news",
   polls: "staff_list_polls",
@@ -384,7 +381,6 @@ export const STAFF_LIVE_RPC = {
 
 export const PUBLIC_RPC = {
   serverStatus: "get_public_server_status",
-  market: "get_public_market",
   polls: "get_public_polls",
   mapData: "get_public_map_data",
   eventDetails: "get_public_event_details",
@@ -417,9 +413,6 @@ export const PARTICIPANT_READ_RPC = {
   rankingEntry: "participant_get_ranking_entry",
   seasonLeaderboard: "participant_get_season_leaderboard",
   timeline: "participant_get_timeline",
-  market: "participant_get_market",
-  marketInquiries: "participant_get_market_inquiries",
-  marketOffers: "participant_get_market_offers",
   voting: "participant_get_voting",
   calendar: "participant_get_calendar",
 } as const;
@@ -433,22 +426,6 @@ export type StaffLiveEvent = {
   world: string | null;
   created_at: string;
 };
-
-export const PARTICIPANT_MARKET_RPC = {
-  listing: "participant_get_market_listing",
-} as const;
-
-export const PARTICIPANT_MARKET_MUTATION_RPC = {
-  createListing: "participant_create_market_listing",
-  updateListing: "participant_update_market_listing",
-  closeListing: "participant_close_market_listing",
-  createInquiry: "participant_create_market_inquiry",
-  respondInquiry: "participant_respond_market_inquiry",
-  closeInquiry: "participant_close_market_inquiry",
-  createOffer: "participant_create_market_offer",
-  respondOffer: "participant_respond_market_offer",
-  withdrawOffer: "participant_withdraw_market_offer",
-} as const;
 
 export const PARTICIPANT_REPORT_RPC = {
   list: "participant_get_reports",
@@ -619,7 +596,6 @@ export const NOTIFICATION_PREFERENCES = [
   "clan_news",
   "social",
   "battles",
-  "market",
   "moderation",
   "polls",
 ] as const;
@@ -641,46 +617,6 @@ export type Notification = {
   created_at: string;
   sent_at: string | null;
   updated_at: string;
-};
-
-export const MARKET_LISTING_KINDS = [
-  "SELL",
-  "BUY",
-  "TRADE",
-  "SERVICE",
-  "OTHER",
-] as const;
-
-export type MarketListingKind = (typeof MARKET_LISTING_KINDS)[number];
-export type MarketListingStatus = "ACTIVE" | "CLOSED" | "EXPIRED";
-export type MarketInquiryStatus = "OPEN" | "ANSWERED" | "CLOSED";
-
-export type MarketListing = {
-  id: string;
-  seller_id: string;
-  kind: MarketListingKind | string;
-  title: string;
-  description: string | null;
-  terms: string | null;
-  price_text: string | null;
-  status: MarketListingStatus | string;
-  created_at: string;
-  updated_at: string;
-  expires_at: string | null;
-};
-
-export type MarketInquiry = {
-  id: string;
-  listing_id: string;
-  requester_id: string;
-  seller_id: string;
-  message: string;
-  response: string | null;
-  status: MarketInquiryStatus | string;
-  created_at: string;
-  updated_at: string;
-  responded_at: string | null;
-  closed_at: string | null;
 };
 
 export {

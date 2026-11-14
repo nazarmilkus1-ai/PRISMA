@@ -44,7 +44,6 @@ export default async function AppHomePage() {
     .sort((a: any, b: any) => new Date(a.starts_at || 0).getTime() - new Date(b.starts_at || 0).getTime())
     .slice(0, 3);
   const current = dashboard.user || user;
-  const canUseMarket = current.status === "ACCEPTED" && !current.is_banned && current.is_whitelisted === true;
   const displayName = current.minecraft_nickname || current.first_name || "Игрок";
 
   return (
@@ -87,7 +86,7 @@ export default async function AppHomePage() {
         ) : null}
       </div>
 
-      {(enabledModules.players || enabledModules.clans || (enabledModules.market && canUseMarket) || enabledModules.battles) ? (
+      {(enabledModules.players || enabledModules.clans || enabledModules.battles) ? (
       <Card className="prisma-section-stagger-2">
         <CardHeader>
           <CardTitle>Быстрые действия</CardTitle>
@@ -96,7 +95,6 @@ export default async function AppHomePage() {
         <CardContent className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {enabledModules.players ? <Link href="/app/profile" className="prisma-glass-surface prisma-glass-hover rounded-xl border p-4 transition-colors"><p className="text-sm font-semibold">Профиль</p><p className="mt-1 text-xs text-muted-foreground">Личные данные и социальный статус</p></Link> : null}
           {enabledModules.clans ? <Link href="/app/clan" className="prisma-glass-surface prisma-glass-hover rounded-xl border p-4 transition-colors"><p className="text-sm font-semibold">{dashboard.clan ? "Мой клан" : "Кланы"}</p><p className="mt-1 text-xs text-muted-foreground">{dashboard.clan ? "Состав, войны и управление" : "Найти и выбрать клан"}</p></Link> : null}
-          {enabledModules.market && canUseMarket ? <Link href="/app/market" className="prisma-glass-surface prisma-glass-hover rounded-xl border p-4 transition-colors"><p className="text-sm font-semibold">Рынок</p><p className="mt-1 text-xs text-muted-foreground">Объявления участников</p></Link> : null}
           {enabledModules.battles ? <Link href="/app/battles" className="prisma-glass-surface prisma-glass-hover rounded-xl border p-4 transition-colors"><p className="text-sm font-semibold">Player Battle</p><p className="mt-1 text-xs text-muted-foreground">Сравнить игрока по статистике</p></Link> : null}
         </CardContent>
       </Card>
@@ -251,11 +249,9 @@ export default async function AppHomePage() {
                         ? "/app/reports/" + encodeURIComponent(String(data.report_id))
                         : data.battle_id && kind === "BATTLE"
                           ? "/app/battles"
-                          : data.inquiry_id && kind === "MARKET"
-                            ? "/app/market"
-                            : data.action && kind === "SOCIAL"
-                              ? "/app/profile"
-                              : null;
+                          : data.action && kind === "SOCIAL"
+                            ? "/app/profile"
+                            : null;
                 const body = <><p className="text-sm font-medium">{notification.title}</p><p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">{notification.body}</p></>;
                 return href ? <Link key={notification.id} href={href} className="prisma-glass-hover block px-5 py-4 transition-colors">{body}</Link> : <div key={notification.id} className="px-5 py-4">{body}</div>;
               })}

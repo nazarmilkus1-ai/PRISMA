@@ -12,13 +12,6 @@ export async function getPublicServerStatus(){
   return{online:String(node.status||"").toUpperCase()==="ONLINE"&&Date.now()-last<120000,players:node.online_players??0,maxPlayers:node.max_players??0,version:node.version??null,name:node.display_name??"PRISMA"};
 }
 
-export async function getPublicMarket(kind?:string,query=""){
-  const db=createSupabasePublicClient();
-  const{data,error}=await db.rpc(PUBLIC_RPC.market,{p_kind:kind||null,p_query:query.trim(),p_limit:100});
-  if(error||!Array.isArray(data))return[];
-  return data;
-}
-
 export async function getPublicNews(limit=12){
   const db=createSupabasePublicClient();
   const{data,error}=await db.rpc(PUBLIC_RPC.news,{p_limit:Math.min(Math.max(limit,1),100)});
@@ -123,14 +116,13 @@ export async function getPlayerProfile(nickname:string){
 export async function getGlobalSearch(query:string){
   const db=await createSupabaseServerClient();
   const{data,error}=await db.rpc(PARTICIPANT_READ_RPC.globalSearch,{p_query:query.trim()});
-  if(error||!data||typeof data!=="object")return{players:[],clans:[],news:[],wiki:[],market:[]};
+  if(error||!data||typeof data!=="object")return{players:[],clans:[],news:[],wiki:[]};
   const payload=data as any;
   return{
     players:Array.isArray(payload.players)?payload.players:[],
     clans:Array.isArray(payload.clans)?payload.clans:[],
     news:Array.isArray(payload.news)?payload.news:[],
     wiki:Array.isArray(payload.wiki)?payload.wiki:[],
-    market:Array.isArray(payload.market)?payload.market:[],
   };
 }
 export async function getSocialData(){
@@ -210,19 +202,6 @@ export async function getMapData(){
   return{markers:Array.isArray(payload.markers)?payload.markers:[],villages:Array.isArray(payload.villages)?payload.villages:[]};
 }
 export async function getTimeline(limit=60){const db=await createSupabaseServerClient();const{data,error}=await db.rpc(PARTICIPANT_READ_RPC.timeline,{p_limit:Math.min(Math.max(limit,1),200)});if(error||!Array.isArray(data))return[];return data;}
-export async function getMarket(kind?:string,query=""){const db=await createSupabaseServerClient();const{data,error}=await db.rpc(PARTICIPANT_READ_RPC.market,{p_kind:kind||null,p_query:query.trim(),p_limit:100});if(error||!Array.isArray(data))return[];return data.map((x:any)=>({...x,users:{minecraft_nickname:x.minecraft_nickname}}));}
-export async function getMarketInquiries(){
-  const db=await createSupabaseServerClient();
-  const{data,error}=await db.rpc(PARTICIPANT_READ_RPC.marketInquiries);
-  if(error||!Array.isArray(data))return[];
-  return data;
-}
-export async function getMarketOffers(){
-  const db=await createSupabaseServerClient();
-  const{data,error}=await db.rpc(PARTICIPANT_READ_RPC.marketOffers);
-  if(error||!Array.isArray(data))return[];
-  return data;
-}
 export async function getParticipantVoting(){
   const db=await createSupabaseServerClient();
   const{data,error}=await db.rpc(PARTICIPANT_READ_RPC.voting);

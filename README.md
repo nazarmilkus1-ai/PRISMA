@@ -33,7 +33,7 @@ The following describes functionality present in the PRISMA 2.1.0 integration so
 - Clans, membership roles, invitations, announcements, wars, and village/territory features.
 - Player social relationships and community activity.
 - Events, calendar views, news, Wiki, and public community information.
-- Community market, polls, voting, and Player Battle experiences.
+- Polls, voting, and Player Battle experiences.
 - Reports, support requests, appeals, and notifications.
 - Minecraft server information, map/history surfaces, and a shared command reference.
 
@@ -44,7 +44,7 @@ The following describes functionality present in the PRISMA 2.1.0 integration so
 - Role-based staff access, permission checks, and audit history.
 - Moderation actions and punishment history.
 - Reports and appeals workflows.
-- Clan, event, market, news, and poll administration.
+- Clan, event, news, and poll administration.
 - Analytics, security/onboarding tools, and centrally managed module state.
 
 ### Minecraft 2.1.0 integration source

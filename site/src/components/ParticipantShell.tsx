@@ -49,7 +49,6 @@ export function ParticipantShell({
         onMobileClose={() => setMobileOpen(false)}
         notificationsCount={notificationsCount}
         enabledModules={enabledModules}
-        canUseMarket={Boolean(user.status === "ACCEPTED" && !user.is_banned && user.is_whitelisted)}
       />
 
       <div className="flex min-w-0 flex-1 flex-col">
