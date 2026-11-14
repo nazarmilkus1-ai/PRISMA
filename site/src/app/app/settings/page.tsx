@@ -34,7 +34,6 @@ export default async function SettingsPage({
     ["clan_news", "Новости клана"],
     ["social", "Социальные запросы"],
     ["battles", "Player Battle"],
-    ["market", "Запросы рынка"],
     ["moderation", "Модерация"],
     ["polls", "Голосования"],
   ] as const;

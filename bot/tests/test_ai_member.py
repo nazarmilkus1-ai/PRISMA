@@ -60,12 +60,12 @@ class MemoryTests(unittest.TestCase):
 
 class LinkTests(unittest.TestCase):
     def test_fixed_site_paths_only(self):
-        buttons = links.link_buttons("где рынок и правила?", "")
+        buttons = links.link_buttons("где вики и правила?", "")
         urls = [b.url for b in buttons]
         self.assertTrue(all(u.startswith("http") for u in urls))
-        self.assertTrue(any(u.endswith("/market") for u in urls))
+        self.assertTrue(any(u.endswith("/wiki") for u in urls))
         self.assertTrue(any(u.endswith("/rules") for u in urls))
-        self.assertLessEqual(len(links.link_buttons("рынок правила карта клан ивент", "")), 3)
+        self.assertLessEqual(len(links.link_buttons("вики правила карта клан ивент", "")), 3)
 
 
 class ToolTests(unittest.TestCase):
@@ -73,46 +73,23 @@ class ToolTests(unittest.TestCase):
         return mt.Context(7, private, accepted)
 
     def test_personal_tools_blocked_in_groups(self):
-        for name in ("my_account", "draft_market_listing", "draft_support_request"):
+        for name in ("my_account", "draft_support_request"):
             self.assertIn("error", run(mt.execute(name, {"title": "abc", "kind": "SELL", "message": "hello world"}, self.ctx(private=False))))
 
-    def test_market_draft_needs_accepted_member(self):
-        self.assertIn("error", run(mt.execute("draft_market_listing", {"kind": "SELL", "title": "Алмазы"}, self.ctx(accepted=False))))
-
-    def test_market_draft_makes_card_and_is_one_shot_owner_only(self):
+    def test_support_draft_makes_card_and_is_one_shot_owner_only(self):
         ctx = self.ctx()
-        result = run(mt.execute("draft_market_listing", {"kind": "SELL", "title": "Алмазы x64", "price": "10 эм", "days": 7}, ctx))
+        result = run(mt.execute("draft_support_request", {"message": "не могу войти на сервер"}, ctx))
         self.assertIn("ok", result)
         data = ctx.cards[0][1].inline_keyboard[0][0].callback_data
-        self.assertTrue(data.startswith("aim:mk:ok:"))
+        self.assertTrue(data.startswith("aim:sp:ok:"))
         draft_id = data.split(":")[3]
         self.assertIsNone(mt.take_draft(draft_id, 999))          # someone else
         self.assertIsNotNone(mt.take_draft(draft_id, 7))          # owner, once
         self.assertIsNone(mt.take_draft(draft_id, 7))             # not twice
 
-    def test_bad_kind_rejected(self):
-        self.assertIn("error", run(mt.execute("draft_market_listing", {"kind": "HACK", "title": "abc"}, self.ctx())))
-
-    def test_publish_market_calls_rpc(self):
-        payload = {"kind": "SELL", "title": "t", "description": None, "price": "1", "terms": None, "days": 0}
-        with mock.patch.object(mt, "bot_create_market_listing", mock.AsyncMock(return_value=ok({}))) as rpc:
-            done, text = run(mt.publish("mk", payload, 7))
-        self.assertTrue(done)
-        self.assertEqual(rpc.await_args.args[0], 7)
-        self.assertIsNone(rpc.await_args.args[-1])
-
-    def test_offer_draft_needs_real_listing_id_and_price(self):
-        self.assertIn("error", run(mt.execute("draft_market_offer", {"listing_id": "nope", "price": "5"}, self.ctx())))
-        ctx = self.ctx()
-        lid = "123e4567-e89b-12d3-a456-426614174000"
-        self.assertIn("ok", run(mt.execute("draft_market_offer", {"listing_id": lid, "price": "5 алмазов"}, ctx)))
-        self.assertTrue(ctx.cards[0][1].inline_keyboard[0][0].callback_data.startswith("aim:of:ok:"))
-
-    def test_offer_publish_calls_rpc(self):
-        with mock.patch.object(mt, "bot_create_market_offer", mock.AsyncMock(return_value=ok({}))) as rpc:
-            done, _ = run(mt.publish("of", {"listing_id": "x", "price": "5", "note": None}, 7))
-        self.assertTrue(done)
-        self.assertEqual(rpc.await_args.args[:3], (7, "x", "5"))
+    def test_market_tools_are_gone(self):
+        for name in ("draft_market_listing", "draft_market_offer", "search_market"):
+            self.assertIn("error", run(mt.execute(name, {}, self.ctx())))
 
     def test_login_hints(self):
         hints = mt._login_hints("ACCEPTED", {"minecraft_nick": "Nick", "is_whitelisted": False}, {"platform": "JAVA", "configured": False})

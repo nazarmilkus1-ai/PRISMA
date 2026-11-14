@@ -758,94 +758,16 @@ async def bot_claim_onboarding_reminders(limit=20):
     return await call_rpc_async("bot_claim_onboarding_reminders", {"p_limit": limit})
 
 
-async def bot_get_market(tg_id, kind=None, query="", limit=20):
-    return await call_rpc_async("bot_get_market", {
-        "p_tg_id": tg_id,
-        "p_kind": kind,
-        "p_query": query,
-        "p_limit": limit,
-    })
 
 
-async def bot_get_market_inquiries(tg_id):
-    return await call_rpc_async("bot_get_market_inquiries", {
-        "p_tg_id": tg_id,
-    })
 
 
-async def bot_create_market_listing(tg_id, kind, title, description=None, price_text=None, terms=None, expires_at=None):
-    return await call_rpc_async("bot_create_market_listing", {
-        "p_tg_id": tg_id,
-        "p_kind": kind,
-        "p_title": title,
-        "p_description": description,
-        "p_price_text": price_text,
-        "p_terms": terms,
-        "p_expires_at": expires_at,
-    })
 
 
-async def bot_update_market_listing(tg_id, listing_id, kind, title, description=None, price_text=None, terms=None, expires_at=None):
-    return await call_rpc_async("bot_update_market_listing", {
-        "p_tg_id": tg_id,
-        "p_listing_id": listing_id,
-        "p_kind": kind,
-        "p_title": title,
-        "p_description": description,
-        "p_price_text": price_text,
-        "p_terms": terms,
-        "p_expires_at": expires_at,
-    })
 
 
-async def bot_create_market_offer(tg_id, listing_id, price, note=None):
-    return await call_rpc_async("bot_create_market_offer", {
-        "p_tg_id": tg_id, "p_listing_id": listing_id, "p_price": price, "p_note": note,
-    })
 
 
-async def bot_respond_market_offer(tg_id, offer_id, action, price=None, note=None):
-    return await call_rpc_async("bot_respond_market_offer", {
-        "p_tg_id": tg_id, "p_offer_id": offer_id, "p_action": action, "p_price": price, "p_note": note,
-    })
-
-
-async def bot_withdraw_market_offer(tg_id, offer_id):
-    return await call_rpc_async("bot_withdraw_market_offer", {"p_tg_id": tg_id, "p_offer_id": offer_id})
-
-
-async def bot_get_market_offers(tg_id):
-    return await call_rpc_async("bot_get_market_offers", {"p_tg_id": tg_id})
-
-
-async def bot_create_market_inquiry(tg_id, listing_id, message):
-    return await call_rpc_async("bot_create_market_inquiry", {
-        "p_tg_id": tg_id,
-        "p_listing_id": listing_id,
-        "p_message": message,
-    })
-
-
-async def bot_respond_market_inquiry(tg_id, inquiry_id, response):
-    return await call_rpc_async("bot_respond_market_inquiry", {
-        "p_tg_id": tg_id,
-        "p_inquiry_id": inquiry_id,
-        "p_response": response,
-    })
-
-
-async def bot_close_market_inquiry(tg_id, inquiry_id):
-    return await call_rpc_async("bot_close_market_inquiry", {
-        "p_tg_id": tg_id,
-        "p_inquiry_id": inquiry_id,
-    })
-
-
-async def bot_close_market_listing(tg_id, listing_id):
-    return await call_rpc_async("bot_close_market_listing", {
-        "p_tg_id": tg_id,
-        "p_listing_id": listing_id,
-    })
 
 
 async def bot_rate_prisma(tg_id, value):
@@ -890,22 +812,8 @@ async def bot_ai_feedback_stats(days=7):
     return await call_rpc_async("bot_ai_feedback_stats", {"p_days": days})
 
 
-async def bot_create_market_review(tg_id, offer_id, rating, comment=None):
-    return await call_rpc_async("bot_create_market_review", {
-        "p_tg_id": tg_id, "p_offer_id": offer_id, "p_rating": rating, "p_comment": comment,
-    })
 
 
-async def bot_my_reviewable_offers(tg_id):
-    return await call_rpc_async("bot_my_reviewable_offers", {"p_tg_id": tg_id})
-
-
-async def bot_market_reputation(nick):
-    return await call_rpc_async("bot_market_reputation", {"p_nick": nick})
-
-
-async def bot_market_risk_data(hours=72):
-    return await call_rpc_async("bot_market_risk_data", {"p_hours": hours})
 
 
 async def bot_create_reminder(tg_id, text, at_iso):

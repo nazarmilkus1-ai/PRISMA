@@ -62,11 +62,10 @@ def main_menu_approved(show_admin_switch: bool = False):
         [InlineKeyboardButton(text="🏅 Топ", callback_data="player:top"),
          InlineKeyboardButton(text="🎯 Ивенты", callback_data="player:events")],
         [InlineKeyboardButton(text="⚔️ Кланы", callback_data="clans"),
-         InlineKeyboardButton(text="🛒 Рынок", callback_data="market")],
-        [InlineKeyboardButton(text="📰 Новости", callback_data="news"),
-         InlineKeyboardButton(text="🗳 Голосования", callback_data="polls")],
-        [InlineKeyboardButton(text="📢 Жалоба", callback_data="reports"),
-         InlineKeyboardButton(text="🆘 Поддержка", callback_data="support")],
+         InlineKeyboardButton(text="📰 Новости", callback_data="news")],
+        [InlineKeyboardButton(text="🗳 Голосования", callback_data="polls"),
+         InlineKeyboardButton(text="📢 Жалоба", callback_data="reports")],
+        [InlineKeyboardButton(text="🆘 Поддержка", callback_data="support")],
         [InlineKeyboardButton(text="🔔 Уведомления", callback_data="player:notifications"),
          InlineKeyboardButton(text="🤖 PRISMA_AI", callback_data="ask"),
          InlineKeyboardButton(text="➕ Ещё", callback_data="menu:player")],
@@ -97,8 +96,7 @@ def community_menu_keyboard():
          InlineKeyboardButton(text="🆘 Поддержка", callback_data="support")],
         [InlineKeyboardButton(text="⚔️ Кланы", callback_data="clans"),
          InlineKeyboardButton(text="📰 Новости", callback_data="news")],
-        [InlineKeyboardButton(text="🗳 Голосования", callback_data="polls"),
-         InlineKeyboardButton(text="🛒 Рынок", callback_data="market")],
+        [InlineKeyboardButton(text="🗳 Голосования", callback_data="polls")],
         [InlineKeyboardButton(text="↩️ Назад", callback_data="menu:back")],
     ])
 
@@ -144,8 +142,7 @@ def notification_keyboard(prefs: dict):
         [InlineKeyboardButton(text=f"{mark('clan_news')} Клан", callback_data="notify:clan_news"),
          InlineKeyboardButton(text=f"{mark('social')} Соц. запросы", callback_data="notify:social"),
          InlineKeyboardButton(text=f"{mark('battles')} Battle", callback_data="notify:battles")],
-        [InlineKeyboardButton(text=f"{mark('market')} Рынок", callback_data="notify:market"),
-         InlineKeyboardButton(text=f"{mark('moderation')} Модерация", callback_data="notify:moderation"),
+        [InlineKeyboardButton(text=f"{mark('moderation')} Модерация", callback_data="notify:moderation"),
          InlineKeyboardButton(text=f"{mark('polls')} Голосования", callback_data="notify:polls")],
     ])
 

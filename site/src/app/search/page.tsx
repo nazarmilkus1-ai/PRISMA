@@ -11,17 +11,16 @@ export default async function SearchPage({searchParams}:{searchParams:Promise<{q
  await requireMember();
  const enabledModules=await getPublicModuleAvailability();
  const q=((await searchParams).q||"").trim();
- const result=q?await getGlobalSearch(q):{players:[],clans:[],news:[],wiki:[],market:[]};
+ const result=q?await getGlobalSearch(q):{players:[],clans:[],news:[],wiki:[]};
  const groups=[
   ["players","Игроки",result.players,(x:any)=>"/players/"+encodeURIComponent(x.minecraft_nickname),(x:any)=>x.minecraft_nickname],
   ["clans","Кланы",result.clans,(x:any)=>"/clans/"+x.id,(x:any)=>"["+x.tag+"] "+x.name],
   ["public-content","Новости",result.news,(x:any)=>"/news/"+x.id,(x:any)=>x.title],
   ["public-content","Wiki",result.wiki,(x:any)=>"/wiki/"+x.slug,(x:any)=>x.title],
-  ["market","Рынок",result.market,()=>"/market",(x:any)=>x.title+" · "+x.kind],
  ] as const;
 
  return <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-  <SectionTitle eyebrow="PRISMA SEARCH" title="Глобальный поиск" description="Ищи участников, кланы, новости, Wiki и объявления в одном месте."/>
+  <SectionTitle eyebrow="PRISMA SEARCH" title="Глобальный поиск" description="Ищи участников, кланы, новости, Wiki в одном месте."/>
   <form action="/search" className="mt-6 flex gap-2">
    <input autoFocus name="q" defaultValue={q} placeholder="Что ищем?" className="prisma-glass-control flex-1 rounded-xl border px-4 py-3 text-sm"/>
    <button className="prisma-glass-control prisma-glass-hover rounded-xl border px-4 py-3 text-sm font-semibold">Найти</button>

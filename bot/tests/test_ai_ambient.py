@@ -59,7 +59,7 @@ class AmbientTests(unittest.TestCase):
     def test_invite_links_and_start_payload(self):
         self.assertEqual(ambient.invite_url("bot", "apply"), "https://t.me/bot?start=ai_apply")
         self.assertEqual(ambient.invite_url("bot", "../x"), "https://t.me/bot?start=ai_general")
-        self.assertEqual(ambient.intent_from_start("ai_market")[0], "market")
+        self.assertEqual(ambient.intent_from_start("ai_event")[0], "event")
         self.assertIsNone(ambient.intent_from_start("ai_hack"))
         self.assertIsNone(ambient.intent_from_start("abc123"))
 

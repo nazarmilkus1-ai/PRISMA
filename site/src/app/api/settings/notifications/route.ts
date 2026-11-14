@@ -6,7 +6,7 @@ import { PARTICIPANT_NOTIFICATION_MUTATION_RPC } from "@prisma-eco/contracts";
 import { requireMember } from "@/lib/member";
 
 const Schema = z.object({
-  key: z.enum(["news","events","server_status","clan_news","social","battles","market","moderation","polls"]),
+  key: z.enum(["news","events","server_status","clan_news","social","battles","moderation","polls"]),
   value: z.enum(["true","false"]),
 });
 

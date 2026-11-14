@@ -14,7 +14,7 @@ import sentry_sdk
 from config import BOT_TOKEN, ADMIN_GROUP_ID, MODERATION_GROUP_ID, REDIS_URL, LOG_LEVEL, PRISMA_ENV
 from handlers import (
     start, application, profile, link, moderation, reports, polls, clans, menu, news, errors,
-    player, admin, admin_panel, cards, quick, reminders, automod, chat_commands, social, market, minecraft_commands, support,
+    player, admin, admin_panel, cards, quick, reminders, automod, chat_commands, social, minecraft_commands, support,
     help as help_, admin_actions, rules, guide, ai, quiz, activity, accounts as accounts_handler,
 )
 from services.notifications import run_notification_worker
@@ -216,7 +216,6 @@ async def main():
         (clans.router, "clans"),
         (news.router, "public-content"),
         (social.router, "social"),
-        (market.router, "market"),
         (minecraft_commands.router, "minecraft"),
         (moderation.router, "moderation"),
         (automod.router, "moderation"),
@@ -392,9 +391,9 @@ async def main():
         reports.router, polls.router, clans.router, news.router, help_.router, ai.router, cards.router, quick.router, reminders.router, player.router,
         admin_panel.router, admin.router,
         admin_actions.router,
-        # Social and market callbacks are private UI callbacks; they must be
+        # Social callbacks are private UI callbacks; they must be
         # registered before menu's catch-all stale_callback.
-        social.router, market.router, minecraft_commands.router, support.router, menu.router, ai.free_router, errors.router,
+        social.router, minecraft_commands.router, support.router, menu.router, ai.free_router, errors.router,
     ):
         private.include_router(r)
 

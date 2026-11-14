@@ -33,7 +33,6 @@ CASES: tuple[Case, ...] = (
     Case("какие правила сервера?", fast="rules", ambient=True, any_of=("правил",)),
     Case("как подать заявку?", fast="apply", ambient=True, any_of=("заявк", "анкет")),
     Case("с чего начать?", fast="guide", ambient=True),
-    Case("хочу продать алмазы на рынке", link="/market", ambient=True, any_of=("рын",)),
     Case("кто сейчас онлайн?", live="online", ambient=True),
     Case("мне нужна поддержка, не могу войти", ambient=True, any_of=("поддерж", "/support", "вход")),
     Case("как записаться на ивент?", link="/events", ambient=True, any_of=("ивент", "событ")),

@@ -7,7 +7,6 @@ export const metadata = { title: "Сообщество" };
 
 export default async function CommunityPage() {
   const [modules, user] = await Promise.all([getPublicModuleAvailability(), getCurrentUser()]);
-  const canUseMarket = Boolean(user && user.status === "ACCEPTED" && !user.is_banned && user.is_whitelisted);
 
   const cards = [
     modules["public-content"] ? {
@@ -19,11 +18,6 @@ export default async function CommunityPage() {
       href: "/events",
       title: "События",
       description: "Игровые активности и события сообщества.",
-    } : null,
-    modules.market && canUseMarket ? {
-      href: "/market",
-      title: "Рынок",
-      description: "Объявления и обмен предложениями между участниками.",
     } : null,
     modules.map ? {
       href: "/map",
@@ -48,7 +42,7 @@ export default async function CommunityPage() {
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">COMMUNITY</p>
         <h1 className="mt-3 text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">Сообщество PRISMA</h1>
         <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
-          Единое пространство PRISMA для игроков: Minecraft, события, рынок, карта, новости и документация.
+          Единое пространство PRISMA для игроков: Minecraft, события, карта, новости и документация.
         </p>
       </div>
 

@@ -39,7 +39,6 @@ const GROUPS: Group[] = [
       { href: "/dashboard/clans", label: "Кланы", icon: "clans" },
       { href: "/dashboard/events", label: "События", icon: "calendar" },
       { href: "/dashboard/voting", label: "Голосования", icon: "voting" },
-      { href: "/dashboard/market", label: "Рынок", icon: "market" },
       { href: "/dashboard/news", label: "Новости", icon: "news" },
     ],
   },

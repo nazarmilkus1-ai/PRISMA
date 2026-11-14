@@ -43,20 +43,6 @@ export const SUPPORT_TICKET_STATUS_LABELS: Record<string, string> = {
   CLOSED: "Закрыт",
 };
 
-export const MARKET_LISTING_STATUS_LABELS: Record<string, string> = {
-  ACTIVE: "Активно",
-  CLOSED: "Закрыто",
-  EXPIRED: "Истекло",
-};
-
-export const MARKET_LISTING_KIND_LABELS: Record<string, string> = {
-  SELL: "Продам",
-  BUY: "Куплю",
-  TRADE: "Обмен",
-  SERVICE: "Услуга",
-  OTHER: "Другое",
-};
-
 export const CLAN_ENTITY_STATUS_LABELS: Record<string, string> = {
   active: "Активен",
   deleted: "Удалён",

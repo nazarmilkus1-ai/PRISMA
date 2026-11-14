@@ -11,7 +11,6 @@ const PUBLIC_PAGES: Page[] = [
   { href: "/server", label: "О сервере", keys: "server сервер онлайн ip" },
   { href: "/community", label: "Сообщество" },
   { href: "/map", label: "Карта", keys: "map карта" },
-  { href: "/market", label: "Рынок", keys: "market рынок объявления" },
   { href: "/clans", label: "Кланы", keys: "clans клан" },
   { href: "/events", label: "События", keys: "events ивенты" },
   { href: "/rankings", label: "Рейтинг", keys: "rankings топ" },
@@ -29,14 +28,14 @@ const PUBLIC_PAGES: Page[] = [
 
 const GO: Record<Area, Record<string, Page>> = {
   public: {
-    h: { href: "/", label: "Главная" }, s: { href: "/server", label: "Сервер" }, m: { href: "/market", label: "Рынок" },
+    h: { href: "/", label: "Главная" }, s: { href: "/server", label: "Сервер" },
     c: { href: "/clans", label: "Кланы" }, e: { href: "/events", label: "События" }, w: { href: "/wiki", label: "Wiki" },
     r: { href: "/rules", label: "Правила" }, n: { href: "/news", label: "Новости" }, p: { href: "/players", label: "Игроки" },
     k: { href: "/map", label: "Карта" }, l: { href: "/rankings", label: "Рейтинг" }, a: { href: "/apply", label: "Анкета" },
     t: { href: "/status", label: "Состояние" },
   },
   participant: {
-    h: { href: "/app", label: "Главная" }, s: { href: "/app/server", label: "Сервер" }, m: { href: "/app/market", label: "Рынок" },
+    h: { href: "/app", label: "Главная" }, s: { href: "/app/server", label: "Сервер" },
     c: { href: "/app/clan", label: "Клан" }, e: { href: "/app/events", label: "События" }, w: { href: "/app/wiki", label: "Wiki" },
     r: { href: "/app/rankings", label: "Рейтинги" }, n: { href: "/app/news", label: "Новости" }, p: { href: "/app/players", label: "Игроки" },
     k: { href: "/app/map", label: "Карта" }, f: { href: "/app/profile", label: "Профиль" }, t: { href: "/app/support", label: "Поддержка" },
@@ -195,7 +194,7 @@ export function QuickNav({ area }: { area: Area }) {
                 else if (e.key === "ArrowUp") { e.preventDefault(); setActive((i) => Math.max(0, i - 1)); }
                 else if (e.key === "Enter") { e.preventDefault(); if (active >= items.length) askAi(); else if (items[active]) go(items[active]); }
               }}
-              placeholder="Куда перейти? Рынок, правила, карта…"
+              placeholder="Куда перейти? Правила, карта, события…"
               className="w-full border-b bg-transparent px-4 py-3.5 text-sm outline-none"
               aria-label="Поиск страницы"
             />

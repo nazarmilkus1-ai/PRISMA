@@ -29,22 +29,22 @@ class QuickTests(unittest.TestCase):
 
     def test_frequent_first_and_no_duplicates(self):
         for _ in range(3):
-            quick.record(1, "market")
+            quick.record(1, "clans")
         quick.record(1, "news")
         data = cbs(quick.keyboard(1))
-        self.assertEqual(data[0], "market")
+        self.assertEqual(data[0], "clans")
         self.assertEqual(data[1], "news")
         self.assertEqual(len(data), len(set(data)))
 
     def test_ignores_unknown_callbacks_and_isolates_users(self):
         quick.record(1, "adm:rep:ok:uuid")
-        quick.record(2, "market")
+        quick.record(2, "clans")
         self.assertEqual(quick.top(1), [])
-        self.assertEqual(quick.top(2), ["market"])
+        self.assertEqual(quick.top(2), ["clans"])
 
     def test_bounded_memory(self):
         for uid in range(quick.MAX_USERS + 10):
-            quick.record(uid, "market")
+            quick.record(uid, "clans")
         self.assertLessEqual(len(quick._usage), quick.MAX_USERS)
 
     def test_every_quick_action_callback_is_a_real_menu_target(self):

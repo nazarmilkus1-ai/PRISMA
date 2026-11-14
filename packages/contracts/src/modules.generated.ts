@@ -9,7 +9,6 @@ export const MODULE_IDS = [
   "appeals",
   "clans",
   "events",
-  "market",
   "voting",
   "notifications",
   "social",
@@ -125,16 +124,6 @@ export const MODULE_METADATA: Record<ModuleId, {
   },
   "events": {
     "title": "События и календарь",
-    "owner": "community",
-    "status": "active",
-    "runtimeManaged": true,
-    "runtimeToggleProtected": false,
-    "dependsOn": [
-      "players"
-    ]
-  },
-  "market": {
-    "title": "Рынок сообщества",
     "owner": "community",
     "status": "active",
     "runtimeManaged": true,

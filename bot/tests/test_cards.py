@@ -19,18 +19,9 @@ def callbacks(markup):
 
 
 class CardTests(unittest.TestCase):
-    def test_market_card_has_actions_and_escapes(self):
-        text, markup = cards.render(cards.market_listing(
-            {"id": UUID, "kind": "SELL", "title": "<b>Алмазы</b>", "price_text": "5 за шт", "minecraft_nickname": "Steve"}))
-        self.assertNotIn("<b>Алмазы", text.replace("<b>🛒", ""))
-        self.assertIn(f"cd:off:{UUID}", callbacks(markup))
-        self.assertIn("cd:rep:Steve", callbacks(markup))
-        self.assertTrue(any(b.url for row in markup.inline_keyboard for b in row))
-
     def test_callback_data_fits_telegram_limit(self):
-        _, markup = cards.render(cards.market_listing({"id": UUID, "title": "x", "minecraft_nickname": "N" * 40}))
         _, ev = cards.render(cards.event({"id": UUID, "title": "e"}))
-        for data in callbacks(markup) + callbacks(ev):
+        for data in callbacks(ev):
             self.assertLessEqual(len(data.encode()), 64)
 
     def test_event_card_hides_register_when_registered(self):
@@ -47,31 +38,25 @@ class CardTests(unittest.TestCase):
 
 
 class ToolCardTests(unittest.IsolatedAsyncioTestCase):
-    async def test_search_market_and_events_attach_cards(self):
+    async def test_events_attach_cards(self):
         class R:
             error = None
 
             def __init__(self, data):
                 self.data = data
 
-        listings = [{"id": UUID, "kind": "SELL", "title": f"t{i}", "price_text": "1", "minecraft_nickname": "A"} for i in range(5)]
-        orig_market, orig_events = member_tools.bot_get_market, member_tools.bot_list_events
-
-        async def fake_market(*a, **k):
-            return R(listings)
+        orig_events = member_tools.bot_list_events
 
         async def fake_events(*a, **k):
             return R([{"id": UUID, "title": "Ивент", "starts_at": "2026-12-01T18:00:00+00:00", "registered": False}])
 
-        member_tools.bot_get_market, member_tools.bot_list_events = fake_market, fake_events
+        member_tools.bot_list_events = fake_events
         try:
             ctx = member_tools.Context(1, True, True)
-            await member_tools.execute("search_market", {"query": "t"}, ctx)
-            self.assertEqual(len(ctx.cards), 3)
             await member_tools.execute("list_events", {}, ctx)
-            self.assertEqual(len(ctx.cards), 4)
+            self.assertEqual(len(ctx.cards), 1)
         finally:
-            member_tools.bot_get_market, member_tools.bot_list_events = orig_market, orig_events
+            member_tools.bot_list_events = orig_events
 
 
 if __name__ == "__main__":

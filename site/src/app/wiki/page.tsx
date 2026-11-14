@@ -95,13 +95,12 @@ const WIKI_SECTIONS: WikiSection[] = [
       },
       {
         title: "Сообщество и игровые системы",
-        description: "Уведомления, поддержка, роли, авторизация, рынок, карта и модерация.",
+        description: "Уведомления, поддержка, роли, авторизация, карта и модерация.",
         slugs: [
           "prisma-notifications",
           "prisma-support-complaints",
           "prisma-roles-permissions",
           "prisma-auth-identification",
-          "prisma-economy-market",
           "prisma-map",
           "prisma-moderation",
         ],

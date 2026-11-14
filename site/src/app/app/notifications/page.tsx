@@ -20,7 +20,6 @@ function notificationHref(item: any) {
   if (data.application_id) return "/app/application";
   if (data.action && kind === "SOCIAL") return "/app/profile";
   if (data.battle_id && kind === "BATTLE") return "/app/battles";
-  if (data.inquiry_id && kind === "MARKET") return "/app/market";
   return null;
 }
 

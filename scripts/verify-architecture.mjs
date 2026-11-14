@@ -41,7 +41,6 @@ for (const marker of [
   '(clans.router, "clans")',
   '(news.router, "public-content")',
   '(social.router, "social")',
-  '(market.router, "market")',
   '(minecraft_commands.router, "minecraft")',
   '(moderation.router, "moderation")',
   '(automod.router, "moderation")',
@@ -568,9 +567,6 @@ const requiredStaffContracts = [
   ["events", "staff_list_events"],
   ["manageEvent", "staff_manage_event"],
   ["setEventResult", "staff_set_event_result"],
-  ["market", "staff_get_market"],
-  ["marketInquiries", "staff_get_market_inquiries"],
-  ["manageMarket", "staff_manage_market"],
   ["news", "staff_list_news"],
   ["manageNews", "staff_manage_news"],
   ["polls", "staff_list_polls"],
@@ -653,25 +649,6 @@ for (const file of participantAppRouteFiles) {
       "; recursive participant route detected",
     );
   }
-}
-
-const marketApi = read("site/src/app/api/market/route.ts");
-if (!marketApi.includes("PARTICIPANT_MARKET_MUTATION_RPC.createListing")) {
-  failures.push("site market API must use the shared create listing RPC contract");
-}
-for (const contractField of [
-  "updateListing",
-  "closeListing",
-  "createInquiry",
-  "respondInquiry",
-  "closeInquiry",
-]) {
-  if (!marketApi.includes("PARTICIPANT_MARKET_MUTATION_RPC." + contractField)) {
-    failures.push("site market API must use shared market mutation contract " + contractField);
-  }
-}
-if (/db\.rpc\(\"participant_(create|update|close)_market|db\.rpc\(\"participant_(respond|create|close)_market_inquiry/.test(marketApi)) {
-  failures.push("site market API must not hardcode participant market mutation RPC names");
 }
 
 const eventRegisterApi = read("site/src/app/api/events/register/route.ts");
@@ -887,14 +864,12 @@ for (const [file, source] of [
 }
 const botMain = read("bot/main.py");
 const socialRouterIndex = botMain.indexOf("social.router");
-const marketRouterIndex = botMain.indexOf("market.router");
 const menuRouterIndex = botMain.indexOf("menu.router");
-if (socialRouterIndex < 0 || marketRouterIndex < 0 || menuRouterIndex < 0 ||
-    socialRouterIndex > menuRouterIndex || marketRouterIndex > menuRouterIndex) {
-  failures.push("bot/main.py: private social and market routers must precede menu catch-all callbacks");
+if (socialRouterIndex < 0 || menuRouterIndex < 0 || socialRouterIndex > menuRouterIndex) {
+  failures.push("bot/main.py: private social router must precede menu catch-all callbacks");
 }
-if (botMain.includes("dp.include_router(social.router)") || botMain.includes("dp.include_router(market.router)")) {
-  failures.push("bot/main.py: social/market routers must not be registered after the private catch-all router");
+if (botMain.includes("dp.include_router(social.router)")) {
+  failures.push("bot/main.py: social router must not be registered after the private catch-all router");
 }
 
 

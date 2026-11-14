@@ -96,7 +96,7 @@ class SectionTests(unittest.TestCase):
 
     def test_every_callback_exists_in_a_real_menu(self):
         known = {"player:server", "player:stats", "player:achievements", "player:top", "player:events", "clans",
-                 "market", "news", "polls", "reports", "support", "menu:link", "player:mc_auth",
+                 "news", "polls", "reports", "support", "menu:link", "player:mc_auth",
                  "player:minecraft_commands", "player:notifications", "profile", "menu:help", "about_server",
                  "apply", "guide", "about_prisma"}
         for section in sections.SECTIONS:
