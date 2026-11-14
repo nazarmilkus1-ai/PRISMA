@@ -855,3 +855,19 @@ async def bot_telegram_alias_remove(primary_tg):
 
 async def bot_activity_report(chat_id, days=7):
     return await call_rpc_async("bot_activity_report", {"p_chat_id": chat_id, "p_days": days})
+
+
+async def bot_pp_balance(tg_id):
+    return await call_rpc_async("bot_pp_balance", {"p_tg_id": tg_id})
+
+
+async def bot_pp_history(tg_id, limit=10):
+    return await call_rpc_async("bot_pp_history", {"p_tg_id": tg_id, "p_limit": limit})
+
+
+async def bot_pp_transfer(tg_id, target, amount):
+    return await call_rpc_async("bot_pp_transfer", {"p_tg_id": tg_id, "p_target": target, "p_amount": amount})
+
+
+async def bot_pp_adjust(tg_id, target, delta, note=None):
+    return await call_rpc_async("bot_pp_adjust", {"p_tg_id": tg_id, "p_target": target, "p_delta": delta, "p_note": note})

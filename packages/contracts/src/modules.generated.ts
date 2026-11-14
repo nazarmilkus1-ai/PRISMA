@@ -31,7 +31,8 @@ export const MODULE_IDS = [
   "minecraft-clan-commands",
   "minecraft-village-commands",
   "minecraft-village-protection",
-  "minecraft-chat-bridge"
+  "minecraft-chat-bridge",
+  "points"
 ] as const;
 
 export type ModuleId = (typeof MODULE_IDS)[number];
@@ -368,6 +369,16 @@ export const MODULE_METADATA: Record<ModuleId, {
     "dependsOn": [
       "minecraft",
       "chat"
+    ]
+  },
+  "points": {
+    "title": "PRISMA Points (PP)",
+    "owner": "community",
+    "status": "active",
+    "runtimeManaged": true,
+    "runtimeToggleProtected": false,
+    "dependsOn": [
+      "players"
     ]
   }
 } as const;

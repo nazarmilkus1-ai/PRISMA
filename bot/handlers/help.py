@@ -45,7 +45,7 @@ SECTIONS = {
         "<code>/server</code> — состояние сервера\n"
         "<code>/events</code> — ивенты и регистрация\n"
         "<code>/news</code> — новости · <code>/polls</code> — голосования\n"
-        "<code>/rate</code> — оценить сервер\n"
+        "<code>/pp</code> — PRISMA Points · <code>/rate</code> — оценить сервер\n"
         "<code>/clan</code> — клан; <code>/клан приглашения</code>, <code>/клан война</code>, "
         "<code>/клан новости</code>, <code>/клан роль НИК РОЛЬ</code>\n"
         "<code>/отн @ник</code> — отношения · <code>/брак @ник</code> — брак · "
