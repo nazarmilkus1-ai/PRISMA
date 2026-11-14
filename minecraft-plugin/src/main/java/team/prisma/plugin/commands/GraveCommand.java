@@ -71,7 +71,7 @@ public final class GraveCommand implements CommandExecutor, TabCompleter {
             player.sendMessage("§cХранилище могил недоступно; список может быть неполным.");
             return;
         }
-        player.sendMessage("§6§lМогилы §7— §fсрок хранения 10 минут");
+        player.sendMessage("§6§lМогилы §7— §fсрок хранения 15 минут");
         if (graves.isEmpty()) {
             player.sendMessage("§7Активных могил нет.");
             return;

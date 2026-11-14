@@ -973,25 +973,6 @@ for (const moduleId of [
   }
 }
 
-if (!gameplayToggleMigration.includes("('minecraft-maze-runner', false)")) {
-  failures.push("Maze Runner must remain disabled by default until the map is configured");
-}
-const mazeRunnerController = read("minecraft-plugin/src/main/java/team/prisma/plugin/maze/MazeRunnerController.java");
-for (const marker of [
-  'modules.isEnabled("minecraft-maze-runner")',
-  'settings.getBoolean("run-enabled", false)',
-  'EntityType.SPIDER',
-  "preventGrieverDamageInGlade",
-  "dropCompassForManagedGriever",
-  'new File(plugin.getDataFolder(), "maze-runner.yml")',
-]) {
-  if (!mazeRunnerController.includes(marker)) {
-    failures.push("Maze Runner runtime is missing required safety/configuration contract: " + marker);
-  }
-}
-if (!minecraftCatalog.includes('"command": "/maze"')) {
-  failures.push("Minecraft command catalog must contain the Maze Runner staff command");
-}
 
 const publicContentGatewayMigration = read("supabase/migrations/20260929062000_prisma_public_content_read_gateways.sql");
 for (const fn of [
@@ -1221,7 +1202,7 @@ const graveListener = read("minecraft-plugin/src/main/java/team/prisma/plugin/li
 const graveCommand = read("minecraft-plugin/src/main/java/team/prisma/plugin/commands/GraveCommand.java");
 const graveEntrypoint = read("minecraft-plugin/src/main/java/team/prisma/plugin/PrismaPlugin.java");
 for (const marker of [
-  "TTL_MILLIS = TimeUnit.MINUTES.toMillis(10)",
+  "TTL_MILLIS = TimeUnit.MINUTES.toMillis(15)",
   "StandardCopyOption.ATOMIC_MOVE",
   "State.CLAIMING",
   "completeClaim(",

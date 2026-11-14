@@ -32,8 +32,7 @@ export const MODULE_IDS = [
   "minecraft-clan-commands",
   "minecraft-village-commands",
   "minecraft-village-protection",
-  "minecraft-chat-bridge",
-  "minecraft-maze-runner"
+  "minecraft-chat-bridge"
 ] as const;
 
 export type ModuleId = (typeof MODULE_IDS)[number];
@@ -380,16 +379,6 @@ export const MODULE_METADATA: Record<ModuleId, {
     "dependsOn": [
       "minecraft",
       "chat"
-    ]
-  },
-  "minecraft-maze-runner": {
-    "title": "Игровой режим Maze Runner",
-    "owner": "minecraft",
-    "status": "active",
-    "runtimeManaged": true,
-    "runtimeToggleProtected": false,
-    "dependsOn": [
-      "minecraft"
     ]
   }
 } as const;

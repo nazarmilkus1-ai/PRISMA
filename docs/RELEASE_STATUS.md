@@ -10,7 +10,6 @@ The inspected integration snapshot reports VERSION=2.1.0. Component package mani
 - Inspected integration commit: 7b81c30f6bab34892501c80fd477ae6c58f4bc7c.
 - No GitHub Actions workflow run was returned for that branch or commit when checked on 2026-11-08.
 - Live Paper 26.3 runtime validation was not confirmed.
-- The Maze Runner controller is partial; it does not implement every original map mechanic.
 
 These are point-in-time observations. Re-check the exact commit before making a release statement.
 

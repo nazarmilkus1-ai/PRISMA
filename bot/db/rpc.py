@@ -943,3 +943,7 @@ async def bot_telegram_alias_resolve(tg_id):
 
 async def bot_telegram_alias_remove(primary_tg):
     return await call_rpc_async("bot_telegram_alias_remove", {"p_primary_tg": primary_tg})
+
+
+async def bot_activity_report(chat_id, days=7):
+    return await call_rpc_async("bot_activity_report", {"p_chat_id": chat_id, "p_days": days})

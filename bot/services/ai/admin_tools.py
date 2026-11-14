@@ -65,6 +65,10 @@ TOOLS = [
         {"platform": {"type": "string", "enum": ["bedrock", "java"]}}),
     _fn("find_player", "Найти игрока по нику, @username или Telegram ID.", {"query": {"type": "string"}}, ["query"]),
     _fn("list_inactive", "Кто неактивен в чате дольше N дней (1..30).", {"days": {"type": "integer"}}, ["days"]),
+    _fn("activity_report",
+        "ГОТОВЫЙ полный отчёт: кто молчит в чате дольше N дней, кто подал заявку и кто нет, неактивные без заявки, "
+        "кто ни разу не писал. Для любых вопросов про неактивных/заявки/«кто не подал» вызывай ЭТО и пересылай поле text как есть.",
+        {"days": {"type": "integer"}}, ["days"]),
     _fn("list_pending_applications", "Заявки на вступление, ожидающие решения."),
     _fn("list_open_reports", "Открытые репорты (жалобы)."),
     _fn("list_open_appeals", "Открытые апелляции."),
@@ -112,7 +116,7 @@ TOOLS = [
 ]
 
 _PERMISSION = {
-    "market_risk": "report.view", "list_players": "player.view", "group_membership": "player.view", "find_player": "player.view", "list_inactive": "player.view",
+    "market_risk": "report.view", "list_players": "player.view", "group_membership": "player.view", "find_player": "player.view", "list_inactive": "player.view", "activity_report": "player.view",
     "list_pending_applications": "application.view", "propose_application_action": "application.view",
     "list_open_reports": "report.view", "propose_report_action": "report.view",
     "list_open_appeals": "appeal.view", "propose_appeal_action": "appeal.view",
@@ -241,6 +245,12 @@ async def execute(name: str, args: dict, ctx: Context) -> dict:
         if err:
             return {"error": "search failed"}
         return {"players": _clip(rows, ("minecraft_nickname", "telegram_username", "telegram_id", "status", "is_whitelisted"))}
+    if name == "activity_report":
+        from services import activity_report
+        rows, days = await activity_report.fetch(int(args.get("days") or 7))
+        if rows is None:
+            return {"error": "failed"}
+        return {"days": days, "text": activity_report.render(rows, days)}
     if name == "list_inactive":
         days = max(1, min(30, int(args.get("days") or 7)))
         result = await bot_list_inactive_members(days, 100)
