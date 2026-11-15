@@ -1,0 +1,11 @@
+supabase:
+  url: "https://wwuxaaovqkijxmmmhyvq.supabase.co"
+  service-role-key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind3dXhhYW92cWtpanhtbW1oeXZxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4OTEzODc2MCwiZXhwIjoyMTA0NzE0NzYwfQ.eRLE4uKAmE0GQLH5t2ExfSgQWaMELFbXSzoY5s72At8"
+
+moderation-poll-interval-seconds: 10
+http-timeout-seconds: 8
+auth-timeout-seconds: 120
+
+ai:
+  url: "https://prisma-fawn-seven.vercel.app/api/ai/ask"
+  key: "sk-dc9d4b7df36ba555-0xr8hn-07f76afc"

@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { ThumbsDown, ThumbsUp } from "lucide-react"
-import { cn } from "cn"
+import { cn } from "./lib/cn"
 
 export type PrismaReactionId = "like" | "dislike"
 
@@ -59,3 +59,4 @@ export function PrismaReactionBar({
     </div>
   )
 }
+

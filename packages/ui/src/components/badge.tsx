@@ -1,7 +1,5 @@
-import { mergeProps } from "@base-ui/react/merge-props"
-import { useRender } from "@base-ui/react/use-render"
-import { cva, type VariantProps } from "class-variance-authority"
-import { cn } from "cn"
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "../lib/cn";
 
 const badgeVariants = cva(
   "inline-flex w-fit shrink-0 items-center justify-center overflow-hidden whitespace-nowrap rounded-md border px-2 py-0.5 text-[11px] font-medium leading-5 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&>svg]:pointer-events-none",
@@ -22,28 +20,20 @@ const badgeVariants = cva(
       variant: "default",
     },
   },
-)
+);
 
-function Badge({
-  className,
-  variant = "default",
-  render,
-  ...props
-}: useRender.ComponentProps<"span"> & VariantProps<typeof badgeVariants>) {
-  return useRender({
-    defaultTagName: "span",
-    props: mergeProps(
-      {
-        className: cn(badgeVariants({ variant }), className),
-      },
-      props,
-    ),
-    render,
-    state: {
-      slot: "badge",
-      variant,
-    },
-  })
+interface BadgeProps
+  extends React.HTMLAttributes<HTMLSpanElement>,
+    VariantProps<typeof badgeVariants> {}
+
+function Badge({ className, variant = "default", ...props }: BadgeProps) {
+  return (
+    <span
+      className={cn(badgeVariants({ variant }), className)}
+      {...props}
+    />
+  );
 }
 
-export { Badge, badgeVariants }
+export { Badge, badgeVariants };
+

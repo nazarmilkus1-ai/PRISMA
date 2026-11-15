@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react"
-import { cn } from "cn"
+import { cn } from "../lib/cn"
 
 import { Button } from "./button"
 
@@ -162,3 +162,4 @@ function SimplePagination({ page, totalPages, onChange }: SimplePaginationProps)
 }
 
 export { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, SimplePagination }
+

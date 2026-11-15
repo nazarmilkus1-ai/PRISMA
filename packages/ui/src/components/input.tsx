@@ -1,6 +1,6 @@
 import * as React from "react"
 import { Input as InputPrimitive } from "@base-ui/react/input"
-import { cn } from "cn"
+import { cn } from "../lib/cn"
 
 function Input({
   className,
@@ -25,3 +25,4 @@ function Input({
 }
 
 export { Input }
+

@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { cva, type VariantProps } from "class-variance-authority"
-import { cn } from "cn"
+import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "../lib/cn";
 
 const alertVariants = cva("cn-alert group/alert relative w-full", {
   variants: {
@@ -16,9 +16,9 @@ const alertVariants = cva("cn-alert group/alert relative w-full", {
   defaultVariants: {
     variant: "default",
   },
-})
+});
 
-type AlertVariant = NonNullable<VariantProps<typeof alertVariants>["variant"]>
+type AlertVariant = NonNullable<VariantProps<typeof alertVariants>["variant"]>;
 
 function Alert({
   className,
@@ -27,8 +27,8 @@ function Alert({
   children,
   ...props
 }: React.ComponentProps<"div"> & {
-  variant?: AlertVariant
-  title?: string
+  variant?: AlertVariant;
+  title?: string;
 }) {
   return (
     <div
@@ -40,7 +40,7 @@ function Alert({
       {title ? <AlertTitle>{title}</AlertTitle> : null}
       {children ? <AlertDescription>{children}</AlertDescription> : null}
     </div>
-  )
+  );
 }
 
 function AlertTitle({ className, ...props }: React.ComponentProps<"div">) {
@@ -49,11 +49,11 @@ function AlertTitle({ className, ...props }: React.ComponentProps<"div">) {
       data-slot="alert-title"
       className={cn(
         "cn-alert-title [&_a]:underline [&_a]:underline-offset-3 [&_a]:hover:text-foreground",
-        className
+        className,
       )}
       {...props}
     />
-  )
+  );
 }
 
 function AlertDescription({
@@ -65,11 +65,11 @@ function AlertDescription({
       data-slot="alert-description"
       className={cn(
         "cn-alert-description [&_a]:underline [&_a]:underline-offset-3 [&_a:hover]:text-foreground",
-        className
+        className,
       )}
       {...props}
     />
-  )
+  );
 }
 
 function AlertAction({ className, ...props }: React.ComponentProps<"div">) {
@@ -79,7 +79,8 @@ function AlertAction({ className, ...props }: React.ComponentProps<"div">) {
       className={cn("cn-alert-action", className)}
       {...props}
     />
-  )
+  );
 }
 
-export { Alert, AlertTitle, AlertDescription, AlertAction, alertVariants }
+export { Alert, AlertTitle, AlertDescription, AlertAction, alertVariants };
+

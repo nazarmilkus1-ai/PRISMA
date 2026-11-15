@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Tabs as TabsPrimitive } from "@base-ui/react/tabs"
 import { cva, type VariantProps } from "class-variance-authority"
-import { cn } from "cn"
+import { cn } from "../lib/cn"
 
 const tabsListVariants = cva(
   "cn-tabs-list group/tabs-list inline-flex w-fit items-center justify-center text-muted-foreground group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col",
@@ -118,3 +118,4 @@ export {
   TabsTrigger,
   TabsContent,
 }
+

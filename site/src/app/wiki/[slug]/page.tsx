@@ -1,222 +1,184 @@
-import { requireModule, requireModuleMember, requireModuleUser } from "@/lib/access";
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import { Card, CardDescription, CardHeader, CardTitle } from "@prisma-eco/ui";
-import { getWiki } from "@/lib/data";
-import WikiReactionBar from "@/components/WikiReactionBar";
+import { requireModule, requireModuleMember, requireModuleUser } from '@/lib/access';
+import { notFound } from 'next/navigation';
+import Link from 'next/link';
+import { Metadata } from 'next';
+import { getWiki } from '@/lib/data';
+import { Card, CardContent, PageHeader, Badge, Button } from '@prisma-eco/ui';
+import { Icon } from '@/components/Icon';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeSlug from 'rehype-slug';
+import rehypeAutolinkHeadings from 'rehype-autolink-headings';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
-function renderInline(value: string) {
-  const tick = String.fromCharCode(96);
-  const token = new RegExp(
-    "(\\*\\*[^*]+\\*\\*|" +
-      tick + "[^" + tick + "]+" + tick +
-      "|\\[[^\\]\\n]+\\]\\([^\\)\\n]+\\))",
-    "g",
-  );
+export const metadata: Metadata = {
+  title: { template: '%s | PRISMA Wiki', default: 'PRISMA Wiki' },
+  description: 'Документация PRISMA: Minecraft, Telegram, системы, гайды и внутренняя документация Staff.',
+};
 
-  return value.split(token).map((part, index) => {
-    if (part.startsWith("**") && part.endsWith("**")) {
-      return <strong key={index}>{part.slice(2, -2)}</strong>;
+type WikiPage = {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  content: string;
+  category: string;
+  visibility: string;
+  published: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+const CATEGORY_LABELS: Record<string, string> = {
+  MINECRAFT: 'Minecraft',
+  TELEGRAM: 'Telegram',
+  SYSTEMS: 'Systems',
+  GUIDE: 'Гайды',
+  ANNOUNCEMENT: 'Анонсы',
+  STAFF: 'Staff',
+};
+
+const VISIBILITY_LABELS: Record<string, string> = {
+  PUBLIC: 'Публично',
+  MEMBER: 'Участники',
+  STAFF: 'Staff',
+};
+
+const VISIBILITY_VARIANTS: Record<string, 'success' | 'warning' | 'default' | 'secondary' | 'outline' | 'destructive'> = {
+  PUBLIC: 'success',
+  MEMBER: 'warning',
+  STAFF: 'default',
+};
+
+interface Heading {
+  level: number;
+  text: string;
+  id: string;
+}
+
+function extractHeadings(content: string): Heading[] {
+  const headings: Heading[] = [];
+  const lines = content.split('\n');
+  for (const line of lines) {
+    const match = line.match(/^(#{1,3})\s+(.+)$/);
+    if (match) {
+      const level = match[1].length;
+      const text = match[2].trim();
+      const id = text
+        .toLowerCase()
+        .replace(/[^a-z0-9а-яё\s-]/gi, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+      headings.push({ level, text, id });
     }
-    if (part.startsWith(tick) && part.endsWith(tick)) {
-      return (
-        <code
-          key={index}
-          className="rounded-md border bg-muted px-1.5 py-0.5 font-mono text-[0.9em] text-foreground"
-        >
-          {part.slice(1, -1)}
-        </code>
-      );
-    }
+  }
+  return headings;
+}
 
-    const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
-    if (linkMatch) {
-      const [, label, href] = linkMatch;
-      const safeHref =
-        href.startsWith("/") || /^https?:\/\//i.test(href)
-          ? href
-          : null;
-
-      if (safeHref) {
-        if (safeHref.startsWith("/")) {
-          return (
-            <Link key={index} href={safeHref} className="text-primary underline-offset-4 hover:underline">
-              {label}
+function TableOfContents({ headings }: { headings: Heading[] }) {
+  if (headings.length === 0) return null;
+  return (
+    <Card className="sticky top-24 hidden lg:block w-64 shrink-0">
+      <CardContent className="p-4">
+        <h4 className="font-medium text-sm text-moon mb-3">Содержание</h4>
+        <nav className="space-y-1.5 text-sm">
+          {headings.map((h) => (
+            <Link
+              key={h.id}
+              href={'#' + h.id}
+              className={'block px-2 py-1 rounded transition-colors hover:bg-accent ' + (h.level === 2 ? 'font-medium' : 'ml-4 text-muted-foreground')}
+            >
+              {h.text}
             </Link>
-          );
-        }
-
-        return (
-          <a
-            key={index}
-            href={safeHref}
-            target="_blank"
-            rel="noreferrer"
-            className="text-primary underline-offset-4 hover:underline"
-          >
-            {label}
-          </a>
-        );
-      }
-    }
-
-    return <span key={index}>{part}</span>;
-  });
-}
-
-function splitTableRow(value: string) {
-  const raw = value.trim().replace(/^\|/, "").replace(/\|$/, "");
-  return raw.split("|").map((cell) => cell.trim());
-}
-
-function isTableSeparator(value: string) {
-  const cells = splitTableRow(value);
-  return cells.length > 0 && cells.every((cell) => /^:?-{3,}:?$/.test(cell));
-}
-
-function renderWikiContent(content: string) {
-  const normalizedContent = content.replace(/\r\n?/g, "\n").trim();
-
-  return normalizedContent.split(/\n{2,}/).map((rawBlock, index) => {
-    const block = rawBlock.trim();
-    const lines = block.split("\n");
-
-    if (block.trim() === "---") {
-      return <hr key={index} className="my-8 border-border" />;
-    }
-
-    if (lines.length >= 2 && lines[0].includes("|") && isTableSeparator(lines[1])) {
-      const headers = splitTableRow(lines[0]);
-      const rows = lines.slice(2).filter((line) => line.includes("|")).map(splitTableRow);
-
-      return (
-        <div key={index} className="my-6 overflow-x-auto rounded-lg border">
-          <table className="min-w-full border-collapse text-sm">
-            <thead className="bg-muted/40">
-              <tr>
-                {headers.map((cell, cellIndex) => (
-                  <th key={cellIndex} className="border-b px-4 py-3 text-left font-semibold">
-                    {renderInline(cell)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, rowIndex) => (
-                <tr key={rowIndex} className="border-b last:border-b-0">
-                  {headers.map((_, cellIndex) => (
-                    <td key={cellIndex} className="px-4 py-3 align-top text-muted-foreground">
-                      {renderInline(row[cellIndex] ?? "")}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      );
-    }
-
-    if (lines.every((line) => /^\d+\.\s/.test(line))) {
-      return (
-        <ol key={index} className="my-5 list-decimal space-y-2 pl-6 text-sm leading-7 text-muted-foreground">
-          {lines.map((line, itemIndex) => (
-            <li key={itemIndex}>{renderInline(line.replace(/^\d+\.\s/, ""))}</li>
           ))}
-        </ol>
-      );
-    }
-
-    if (block.startsWith("### ")) {
-      return (
-        <h3 key={index} className="mt-9 text-lg font-semibold tracking-tight text-foreground">
-          {renderInline(block.slice(4))}
-        </h3>
-      );
-    }
-    if (block.startsWith("## ")) {
-      return (
-        <h2 key={index} className="mt-10 text-xl font-semibold tracking-tight text-foreground">
-          {renderInline(block.slice(3))}
-        </h2>
-      );
-    }
-    if (block.startsWith("# ")) {
-      return null;
-    }
-
-    if (lines.every((line) => line.startsWith("- "))) {
-      return (
-        <ul key={index} className="my-5 list-disc space-y-2 pl-6 text-sm leading-7 text-muted-foreground">
-          {lines.map((line, itemIndex) => (
-            <li key={itemIndex}>{renderInline(line.slice(2))}</li>
-          ))}
-        </ul>
-      );
-    }
-
-    if (lines.every((line) => line.startsWith("> "))) {
-      return (
-        <blockquote
-          key={index}
-          className="my-6 rounded-r-lg border-l-2 border-brand/50 bg-muted/40 px-4 py-3 text-muted-foreground"
-        >
-          {lines.map((line, lineIndex) => (
-            <span key={lineIndex}>
-              {renderInline(line.slice(2))}
-              {lineIndex < lines.length - 1 ? <br /> : null}
-            </span>
-          ))}
-        </blockquote>
-      );
-    }
-
-    return (
-      <p key={index} className="my-4 text-sm leading-7 text-muted-foreground">
-        {lines.map((line, lineIndex) => (
-          <span key={lineIndex}>
-            {renderInline(line)}
-            {lineIndex < lines.length - 1 ? <br /> : null}
-          </span>
-        ))}
-      </p>
-    );
-  });
+        </nav>
+      </CardContent>
+    </Card>
+  );
 }
 
-export default async function WikiArticle({ params }: { params: Promise<{ slug: string }> }) {
+const components = {
+  h1: ({ children, id }: any) => <h1 id={id} className="text-2xl font-bold mt-8 mb-4 text-moon">{children}</h1>,
+  h2: ({ children, id }: any) => <h2 id={id} className="text-xl font-semibold mt-8 mb-3 text-moon border-b border-border pb-2">{children}</h2>,
+  h3: ({ children, id }: any) => <h3 id={id} className="text-lg font-semibold mt-6 mb-2 text-moon">{children}</h3>,
+  p: ({ children }: any) => <p className="my-3 text-moon-dim leading-7">{children}</p>,
+  ul: ({ children }: any) => <ul className="list-disc list-inside my-3 space-y-1 text-moon-dim">{children}</ul>,
+  ol: ({ children }: any) => <ol className="list-decimal list-inside my-3 space-y-1 text-moon-dim">{children}</ol>,
+  li: ({ children }: any ) => <li className="leading-7">{children}</li>,
+  a: ({ href, children }: any) => (
+    <a href={href} className="text-primary underline hover:text-primary/80" target={href.startsWith('http') ? '_blank' : undefined} rel={href.startsWith('http') ? 'noopener noreferrer' : undefined}>{children}</a>
+  ),
+  code: ({ children, className }: any) => {
+    if (className && className.startsWith('language-')) return null;
+    return <code className="prisma-glass-surface px-1.5 py-0.5 rounded text-sm font-mono text-curse bg-muted/50 border">{children}</code>;
+  },
+  pre: ({ children }: any) => <div className="my-4 rounded-lg overflow-hidden">{children}</div>,
+  blockquote: ({ children }: any) => (
+    <div className="border-l-4 border-primary/30 pl-4 my-4 italic text-moon-dim">{children}</div>
+  ),
+  table: ({ children }: any) => <div className="my-4 overflow-x-auto">{children}</div>,
+  thead: ({ children }: any) => <thead className="bg-muted/50">{children}</thead>,
+  tbody: ({ children }: any) => <tbody>{children}</tbody>,
+  tr: ({ children }: any) => <tr>{children}</tr>,
+  th: ({ children }: any) => <th className="px-3 py-2 text-left font-semibold text-moon border-b">{children}</th>,
+  td: ({ children }: any) => <td className="px-3 py-2 text-moon-dim border-b border-border/50">{children}</td>,
+  hr: () => <hr className="my-8 border-border/30" />,
+};
+
+export default async function WikiArticlePage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
   const { slug } = await params;
-  await requireModule("public-content");
-  const pages = await getWiki();
-  const page = pages.find((x: any) => x.slug === slug);
+  await requireModule('public-content');
+  const pages = (await getWiki()) as WikiPage[];
+  const page = pages.find((p) => p.slug === slug);
 
-  if (!page) return notFound();
+  if (!page || !page.published) notFound();
 
-  const isStaff = page.category === "STAFF";
+  const headings = extractHeadings(page.content);
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
-      <div className="mb-4">
-        <Link
-          href={isStaff ? "/wiki?category=STAFF" : "/wiki"}
-          className="prisma-glass-control prisma-glass-hover inline-flex h-9 items-center rounded-md border px-3.5 text-sm font-medium text-muted-foreground"
-        >
-          ← {isStaff ? "К Staff" : "К Wiki"}
-        </Link>
-      </div>
+    <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <div className="flex flex-col lg:flex-row gap-8">
+        <div className="flex-1 min-w-0 lg:max-w-3xl">
+          <div className="mb-6 flex flex-wrap items-center gap-2">
+            <Badge variant={VISIBILITY_VARIANTS[page.visibility] ?? 'default'}>{VISIBILITY_LABELS[page.visibility] ?? page.visibility}</Badge>
+            <Badge variant="secondary">{CATEGORY_LABELS[page.category] ?? page.category}</Badge>
+            <span className="text-xs text-muted-foreground ml-auto">{new Date(page.updated_at).toLocaleDateString('ru-RU')}</span>
+          </div>
 
-      <Card>
-        <CardHeader>
-          <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">{page.category}</p>
-          <CardTitle className="text-2xl sm:text-3xl">{page.title}</CardTitle>
-          {page.excerpt ? <CardDescription className="max-w-3xl leading-6">{page.excerpt}</CardDescription> : null}
-        </CardHeader>
+          <h1 className="text-3xl font-bold text-moon mb-2">{page.title}</h1>
+          {page.excerpt && <p className="text-lg text-moon-dim mb-6 leading-7">{page.excerpt}</p>}
 
-        <div className="px-5 py-2 pb-8 sm:px-8">
-          <div className="max-w-3xl text-sm">{renderWikiContent(page.content)}</div>
-          <WikiReactionBar slug={slug} />
+          <article className="prose prose-lg max-w-none prose-img:rounded-xl prose-headings:text-moon prose-a:text-primary prose-a:no-underline hover:prose-a:underline">
+            <ReactMarkdown
+              components={components}
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[rehypeSlug, [rehypeAutolinkHeadings, { behavior: 'wrap' }]]}
+            >
+              {page.content}
+            </ReactMarkdown>
+          </article>
+
+          <div className="mt-8 pt-6 border-t border-border flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Навигация:</span>
+              <Link href="/wiki" className="text-sm text-primary hover:underline">Wiki</Link>
+              <Icon name="chevron-right" size={14} className="text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">{CATEGORY_LABELS[page.category] ?? page.category}</span>
+            </div>
+            <Link href="/wiki" className="rounded-lg border border-border px-4 py-2 text-sm text-moon-dim hover:text-moon hover:bg-accent">К оглавлению Wiki</Link>
+          </div>
         </div>
-      </Card>
+
+        <aside className="hidden lg:block w-64 shrink-0">
+          <TableOfContents headings={headings} />
+        </aside>
+      </div>
     </div>
   );
 }

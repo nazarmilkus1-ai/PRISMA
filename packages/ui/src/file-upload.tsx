@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { FileText, UploadCloud, X } from "lucide-react";
-import { cn } from "cn";
+import { cn } from "./lib/cn";
 
 export interface PrismaFileUploadProps {
   onChange?: (files: File[]) => void;
@@ -152,3 +152,4 @@ function formatFileSize(bytes: number) {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }
+

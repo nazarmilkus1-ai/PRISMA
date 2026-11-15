@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Select as SelectPrimitive } from "@base-ui/react/select"
 import { Check, ChevronDown, ChevronUp } from "lucide-react"
-import { cn } from "cn"
+import { cn } from "../lib/cn"
 
 const Select = SelectPrimitive.Root
 
@@ -188,3 +188,4 @@ export {
   SelectTrigger,
   SelectValue,
 }
+
