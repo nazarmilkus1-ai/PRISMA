@@ -6,13 +6,14 @@ The inspected integration snapshot reports VERSION=2.1.0. Component package mani
 
 ## Scope of the release
 
-PRISMA 2.1.0 ships for a plain survival server. Maze Runner, the market and the Escape-From/wipe ideas are out of scope and were removed. Added since the first candidate: `/menu` chest GUI (Java and Bedrock), personal fog-of-war `/worldmap`, Bedrock gamertags with spaces, one extra account per player on the other platform (never online at the same time), graves that last 15 minutes, and the weekly inactivity warning (off until `ACTIVITY_WARN=1`).
+PRISMA 2.1.0 ships for a plain survival server. Maze Runner, the market and the Escape-From/wipe ideas are out of scope and were removed. Added since the first candidate: PRISMA Points (`/pp`, game menu shop and selling, event entry fees and prize payout), Minecraft encyclopedia in the Wiki, panel Wiki editor through the `staff_manage_wiki` gateway, `/menu` chest GUI (Java and Bedrock), personal fog-of-war `/worldmap`, Bedrock gamertags with spaces, one extra account per player on the other platform (never online at the same time), graves that last 15 minutes, and the weekly inactivity warning (off until `ACTIVITY_WARN=1`).
 
 ## Verification state
 
 - Production branch: PRISMA, commit fd193ece3196b9c485945bf49999f9188b788fd7, checked on 2026-11-14.
 - GitHub Actions on that branch (architecture, bot, site, panel, minecraft-plugin) passed. The plugin job is a compile check only.
-- Production migrations are applied through 20261114180000.
+- Production migrations are applied through 20261115100000. Pending (merged, not applied): 20261115120000 event fees, 20261115130000–170000 Wiki expansion, 20261115190000 staff_manage_wiki, 20261115210000–210400 Minecraft encyclopedia and Wiki search limit. The panel Wiki editor needs 190000 applied before it works.
+- Secrets: render.env, vercel.env and plugin config.yml were briefly tracked (ba7e7d8) and remain in git history of a public repository; every key in them must be rotated before release.
 - Live Paper 26.3 runtime validation (menu, map, multi-account block, graves, Floodgate `replace-spaces`) was not confirmed yet.
 
 These are point-in-time observations. Re-check the exact commit before making a release statement.
