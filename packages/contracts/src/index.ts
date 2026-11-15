@@ -349,6 +349,7 @@ export const STAFF_RPC = {
   setEventResult: "staff_set_event_result",
   news: "staff_list_news",
   manageNews: "staff_manage_news",
+  manageWiki: "staff_manage_wiki",
   polls: "staff_list_polls",
   createPoll: "staff_create_poll",
   managePoll: "staff_manage_poll",
