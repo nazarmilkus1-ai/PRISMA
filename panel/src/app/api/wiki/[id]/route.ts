@@ -3,6 +3,7 @@ import { safeApiError } from '@/lib/api-error';
 import { z } from 'zod';
 import { requireAdminContext } from '@/lib/require-admin';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { STAFF_RPC } from '@prisma-eco/contracts';
 
 const UpdateSchema = z.object({
   title: z.string().trim().min(2).max(200).optional(),
@@ -45,17 +46,20 @@ export async function PATCH(
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
   const supabase = await createSupabaseServerClient();
-  const updateData = { ...parsed.data, updated_at: new Date().toISOString() };
-  if (updateData.category) updateData.category = (updateData.category as string).toUpperCase();
-
-  const { data, error } = await supabase
-    .from('wiki_pages')
-    .update(updateData)
-    .eq('id', id)
-    .select()
-    .single();
+  const { data: raw, error } = await supabase.rpc(STAFF_RPC.manageWiki, {
+    p_action: 'UPDATE',
+    p_page_id: id,
+    p_slug: null,
+    p_title: parsed.data.title ?? null,
+    p_excerpt: parsed.data.excerpt ?? null,
+    p_content: parsed.data.content ?? null,
+    p_category: parsed.data.category ?? null,
+    p_published: parsed.data.published ?? null,
+    p_visibility: parsed.data.visibility ?? null,
+  });
 
   if (error) return NextResponse.json({ error: safeApiError(error, 'Не удалось обновить страницу Wiki.') }, { status: 409 });
+  const data = (Array.isArray(raw) ? raw[0] : raw)?.page;
 
   return NextResponse.json({ ok: true, page: data });
 }
@@ -69,7 +73,7 @@ export async function DELETE(
 
   const { id } = await params;
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.from('wiki_pages').delete().eq('id', id);
+  const { error } = await supabase.rpc(STAFF_RPC.manageWiki, { p_action: 'DELETE', p_page_id: id });
 
   if (error) return NextResponse.json({ error: safeApiError(error, 'Не удалось удалить страницу Wiki.') }, { status: 409 });
 

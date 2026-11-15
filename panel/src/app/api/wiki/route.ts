@@ -3,6 +3,7 @@ import { safeApiError } from "@/lib/api-error";
 import { z } from "zod";
 import { requireAdminContext } from "@/lib/require-admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { STAFF_RPC } from "@prisma-eco/contracts";
 
 
 const CreateSchema = z.object({
@@ -37,21 +38,20 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("wiki_pages")
-    .insert({
-      slug: parsed.data.slug,
-      title: parsed.data.title,
-      excerpt: parsed.data.excerpt,
-      content: parsed.data.content,
-      category: parsed.data.category.toUpperCase(),
-      published: parsed.data.published,
-      visibility: parsed.data.visibility,
-    })
-    .select()
-    .single();
+  const { data: raw, error } = await supabase.rpc(STAFF_RPC.manageWiki, {
+    p_action: "CREATE",
+    p_page_id: null,
+    p_slug: parsed.data.slug,
+    p_title: parsed.data.title,
+    p_excerpt: parsed.data.excerpt ?? null,
+    p_content: parsed.data.content,
+    p_category: parsed.data.category,
+    p_published: parsed.data.published,
+    p_visibility: parsed.data.visibility,
+  });
 
   if (error) return NextResponse.json({ error: safeApiError(error, "Не удалось создать страницу Wiki.") }, { status: 409 });
+  const data = (Array.isArray(raw) ? raw[0] : raw)?.page;
 
   return NextResponse.json({ ok: true, page: data }, { status: 201 });
 }
