@@ -273,7 +273,7 @@ async def execute(name: str, args: dict, ctx: Context) -> dict:
         for r in rows[:3]:
             if isinstance(r, dict):
                 ctx.cards.append(card_kit.render(card_kit.event(r)))
-        return {"events": [{k: r.get(k) for k in ("id", "title", "starts_at", "registered") if k in r} for r in rows[:8] if isinstance(r, dict)],
+        return {"events": [{k: r.get(k) for k in ("id", "title", "starts_at", "registered", "entry_fee_pp") if k in r} for r in rows[:8] if isinstance(r, dict)],
                 "note": "cards for the first events are shown under the answer; do not repeat their buttons in text"}
     if name == "my_account":
         status = await get_application_status(ctx.tg_id)
@@ -315,7 +315,7 @@ async def publish(kind: str, payload: dict, tg_id: int):
         return (not result.error), ("✅ Обращение отправлено администрации." if not result.error else "❌ Не удалось отправить обращение.")
     if kind == "ev":
         result = await bot_register_event(tg_id, payload["event_id"])
-        return (not result.error), ("✅ Вы зарегистрированы на ивент." if not result.error else "❌ Не удалось зарегистрироваться.")
+        return (not result.error), ("✅ Вы зарегистрированы на ивент." if not result.error else ("❌ Не хватает PP для взноса (/pp)." if "INSUFFICIENT_PP" in str(result.error) else "❌ Не удалось зарегистрироваться."))
     return False, "❌ Неизвестное действие."
 
 

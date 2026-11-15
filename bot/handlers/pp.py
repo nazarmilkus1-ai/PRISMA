@@ -6,7 +6,7 @@ from html import escape
 from aiogram import Router, types
 from aiogram.filters import Command, CommandObject
 
-from db.rpc import bot_check_admin_permission, bot_pp_adjust, bot_pp_history, bot_pp_transfer
+from db.rpc import bot_check_admin_permission, bot_event_payout, bot_event_set_fee, bot_pp_adjust, bot_pp_history, bot_pp_transfer
 from services import points
 from utils.permissions import DENIED_MESSAGE, is_admin_mode, is_approved
 
@@ -35,6 +35,39 @@ async def cmd_pp(message: types.Message, command: CommandObject):
         await message.answer(
             f"✅ Переведено <b>{points.fmt(amount)} PP</b> → {escape(str(data.get('to') or args[1]))}.\n"
             f"Баланс: <b>{points.fmt(data.get('balance'))} PP</b>", parse_mode="HTML")
+        return
+
+    if sub in {"payout", "eventfee"}:
+        allowed = await is_admin_mode(uid)
+        if allowed:
+            check = await bot_check_admin_permission(uid, "economy.manage")
+            allowed = not check.error and bool(check.data)
+        if not allowed:
+            await message.answer("Нужен режим админа и право economy.manage.")
+            return
+        if sub == "eventfee":
+            fee = points.parse_amount(args[2]) if len(args) >= 3 else None
+            if fee is None and len(args) >= 3 and args[2] == "0":
+                fee = 0
+            if len(args) < 3 or fee is None or fee < 0:
+                await message.answer("Формат: <code>/pp eventfee slug-события 10</code> (0 — бесплатно).", parse_mode="HTML")
+                return
+            result = await bot_event_set_fee(uid, args[1], fee)
+        else:
+            if len(args) < 3:
+                await message.answer("Формат: <code>/pp payout slug-события @победитель</code>", parse_mode="HTML")
+                return
+            result = await bot_event_payout(uid, args[1], args[2])
+        data = result.data if isinstance(result.data, dict) else {}
+        if result.error or not data.get("success"):
+            await message.answer("❌ " + points.error_text(data.get("error")))
+            return
+        if sub == "eventfee":
+            await message.answer(f"✅ Взнос события «{escape(str(data.get('event')))}»: <b>{points.fmt(data.get('fee'))} PP</b>", parse_mode="HTML")
+        else:
+            await message.answer(
+                f"🏆 Приз выплачен: <b>{points.fmt(data.get('prize'))} PP</b> "
+                f"(пул {points.fmt(data.get('pool'))}, комиссия проекта {points.fmt(data.get('commission'))}).", parse_mode="HTML")
         return
 
     if sub in {"give", "выдать"}:
