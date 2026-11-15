@@ -10,3 +10,11 @@ build/
 **/.env.local
 minecraft-plugin/bin/
 minecraft-plugin/build/
+
+# local secrets and build artifacts
+/render.env
+/vercel.env
+/*.env
+minecraft-plugin/src/main/resources/config.yml
+*.tsbuildinfo
+next-env.d.ts
