@@ -37,3 +37,19 @@ class PointsTextTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class EventFeeTexts(unittest.TestCase):
+    def test_fee_label(self):
+        self.assertEqual(points.fee_label({"entry_fee_pp": 10}), "10 PP")
+        self.assertEqual(points.fee_label({"entry_fee_pp": 0}), "бесплатно")
+        self.assertEqual(points.fee_label({}), "бесплатно")
+        self.assertEqual(points.fee_label({"entry_fee_pp": "x"}), "бесплатно")
+
+    def test_has_error_matches_exception_text(self):
+        self.assertTrue(points.has_error("ERROR: INSUFFICIENT_PP", "INSUFFICIENT_PP"))
+        self.assertFalse(points.has_error("EVENT_FULL", "INSUFFICIENT_PP"))
+
+    def test_event_errors_have_texts(self):
+        for code in ("ALREADY_PAID", "WINNER_NOT_PARTICIPANT", "FEES_ALREADY_PAID", "EVENT_NOT_FOUND"):
+            self.assertNotEqual(points.error_text(code), points.error_text("nope"))

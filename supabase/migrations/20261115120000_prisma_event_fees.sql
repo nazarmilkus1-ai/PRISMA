@@ -120,7 +120,7 @@ create or replace function public.bot_list_events(p_tg_id bigint, p_limit intege
 returns json
 language plpgsql
 security definer
-set search_path to 'public'
+set search_path=''
 as $function$
 declare
   uid uuid;

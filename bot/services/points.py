@@ -11,6 +11,10 @@ _ERRORS = {
     "NOT_A_MEMBER": "Переводить PP могут только участники с одобренной заявкой.",
     "INSUFFICIENT_PP": "Не хватает PP.",
     "PERMISSION_DENIED": "Нет права управлять PP.",
+    "EVENT_NOT_FOUND": "Событие не найдено (укажи slug или id).",
+    "FEES_ALREADY_PAID": "Взносы уже оплачены по другой цене — менять нельзя.",
+    "ALREADY_PAID": "Приз за это событие уже выплачен.",
+    "WINNER_NOT_PARTICIPANT": "Победитель должен быть участником события.",
 }
 
 _KINDS = {
@@ -22,6 +26,20 @@ _KINDS = {
 
 def error_text(code: object) -> str:
     return _ERRORS.get(str(code), "Не получилось. Попробуй позже.")
+
+
+def has_error(err: object, code: str) -> bool:
+    """RPC exceptions arrive as text that contains the code; JSON errors arrive as the bare code."""
+    return code in str(err)
+
+
+def fee_label(row: dict) -> str:
+    fee = row.get("entry_fee_pp") if isinstance(row, dict) else None
+    try:
+        fee = int(fee or 0)
+    except (TypeError, ValueError):
+        fee = 0
+    return f"{fee:,} PP".replace(",", " ") if fee > 0 else "бесплатно"
 
 
 def fmt(value: object) -> str:
@@ -58,5 +76,6 @@ HELP = (
     "💎 <b>PRISMA Points (PP)</b>\n"
     "/pp — баланс и последние операции\n"
     "/pp send @ник 50 — перевести PP игроку\n\n"
+    "Взнос за ивент списывается при записи и возвращается, если отменить запись до старта.\n\n"
     "PP тратятся на взносы в ивенты, косметику и улучшения; получать их можно за ивенты, задания и продажу ресурсов."
 )

@@ -871,3 +871,11 @@ async def bot_pp_transfer(tg_id, target, amount):
 
 async def bot_pp_adjust(tg_id, target, delta, note=None):
     return await call_rpc_async("bot_pp_adjust", {"p_tg_id": tg_id, "p_target": target, "p_delta": delta, "p_note": note})
+
+
+async def bot_event_set_fee(tg_id, event, fee):
+    return await call_rpc_async("bot_event_set_fee", {"p_tg_id": tg_id, "p_event": event, "p_fee": fee})
+
+
+async def bot_event_payout(tg_id, event, winner):
+    return await call_rpc_async("bot_event_payout", {"p_tg_id": tg_id, "p_event": event, "p_winner": winner})

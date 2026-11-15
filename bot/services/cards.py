@@ -13,6 +13,7 @@ from html import escape
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 import config
+from services import points
 
 Button = tuple[str, str]  # (text, callback_data | https url)
 
@@ -57,7 +58,7 @@ def event(row: dict) -> Card:
         rows.append([("🎯 Записаться", f"cd:evr:{row['id']}")])
     rows.append([("🌐 События на сайте", site("/events"))])
     return Card(title=f"🎯 {row.get('title') or 'Ивент'}",
-                facts=[("Начало", _when(row.get("starts_at"))), ("Вы", "записаны ✅" if row.get("registered") else "")], rows=rows)
+                facts=[("Начало", _when(row.get("starts_at"))), ("Взнос", points.fee_label(row)), ("Вы", "записаны ✅" if row.get("registered") else "")], rows=rows)
 
 
 def server_status(online: bool, players: int | None = None, max_players: int | None = None) -> Card:

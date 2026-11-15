@@ -24,6 +24,7 @@ from db.player import (
     set_notification_preference,
 )
 from db.rpc import call_rpc_async
+from services import points
 from fsm.states import AppealForm
 from keyboards.inline import (
     appeal_keyboard,
@@ -427,7 +428,8 @@ async def _events_message(message: types.Message, tg_id: int):
         text = (
             f"🎯 <b>{escape(str(event.get('title') or event.get('slug') or 'Ивент'))}</b>\n"
             f"{escape(str(event.get('description') or ''))}\n\n"
-            f"Начало: <code>{escape(str(event.get('starts_at') or 'уточняется'))}</code>"
+            f"Начало: <code>{escape(str(event.get('starts_at') or 'уточняется'))}</code>\n"
+            f"Взнос: <b>{points.fee_label(event)}</b>"
         )
         await message.answer(text, reply_markup=event_keyboard(str(event["id"]), bool(event.get("registered"))), parse_mode="HTML")
 
@@ -456,6 +458,9 @@ async def event_register_callback(callback: types.CallbackQuery):
         if callback.message:
             await _events_message(callback.message, callback.from_user.id)
         return
+    if points.has_error(result, "INSUFFICIENT_PP"):
+        await callback.answer("Не хватает PP для взноса. Баланс: /pp", show_alert=True)
+        return
     errors = {
         "ALREADY_REGISTERED": "Вы уже зарегистрированы.",
         "REGISTRATION_CLOSED": "Регистрация уже закрыта.",
@@ -473,7 +478,7 @@ async def event_unregister_callback(callback: types.CallbackQuery):
     event_id = callback.data.split(":", 2)[2]
     ok, result = await unregister_event(callback.from_user.id, event_id)
     if ok:
-        await callback.answer("✅ Регистрация отменена.")
+        await callback.answer("✅ Регистрация отменена." + (" Взнос возвращён." if isinstance(result, dict) and result.get("refunded") else ""))
         if callback.message:
             await _events_message(callback.message, callback.from_user.id)
         return
