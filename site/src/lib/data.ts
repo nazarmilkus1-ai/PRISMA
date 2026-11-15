@@ -221,7 +221,7 @@ export async function getEvents(limit=50){
 }
 export async function getPublicWiki(query=""){
   const db=createSupabasePublicClient();
-  const{data,error}=await db.rpc(PUBLIC_RPC.wiki,{p_query:query.trim().slice(0,100),p_limit:100});
+  const{data,error}=await db.rpc(PUBLIC_RPC.wiki,{p_query:query.trim().slice(0,100),p_limit:500});
   return error||!Array.isArray(data)?[]:data;
 }
 
@@ -229,7 +229,7 @@ export async function getWiki(query=""){
   const db=await createSupabaseServerClient();
   const{data:{user}}=await db.auth.getUser();
   if(!user) return getPublicWiki(query);
-  const{data:wikiData,error}=await db.rpc(PARTICIPANT_READ_RPC.wiki,{p_query:query.trim().slice(0,100),p_limit:100});
+  const{data:wikiData,error}=await db.rpc(PARTICIPANT_READ_RPC.wiki,{p_query:query.trim().slice(0,100),p_limit:500});
   return error||!Array.isArray(wikiData)?[]:wikiData;
 }
 export async function getMedia(limit=60){

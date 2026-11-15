@@ -43,9 +43,11 @@ async def wiki_context() -> str:
         return _cache["text"]
     text = ""
     try:
-        result = await bot_get_public_wiki("", 30)
+        result = await bot_get_public_wiki("", 100)
         if not result.error and isinstance(result.data, list):
-            text = format_pages(result.data)
+            # The Minecraft encyclopedia (mc-*) is large: it is for search, not for the always-on prompt.
+            core = [p for p in result.data if isinstance(p, dict) and not str(p.get("slug") or "").startswith("mc-")]
+            text = format_pages(core[:30])
     except Exception:  # the Wiki is optional context: never break an answer because of it
         text = ""
     _cache["at"], _cache["ttl"], _cache["text"] = now, TTL_OK if text else TTL_EMPTY, text
