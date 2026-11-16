@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import re
 import time
 
 import aiohttp
@@ -55,6 +56,18 @@ def fallback_model() -> str:
     if value.lower() in {"-", "none", "off", "no", "0"}:
         return ""
     return value or "am/nemotron-3.5-lightning-30b-a3b"
+
+
+_SPAM = re.compile(
+    r"(you must join our channel|join (?:our|the) channel to use|to use this bot, you must|subscribe to (?:our|the) channel to"
+    r"|undress|ai porn|generai\.org|t\.me/\+?[A-Za-z0-9_]*(?:official|mudra|bot)\b|подпишись на (?:наш )?канал, чтобы)",
+    re.I,
+)
+
+
+def looks_like_provider_spam(text: str) -> bool:
+    """Adverts and subscription gates injected by free relays; they must never be posted as the bot's reply."""
+    return bool(text) and bool(_SPAM.search(text))
 
 
 def is_configured(role: str = "user") -> bool:
@@ -114,6 +127,9 @@ async def chat(
         message = choice["message"]
     except (KeyError, IndexError, TypeError) as exc:
         raise AIError("malformed response") from exc
+    if looks_like_provider_spam(str(message.get("content") or "")):
+        # The upstream relay answered with its own advert / "join our channel" gate instead of a completion.
+        raise AIError("provider returned an advert instead of an answer")
     if not str(message.get("content") or "").strip() and not message.get("tool_calls"):
         # Reasoning models can spend the whole budget on thinking and return no text.
         if choice.get("finish_reason") == "length" and max_tokens < MAX_RETRY_TOKENS:
