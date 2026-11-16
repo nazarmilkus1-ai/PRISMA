@@ -12,7 +12,7 @@ PRISMA 2.1.0 ships for a plain survival server. Maze Runner, the market and the 
 
 - Production branch: PRISMA, commit fd193ece3196b9c485945bf49999f9188b788fd7, checked on 2026-11-14.
 - GitHub Actions on that branch (architecture, bot, site, panel, minecraft-plugin) passed. The plugin job is a compile check only.
-- Production migrations are applied through 20261115100000. Pending (merged, not applied): 20261115120000 event fees, 20261115190000 staff_manage_wiki, 20261115210000–210400 Minecraft encyclopedia and Wiki search limit (apply in chunks), 20261115220000 Wiki 2.1 refresh. The panel Wiki editor needs 190000 applied before it works.
+- Production migrations are applied through 20261115100000, plus 20261115120000 (event fees), 20261115190000 (staff_manage_wiki), 20261115210400 (wiki search limit) and 20261115220000 (wiki 2.1 refresh). Pending: the Minecraft encyclopedia seeds 20261115210000–210300 (about 450 KB; apply with `supabase db push`; one article is already in).
 - Secrets: render.env, vercel.env and plugin config.yml were briefly tracked (ba7e7d8) and remain in git history of a public repository; every key in them must be rotated before release.
 - Live Paper 26.3 runtime validation (menu, map, multi-account block, graves, Floodgate `replace-spaces`) was not confirmed yet.
 
