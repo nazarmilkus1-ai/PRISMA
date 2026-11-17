@@ -879,3 +879,15 @@ async def bot_event_set_fee(tg_id, event, fee):
 
 async def bot_event_payout(tg_id, event, winner):
     return await call_rpc_async("bot_event_payout", {"p_tg_id": tg_id, "p_event": event, "p_winner": winner})
+
+
+async def bot_ban_review_claim(limit=20):
+    return await call_rpc_async("bot_ban_review_claim", {"p_limit": limit})
+
+
+async def bot_ban_review_list():
+    return await call_rpc_async("bot_ban_review_list", {})
+
+
+async def bot_ban_review_keep(user_tg_id, admin_tg_id):
+    return await call_rpc_async("bot_ban_review_keep", {"p_user_tg_id": user_tg_id, "p_admin_tg_id": admin_tg_id})
