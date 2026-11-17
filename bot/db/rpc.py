@@ -879,3 +879,15 @@ async def bot_event_set_fee(tg_id, event, fee):
 
 async def bot_event_payout(tg_id, event, winner):
     return await call_rpc_async("bot_event_payout", {"p_tg_id": tg_id, "p_event": event, "p_winner": winner})
+
+
+async def bot_ai_summary_get(tg_id, chat_id):
+    return await call_rpc_async("bot_ai_summary_get", {"p_tg_id": tg_id, "p_chat_id": chat_id})
+
+
+async def bot_ai_summary_set(tg_id, chat_id, summary):
+    return await call_rpc_async("bot_ai_summary_set", {"p_tg_id": tg_id, "p_chat_id": chat_id, "p_summary": summary})
+
+
+async def bot_ai_forget(tg_id):
+    return await call_rpc_async("bot_ai_forget", {"p_tg_id": tg_id})

@@ -134,13 +134,15 @@ async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
         status = str(status_raw or "")
         history = ai_memory.history(chat_id, tg_id)
         if private:
-            text, cards = await run_member(tg_id, question, status, history, True)
+            text, cards = await run_member(tg_id, question, status, history, True,
+                                           memory=ai_memory.summary(chat_id, tg_id))
         else:
             text, cards = await run_member(
                 tg_id, question, status, history, False,
                 chat_context=ambient.transcript(chat_id, 14, exclude_id=message.message_id),
                 asker=message.from_user.first_name or "участник", adult=ambient.adult(chat_id), chat_id=chat_id,
-                can_mute=await mod_actions.can_mute(tg_id) if _MUTE_WORDS.search(question) else False)
+                can_mute=await mod_actions.can_mute(tg_id) if _MUTE_WORDS.search(question) else False,
+                memory=ai_memory.summary(chat_id, tg_id))
     except Exception as exc:  # AIError or anything unexpected: never leave «думает…» hanging
         logger.warning("member PRISMA_AI failed: %s", exc)
         if waiting:
@@ -292,6 +294,13 @@ async def ai_eval(message: types.Message):
     await waiting.edit_text("\n".join(lines), parse_mode="HTML")
 
 
+@router.message(Command("forget_ai", "забудь_меня"), F.chat.type == "private")
+async def forget_ai(message: types.Message):
+    """Wipe what PRISMA_AI remembers about this person: recent messages, long memory, stored chat log."""
+    await ai_memory.forget_all(message.from_user.id)
+    await message.answer("🧹 Готово: PRISMA_AI забыл наши разговоры (последние сообщения и долгую память).")
+
+
 @router.message(Command("ai_status"), F.chat.type == "private")
 async def ai_status(message: types.Message):
     if not await has_any_staff_permission(message.from_user.id) or not await require_admin_mode(message):
@@ -330,14 +339,21 @@ async def _copilot(message: types.Message, request: str):
         await message.answer("🤖 PRISMA_AGENT не настроен: задайте AI_API_KEY_ADMIN.")
         return
     waiting = await message.answer("🤖 Работаю…")
+    agent_chat = ai_memory.agent_chat(message.chat.id)
     try:
-        text, cards = await run_copilot(admin_id, request, bot=message.bot)
+        await ai_memory.hydrate(agent_chat, admin_id)
+        text, cards = await run_copilot(admin_id, request, bot=message.bot,
+                                        history=ai_memory.history(agent_chat, admin_id),
+                                        memory=ai_memory.summary(agent_chat, admin_id))
     except Exception as exc:  # the model, a tool or the gateway failed: say so honestly
         logger.warning("copilot failed: %s", exc)
         await waiting.edit_text("😕 Не получилось выполнить запрос (модель или данные недоступны). Попробуйте ещё раз или переформулируйте. Проверка связи: /ai_status")
         return
     answer_id = ai_memory.new_answer_id()
-    asyncio.create_task(ai_memory.persist(message.chat.id, admin_id, "assistant", text, answer_id, agent=True))
+    ai_memory.remember(agent_chat, admin_id, "user", request)
+    ai_memory.remember(agent_chat, admin_id, "assistant", text, answer_id=answer_id)
+    asyncio.create_task(ai_memory.persist(agent_chat, admin_id, "user", request, agent=True))
+    asyncio.create_task(ai_memory.persist(agent_chat, admin_id, "assistant", text, answer_id, agent=True))
     sent = await _send_model_text(waiting, message, text, None)
     ai_memory.bind(message.chat.id, sent.message_id, admin_id, answer_id)
     for card_text, markup in cards:
@@ -535,7 +551,7 @@ async def _ambient_reply_inner(message: types.Message):
     text, _cards = await run_member(
         user.id, (message.text or "")[:500], status, ai_memory.history(chat_id, user.id)[-4:], False,
         chat_context=ambient.transcript(chat_id, 14, exclude_id=message.message_id),
-        asker=user.first_name or "участник", adult=ambient.adult(chat_id))
+        asker=user.first_name or "участник", adult=ambient.adult(chat_id), memory=ai_memory.summary(chat_id, user.id))
     answer_id = ai_memory.new_answer_id()
     ai_memory.remember(chat_id, user.id, "user", message.text or "")
     ai_memory.remember(chat_id, user.id, "assistant", text, answer_id=answer_id)

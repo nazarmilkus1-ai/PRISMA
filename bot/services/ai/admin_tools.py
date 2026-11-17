@@ -380,11 +380,15 @@ async def execute(name: str, args: dict, ctx: Context) -> dict:
     return {"error": "unknown tool"}
 
 
-async def run_copilot(admin_id: int, request: str, bot=None) -> tuple[str, list[tuple[str, InlineKeyboardMarkup]]]:
+async def run_copilot(admin_id: int, request: str, bot=None, history: list[dict] | None = None,
+                      memory: str = "") -> tuple[str, list[tuple[str, InlineKeyboardMarkup]]]:
     ctx = Context(admin_id, bot)
     from services import reminders as _reminders
     system = SYSTEM + f" Сейчас {_reminders.now_local():%Y-%m-%d %H:%M} (Киев). Напоминания для админа ставь через set_reminder."
-    messages: list[dict] = [{"role": "system", "content": system}, {"role": "user", "content": request[:800]}]
+    if memory:
+        system += "\n\n" + memory
+    messages: list[dict] = [{"role": "system", "content": system}, *(history or [])[-12:],
+                            {"role": "user", "content": request[:800]}]
     for _ in range(MAX_STEPS):
         message = await chat_with_fallback(messages, role="admin", tools=TOOLS, max_tokens=2000, timeout=60)
         calls = message.get("tool_calls") or []
