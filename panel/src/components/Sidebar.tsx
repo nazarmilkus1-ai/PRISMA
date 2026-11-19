@@ -53,6 +53,7 @@ const GROUPS: Group[] = [
       { href: '/dashboard/audit', label: 'Аудит', icon: 'audit' },
       { href: '/dashboard/extra', label: 'Настройки', icon: 'settings' },
       { href: '/dashboard/modules', label: 'Модули', icon: 'settings' },
+      { href: '/dashboard/guardian', label: 'Охранник', icon: 'security' },
     ],
   },
 ];
