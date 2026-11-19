@@ -8,6 +8,7 @@ Configuration (environment, never committed):
   AI_MODEL_ADMIN      default am/nemotron-3-ultra-550b-a55b
   AI_MODEL_FALLBACK   default am/nemotron-3.5-lightning-30b-a3b
   AI_REASONING_EFFORT optional (low|medium|high): sent as reasoning_effort to cut "thinking" time
+  AI_RPM_USER / AI_RPM_ADMIN  requests per minute budget per key (default 30 / 20); a 429 pauses the key
 """
 from __future__ import annotations
 
@@ -74,6 +75,40 @@ def is_configured(role: str = "user") -> bool:
     return bool(key_for(role))
 
 
+_DEFAULT_RPM = {"user": 30, "admin": 20}
+_MAX_WAIT = 15.0
+_calls: dict[str, list[float]] = {}
+_paused_until: dict[str, float] = {}
+
+
+def _rpm(role: str) -> int:
+    try:
+        return max(1, int(_env(f"AI_RPM_{role.upper()}") or _DEFAULT_RPM.get(role, 20)))
+    except ValueError:
+        return _DEFAULT_RPM.get(role, 20)
+
+
+async def _acquire(role: str) -> None:
+    """Sliding-window budget per key. Waits briefly for a free slot, otherwise fails fast so callers can fall back."""
+    deadline = time.monotonic() + _MAX_WAIT
+    while True:
+        now = time.monotonic()
+        window = [t for t in _calls.get(role, []) if now - t < 60.0]
+        _calls[role] = window
+        pause = _paused_until.get(role, 0.0) - now
+        wait = max(pause, (window[0] + 60.0 - now) if len(window) >= _rpm(role) else 0.0)
+        if wait <= 0:
+            window.append(now)
+            return
+        if now + wait > deadline:
+            raise AIError("AI rate limit: budget exhausted, try again shortly")
+        await asyncio.sleep(min(wait, 1.0))
+
+
+def _pause(role: str, seconds: float) -> None:
+    _paused_until[role] = time.monotonic() + max(1.0, min(seconds, 120.0))
+
+
 async def chat(
     messages: list[dict],
     *,
@@ -88,6 +123,7 @@ async def chat(
     key = key_for(role)
     if not key:
         raise AIError("AI is not configured")
+    await _acquire(role)
     payload: dict = {
         "model": model or model_for(role),
         "messages": messages,
@@ -112,6 +148,12 @@ async def chat(
                 if response.status >= 400:
                     # Log status and provider error text only: never headers or keys.
                     detail = (body.get("error") if isinstance(body, dict) else None) or ""
+                    if response.status == 429:
+                        try:
+                            retry_after = float(response.headers.get("Retry-After") or 20)
+                        except ValueError:
+                            retry_after = 20.0
+                        _pause(role, retry_after)
                     raise AIError(f"HTTP {response.status}: {str(detail)[:200]}")
     except AIError as exc:
         # A model that rejects reasoning_effort: remember it and retry once without the parameter.

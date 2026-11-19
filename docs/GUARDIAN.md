@@ -25,3 +25,9 @@ GitHub secrets: `GUARDIAN_URL` (например `https://prisma-minecraft.verce
 
 ## Данные
 `guardian_events`, `guardian_state`, `guardian_proposals` — только через RPC (`guardian_*` для service_role, `staff_guardian_*` для панели).
+
+## Агент A (PRISMA_AGENT в боте) — что он видит и может
+Читает (роль с `system.health`): Render (деплои, логи), Vercel (деплои, ошибки сборки), GitHub (PR, задачи, **файлы репозитория** через `github_read`; секретные пути закрыты, вывод очищается от секретов), статус Minecraft-сервера, игроков, активность и Telegram-группу, ошибки самого бота.
+Меняет только через карточку с кнопкой (высшая роль): перезапуск Render, объявление, наказания/заявки/репорты, **Pull Request с изменением кода** (`propose_code_change`: новая ветка `agent/…`, до 5 файлов, `.github/` закрыт, никогда не мержит — мержишь сам).
+Лимиты запросов к AI: `AI_RPM_USER` (30) и `AI_RPM_ADMIN` (20) в минуту; при 429 ключ ставится на паузу.
+Переменные Render для бота: `RENDER_API_KEY`, `RENDER_SERVICE_ID`, `GITHUB_TOKEN` (fine-grained: Contents RW + Pull requests RW на этот репозиторий), `GITHUB_REPO=nazarmilkus1-ai/PRISMA`, `VERCEL_TOKEN`, `VERCEL_PROJECT_ID`.
