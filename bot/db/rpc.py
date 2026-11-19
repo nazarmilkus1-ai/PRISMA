@@ -891,3 +891,15 @@ async def bot_ai_summary_set(tg_id, chat_id, summary):
 
 async def bot_ai_forget(tg_id):
     return await call_rpc_async("bot_ai_forget", {"p_tg_id": tg_id})
+
+
+async def bot_ban_review_claim(limit=20):
+    return await call_rpc_async("bot_ban_review_claim", {"p_limit": limit})
+
+
+async def bot_ban_review_list():
+    return await call_rpc_async("bot_ban_review_list", {})
+
+
+async def bot_ban_review_keep(user_tg_id, admin_tg_id):
+    return await call_rpc_async("bot_ban_review_keep", {"p_user_tg_id": user_tg_id, "p_admin_tg_id": admin_tg_id})

@@ -46,6 +46,7 @@ class RunCheckTests(unittest.TestCase):
         report = {"players": 10, "joins": 30, "candidates": [cand(1), cand(2)]}
         ok = SimpleNamespace(error=None, data={"success": True})
         with mock.patch.object(inactivity, "fetch", mock.AsyncMock(return_value=report)), \
+                mock.patch.object(inactivity, "fetch_telegram", mock.AsyncMock(return_value=None)), \
                 mock.patch.object(inactivity, "bot_create_punishment", mock.AsyncMock(return_value=ok)) as create, \
                 mock.patch.object(inactivity.config, "OWNER_TG_ID", 7):
             text = asyncio.run(inactivity.run_check(SimpleNamespace()))
@@ -57,6 +58,7 @@ class RunCheckTests(unittest.TestCase):
     def test_preview_applies_nothing(self):
         report = {"players": 10, "candidates": [cand(1)]}
         with mock.patch.object(inactivity, "fetch", mock.AsyncMock(return_value=report)), \
+                mock.patch.object(inactivity, "fetch_telegram", mock.AsyncMock(return_value=None)), \
                 mock.patch.object(inactivity, "bot_create_punishment", mock.AsyncMock()) as create, \
                 mock.patch.object(inactivity.config, "OWNER_TG_ID", 7):
             text = asyncio.run(inactivity.run_check(SimpleNamespace(), apply=False))
@@ -64,16 +66,56 @@ class RunCheckTests(unittest.TestCase):
         self.assertIn("выдано: <b>0</b>", text)
 
     def test_unavailable_data_reports_instead_of_crashing(self):
-        with mock.patch.object(inactivity, "fetch", mock.AsyncMock(return_value=None)):
+        with mock.patch.object(inactivity, "fetch", mock.AsyncMock(return_value=None)), \
+                mock.patch.object(inactivity, "fetch_telegram", mock.AsyncMock(return_value=None)):
             self.assertIn("недоступны", asyncio.run(inactivity.run_check(SimpleNamespace())))
 
     def test_reminders_only_when_data_is_trustworthy(self):
         bot = SimpleNamespace(send_message=mock.AsyncMock())
-        with mock.patch.object(inactivity, "fetch", mock.AsyncMock(return_value={"players": 1, "candidates": [cand(1)]})):
+        no_tg = mock.patch.object(inactivity, "fetch_telegram", mock.AsyncMock(return_value=None))
+        with no_tg, mock.patch.object(inactivity, "fetch", mock.AsyncMock(return_value={"players": 1, "candidates": [cand(1)]})):
             self.assertEqual(asyncio.run(inactivity.send_reminders(bot)), 0)
-        with mock.patch.object(inactivity, "fetch", mock.AsyncMock(return_value={"players": 9, "candidates": [cand(1), cand(2)]})):
+        with no_tg, mock.patch.object(inactivity, "fetch", mock.AsyncMock(return_value={"players": 9, "candidates": [cand(1), cand(2)]})):
             self.assertEqual(asyncio.run(inactivity.send_reminders(bot)), 2)
         self.assertEqual(bot.send_message.await_count, 2)
+
+
+def tg_cand(i, messages=3, warns=0):
+    return {"tg_id": 2000 + i, "nickname": f"t{i}", "messages": messages, "active_warns": warns}
+
+
+class TelegramCheckTests(unittest.TestCase):
+    def test_warns_with_telegram_source_and_reason(self):
+        report = {"players": 12, "candidates": [tg_cand(1), tg_cand(2, messages=0)]}
+        ok = SimpleNamespace(error=None, data={"success": True})
+        with mock.patch.object(inactivity, "fetch", mock.AsyncMock(return_value=None)), \
+                mock.patch.object(inactivity, "fetch_telegram", mock.AsyncMock(return_value=report)), \
+                mock.patch.object(inactivity, "bot_create_punishment", mock.AsyncMock(return_value=ok)) as create, \
+                mock.patch.object(inactivity.config, "OWNER_TG_ID", 7):
+            text = asyncio.run(inactivity.run_check(SimpleNamespace()))
+        self.assertEqual(create.await_count, 2)
+        args = create.await_args_list[0].args
+        self.assertEqual((args[0], args[1], args[3], args[5]), (2001, "WARN", 7, "AUTO_TG_INACTIVITY"))
+        self.assertIn("50 сообщений", args[2])
+        self.assertIn("Telegram: Порог: 50 сообщений за 7 дней. Предупреждений выдано: <b>2</b>", text)
+        self.assertIn("3 сообщ.", text)
+
+    def test_quiet_chat_is_report_only(self):
+        report = {"players": 2, "candidates": [tg_cand(1)]}
+        with mock.patch.object(inactivity, "fetch", mock.AsyncMock(return_value=None)), \
+                mock.patch.object(inactivity, "fetch_telegram", mock.AsyncMock(return_value=report)), \
+                mock.patch.object(inactivity, "bot_create_punishment", mock.AsyncMock()) as create:
+            text = asyncio.run(inactivity.run_check(SimpleNamespace()))
+        create.assert_not_awaited()
+        self.assertIn("НЕ выданы", text)
+
+    def test_telegram_reminder_text(self):
+        bot = SimpleNamespace(send_message=mock.AsyncMock())
+        report = {"players": 9, "candidates": [tg_cand(1, messages=12)]}
+        with mock.patch.object(inactivity, "fetch", mock.AsyncMock(return_value=None)), \
+                mock.patch.object(inactivity, "fetch_telegram", mock.AsyncMock(return_value=report)):
+            self.assertEqual(asyncio.run(inactivity.send_reminders(bot)), 1)
+        self.assertIn("12 сообщений", bot.send_message.await_args.args[1])
 
 
 if __name__ == "__main__":

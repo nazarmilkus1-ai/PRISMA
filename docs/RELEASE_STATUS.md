@@ -6,7 +6,7 @@ The inspected integration snapshot reports VERSION=2.1.0. Component package mani
 
 ## Scope of the release
 
-PRISMA 2.1.0 ships for a plain survival server. Maze Runner, the market and the Escape-From/wipe ideas are out of scope and were removed. Added since the first candidate: PRISMA Points (`/pp`, game menu shop and selling, event entry fees and prize payout), Minecraft encyclopedia in the Wiki, panel Wiki editor through the `staff_manage_wiki` gateway, `/menu` chest GUI (Java and Bedrock), personal fog-of-war `/worldmap`, Bedrock gamertags with spaces, one extra account per player on the other platform (never online at the same time), graves that last 15 minutes, and the weekly inactivity warning (off until `ACTIVITY_WARN=1`).
+PRISMA 2.1.0 ships for a plain survival server. Maze Runner, the market and the Escape-From/wipe ideas are out of scope and were removed. Added since the first candidate: PRISMA Points (`/pp`, game menu shop and selling, event entry fees and prize payout), Minecraft encyclopedia in the Wiki, panel Wiki editor through the `staff_manage_wiki` gateway, `/menu` chest GUI (Java and Bedrock), personal fog-of-war `/worldmap`, Bedrock gamertags with spaces, one extra account per player on the other platform (never online at the same time), graves that last 15 minutes, and the weekly inactivity warning (off until `ACTIVITY_WARN=1`): under 60 min in Minecraft or under 50 messages in the Telegram chat per 7 days = 1 warning (30 days, 5 active warnings = ban). Bans last 30 days; when the term ends the player stays banned until an admin presses «Вернуть» (the bot then unbans him in the chat and sends an invite link) or «Оставить бан»; `/bans` lists those waiting.
 
 ## Verification state
 
