@@ -6,12 +6,18 @@ redeploy, which exists solely behind a confirmation card for top staff.
 
   Render : RENDER_API_KEY, RENDER_SERVICE_ID
   Vercel : VERCEL_TOKEN, VERCEL_PROJECT_ID, (VERCEL_TEAM_ID)
-  GitHub : GITHUB_TOKEN, GITHUB_REPO  (owner/repo)
+  GitHub : GITHUB_TOKEN, GITHUB_REPO  (owner/repo), GITHUB_BASE_BRANCH (default PRISMA)
+
+Code access: files can be read (secret-looking paths are refused and content is redacted). The agent can only
+change code by opening a pull request from a fresh `agent/...` branch; it never merges and never touches the
+base branch or CI workflows. That call exists solely behind a confirmation card.
 """
 from __future__ import annotations
 
+import base64
 import os
 import re
+import time
 
 import aiohttp
 
@@ -154,3 +160,106 @@ async def github_status() -> dict:
     return {"open_pull_requests": out,
             "open_copilot_issues": [{"number": i.get("number"), "title": _short(i.get("title"), 80)}
                                     for i in (issues or []) if isinstance(i, dict) and "pull_request" not in i]}
+
+
+# ---------------------------------------------------------------- code access (GitHub)
+
+_BLOCKED_PATH = re.compile(
+    r"(^|/)(\.env[^/]*|[^/]*\.env|[^/]*secret[^/]*|[^/]*\.pem|[^/]*\.key|id_rsa[^/]*|\.git/.*)$", re.I)
+_PROTECTED_WRITE = ("/.github/", ".github/", "node_modules/", ".git/")
+MAX_FILES = 5
+MAX_FILE_CHARS = 60_000
+READ_CHARS = 12_000
+
+
+def _gh_headers() -> dict:
+    return {"Authorization": f"Bearer {_env('GITHUB_TOKEN')}", "Accept": "application/vnd.github+json"}
+
+
+def _gh_repo() -> tuple[str | None, str | None]:
+    if (err := missing("GITHUB_TOKEN", "GITHUB_REPO")):
+        return None, err
+    repo = _env("GITHUB_REPO")
+    return (repo, None) if _REPO.match(repo) else (None, "bad GITHUB_REPO")
+
+
+def safe_path(path: str) -> str | None:
+    path = (path or "").strip().lstrip("/")
+    if not path or len(path) > 200 or ".." in path.split("/") or "\\" in path or _BLOCKED_PATH.search(path):
+        return None
+    return path
+
+
+async def github_read(path: str) -> dict:
+    repo, err = _gh_repo()
+    if err:
+        return {"error": err}
+    path = safe_path(path)
+    if not path:
+        return {"error": "path not allowed"}
+    ref = _env("GITHUB_BASE_BRANCH") or "PRISMA"
+    data, err = await _request("GET", f"https://api.github.com/repos/{repo}/contents/{path}", _gh_headers(), {"ref": ref})
+    if err:
+        return {"error": f"GitHub {err}"}
+    if isinstance(data, list):
+        return {"directory": path, "entries": [{"name": e.get("name"), "type": e.get("type")} for e in data[:80] if isinstance(e, dict)]}
+    if not isinstance(data, dict) or data.get("encoding") != "base64":
+        return {"error": "not a text file"}
+    try:
+        text = base64.b64decode(data.get("content") or "").decode("utf-8")
+    except Exception:
+        return {"error": "binary file"}
+    return {"path": path, "ref": ref, "truncated": len(text) > READ_CHARS, "content": redact(text[:READ_CHARS])}
+
+
+def validate_change(files: list) -> tuple[list[dict] | None, str | None]:
+    if not isinstance(files, list) or not files:
+        return None, "files required"
+    if len(files) > MAX_FILES:
+        return None, f"at most {MAX_FILES} files per change"
+    out = []
+    for f in files:
+        if not isinstance(f, dict):
+            return None, "bad file entry"
+        path = safe_path(str(f.get("path") or ""))
+        content = f.get("content")
+        if not path or any(path.startswith(p) or p in path for p in _PROTECTED_WRITE):
+            return None, f"path not allowed: {str(f.get('path'))[:80]}"
+        if not isinstance(content, str) or len(content) > MAX_FILE_CHARS:
+            return None, f"content missing or too large: {path}"
+        out.append({"path": path, "content": content})
+    return out, None
+
+
+async def github_open_pr(title: str, body: str, files: list[dict]) -> tuple[bool, str]:
+    """Create a fresh branch, commit the files and open a PR. Never merges; never writes to the base branch."""
+    repo, err = _gh_repo()
+    if err:
+        return False, err
+    base = _env("GITHUB_BASE_BRANCH") or "PRISMA"
+    h = _gh_headers()
+    ref, err = await _request("GET", f"https://api.github.com/repos/{repo}/git/ref/heads/{base}", h)
+    if err:
+        return False, f"base branch: {err}"
+    sha = ((ref or {}).get("object") or {}).get("sha")
+    branch = f"agent/{time.strftime('%Y%m%d-%H%M%S')}"
+    _, err = await _request("POST", f"https://api.github.com/repos/{repo}/git/refs", h,
+                            json_body={"ref": f"refs/heads/{branch}", "sha": sha})
+    if err:
+        return False, f"create branch: {err}"
+    for f in files:
+        url = f"https://api.github.com/repos/{repo}/contents/{f['path']}"
+        existing, _e = await _request("GET", url, h, {"ref": branch})
+        payload = {"message": f"agent: {title[:60]}", "branch": branch,
+                   "content": base64.b64encode(f["content"].encode("utf-8")).decode()}
+        if isinstance(existing, dict) and existing.get("sha"):
+            payload["sha"] = existing["sha"]
+        _, err = await _request("PUT", url, h, json_body=payload)
+        if err:
+            return False, f"commit {f['path']}: {err}"
+    pr, err = await _request("POST", f"https://api.github.com/repos/{repo}/pulls", h, json_body={
+        "title": title[:120], "head": branch, "base": base,
+        "body": (body or "")[:3000] + "\n\n_Открыто PRISMA_AGENT после подтверждения администратором. Не слито — проверь и смержи сам._"})
+    if err:
+        return False, f"open PR: {err}"
+    return True, f"PR #{(pr or {}).get('number')}: {(pr or {}).get('html_url')}"

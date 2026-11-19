@@ -18,7 +18,7 @@ jobs:
     steps:
       - name: Call guardian tick
         env:
-          GUARDIAN_URL: ${{ secrets.GUARDIAN_URL }}
+          GUARDIAN_URL: ${{ secrets.GUARDIAN_URL || 'https://prisma-minecraft.vercel.app' }}
           GUARDIAN_SECRET: ${{ secrets.GUARDIAN_SECRET }}
         run: |
           if [ -z "$GUARDIAN_URL" ] || [ -z "$GUARDIAN_SECRET" ]; then

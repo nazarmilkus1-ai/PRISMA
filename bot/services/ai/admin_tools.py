@@ -99,6 +99,15 @@ TOOLS = [
     _fn("vercel_status", "Последние деплои сайта на Vercel (состояние, ветка, коммит)."),
     _fn("vercel_deployment", "Подробности деплоя Vercel: состояние и текст ошибки сборки.", {"id": {"type": "string"}}, ["id"]),
     _fn("github_status", "Открытые PR репозитория и задачи, заведённые Copilot."),
+    _fn("github_read", "Прочитать файл или папку репозитория (код бота, панели, сайта, плагина). Секретные файлы недоступны.",
+        {"path": {"type": "string", "description": "например bot/main.py или bot/handlers"}}, ["path"]),
+    _fn("propose_code_change",
+        "Предложить изменение кода: откроет Pull Request из новой ветки agent/… ТОЛЬКО после кнопки подтверждения высшей роли. "
+        "Сам ничего не сливает. До этого прочитай нужные файлы через github_read и дай ПОЛНЫЙ новый текст каждого файла (до 5).",
+        {"title": {"type": "string"}, "description": {"type": "string"},
+         "files": {"type": "array", "items": {"type": "object",
+                   "properties": {"path": {"type": "string"}, "content": {"type": "string"}},
+                   "required": ["path", "content"]}}}, ["title", "description", "files"]),
     _fn("propose_render_redeploy", "Предложить перезапуск деплоя бота на Render (только высшие роли, с подтверждением)."),
     _fn("propose_announcement", "Подготовить объявление для сообщества (карточка с подтверждением, только высшие роли).",
         {"text": {"type": "string"}}, ["text"]),
@@ -123,6 +132,7 @@ _PERMISSION = {
     "list_support_requests": "player.view", "propose_support_resolve": "player.view",
     "render_status": "system.health", "render_logs": "system.health", "vercel_status": "system.health",
     "vercel_deployment": "system.health", "github_status": "system.health",
+    "github_read": "system.health", "propose_code_change": "system.health",
     "propose_render_redeploy": "system.health", "propose_announcement": "system.health",
     "punishment_history": "punishment.view_history", "propose_punishment": "punishment.view_history",
 }
@@ -331,6 +341,25 @@ async def execute(name: str, args: dict, ctx: Context) -> dict:
         return await ops.vercel_deployment(str(args.get("id") or ""))
     if name == "github_status":
         return await ops.github_status()
+    if name == "github_read":
+        return await ops.github_read(str(args.get("path") or ""))
+    if name == "propose_code_change":
+        if not await _is_owner(ctx.admin_id):
+            return {"error": "only the highest staff role can propose this"}
+        title = str(args.get("title") or "").strip()[:120]
+        if len(title) < 5:
+            return {"error": "title too short"}
+        files, err = ops.validate_change(args.get("files"))
+        if err:
+            return {"error": err}
+        if (err := ops.missing("GITHUB_TOKEN", "GITHUB_REPO")):
+            return {"error": err}
+        draft = new_draft(ctx.admin_id, "pr", {"title": title, "body": str(args.get("description") or "")[:2500], "files": files})
+        listing = "\n".join(f"• <code>{escape(f['path'])}</code> ({len(f['content'])} симв.)" for f in files)
+        ctx.cards.append((f"🛠 <b>Предложение PRISMA_AGENT: Pull Request</b>\n<b>{escape(title)}</b>\n{listing}\n\n"
+                          "Будет создана ветка agent/… и открыт PR. Ничего не сливается — смержишь сам.",
+                          _ops_card("pr", draft, "✅ Открыть PR")))
+        return {"ok": "confirmation card shown; nothing is changed until the admin taps the button"}
     if name in {"propose_render_redeploy", "propose_announcement"}:
         if not await _is_owner(ctx.admin_id):
             return {"error": "only the highest staff role can propose this"}

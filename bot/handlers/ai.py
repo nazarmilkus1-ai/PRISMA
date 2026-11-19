@@ -672,7 +672,7 @@ async def _finish_card(callback: types.CallbackQuery, text: str) -> None:
 async def ops_card(callback: types.CallbackQuery):
     """Confirm cards for top-staff operations. Ownership, admin mode and the top role are re-checked on every tap."""
     parts = (callback.data or "").split(":")
-    if len(parts) != 4 or parts[1] not in {"rd", "an"} or parts[2] not in {"ok", "no"}:
+    if len(parts) != 4 or parts[1] not in {"rd", "an", "pr"} or parts[2] not in {"ok", "no"}:
         await callback.answer("Кнопка устарела.", show_alert=True)
         return
     _, kind, action, draft_id = parts
@@ -690,7 +690,16 @@ async def ops_card(callback: types.CallbackQuery):
     if not (context.get("is_staff") and "*" in context.get("permissions", [])) or not await is_admin_mode(admin_id):
         await callback.answer("❌ Недостаточно прав.", show_alert=True)
         return
-    if kind == "rd":
+    if kind == "pr":
+        from services.ai import ops
+        payload = draft["payload"]
+        files, verr = ops.validate_change(payload.get("files"))
+        if verr:
+            ok, detail = False, verr
+        else:
+            ok, detail = await ops.github_open_pr(payload["title"], payload.get("body", ""), files)
+        text = f"🛠 {detail}" if ok else f"❌ Не удалось открыть PR: {detail}"
+    elif kind == "rd":
         from services.ai import ops
         ok, detail = await ops.render_redeploy()
         text = f"🚀 Деплой запущен ({detail})." if ok else f"❌ Не удалось перезапустить: {detail}"
