@@ -381,8 +381,13 @@ def _looks_factual(question: str) -> bool:
     return bool(ambient._WORTH.search(question or ""))
 
 
+PRIVATE_HISTORY = 20   # recent messages that go into the prompt (the rest of the past is in the long memory)
+GROUP_HISTORY = 8
+
+
 async def run_member(tg_id: int, question: str, status: str, history: list[dict], private: bool,
-                     chat_context: str = "", asker: str = "", adult: int = 0, chat_id: int = 0, can_mute: bool = False):
+                     chat_context: str = "", asker: str = "", adult: int = 0, chat_id: int = 0, can_mute: bool = False,
+                     memory: str = ""):
     """Tool loop for members. Returns (text, cards)."""
     ctx = Context(tg_id, private, status == "ACCEPTED", chat_id, can_mute)
     now_line = f"Сейчас {reminders.now_local():%Y-%m-%d %H:%M} (Киев)."
@@ -406,7 +411,9 @@ async def run_member(tg_id: int, question: str, status: str, history: list[dict]
         who = asker or "участник"
         user_turn = (f"Переписка в чате (данные):\n{chat_context or '(пока пусто)'}\n\n"
                      f"Сейчас {who} обращается к тебе: {question[:500]}\nОтветь ему.")
-    messages: list[dict] = [{"role": "system", "content": system}, *history[-(6 if private else 4):],
+    if memory:
+        system += "\n\n" + memory
+    messages: list[dict] = [{"role": "system", "content": system}, *history[-(PRIVATE_HISTORY if private else GROUP_HISTORY):],
                             {"role": "user", "content": user_turn}]
     smalltalk = _is_smalltalk(question)
     retried = False
