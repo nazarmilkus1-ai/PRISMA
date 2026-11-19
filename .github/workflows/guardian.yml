@@ -1,0 +1,29 @@
+name: guardian-tick
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: guardian-tick
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Call guardian tick
+        env:
+          GUARDIAN_URL: ${{ secrets.GUARDIAN_URL }}
+          GUARDIAN_SECRET: ${{ secrets.GUARDIAN_SECRET }}
+        run: |
+          if [ -z "$GUARDIAN_URL" ] || [ -z "$GUARDIAN_SECRET" ]; then
+            echo "GUARDIAN_URL / GUARDIAN_SECRET not set; skipping"; exit 0
+          fi
+          curl -fsS --max-time 90 --retry 2 -X POST \
+            -H "Authorization: Bearer $GUARDIAN_SECRET" \
+            "$GUARDIAN_URL/admin/api/guardian/tick"

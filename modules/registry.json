@@ -712,7 +712,8 @@
         "MODULE_IDS",
         "MODULE_METADATA",
         "MODULE_STATE_RPC",
-        "STAFF_MODULE_RPC"
+        "STAFF_MODULE_RPC",
+        "STAFF_GUARDIAN_RPC"
       ],
       "sourceRoots": [
         "packages/contracts/src",

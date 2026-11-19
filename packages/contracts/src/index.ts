@@ -27,6 +27,11 @@ export const STAFF_MODULE_RPC = {
   set: "staff_set_module_state",
 } as const;
 
+export const STAFF_GUARDIAN_RPC = {
+  overview: "staff_guardian_overview",
+  decide: "staff_guardian_decide",
+} as const;
+
 export { isModuleEffectivelyEnabled } from "./module-runtime";
 export type { ModuleEnabledMap } from "./module-runtime";
 
