@@ -1,7 +1,7 @@
 name: Prisma Minecraft Plugin Artifact
 on:
   push:
-    branches: [main, rebuild/prisma-v3]
+    branches: [main, PRISMA, rebuild/prisma-v3]
     paths:
       - "minecraft-plugin/**"
       - "packages/contracts/minecraft-commands.json"
