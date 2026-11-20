@@ -534,7 +534,7 @@ if (participantWorkflow.includes("  pull_request:")) {
 const pluginWorkflow = read(".github/workflows/plugin-artifact.yml");
 for (const fragment of [
   "  push:",
-  "    branches: [main, rebuild/prisma-v3]",
+  "    branches: [main, PRISMA, rebuild/prisma-v3]",
   '      - "minecraft-plugin/**"',
   '      - ".github/workflows/plugin-artifact.yml"',
   "  workflow_dispatch:",
