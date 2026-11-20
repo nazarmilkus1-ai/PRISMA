@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, ProgressBar } from "@/components/ui";
 import { Modal } from "@/components/Modal";
@@ -16,15 +16,27 @@ type Poll = {
 
 export function VotingPanel({ initialPolls }: { initialPolls: Poll[] }) {
   const [creating, setCreating] = useState(false);
+  const [polls, setPolls] = useState(initialPolls);
   const router = useRouter();
 
+  useEffect(() => setPolls(initialPolls), [initialPolls]);
+
   async function toggleActive(id: string, next: boolean) {
-    await fetch(`/admin/api/polls/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ isActive: next }),
-    });
-    router.refresh();
+    // Optimistic: flip locally first, roll back if the server rejects it.
+    const previous = polls;
+    setPolls((list) => list.map((p) => (p.id === id ? { ...p, is_active: next } : p)));
+    try {
+      const res = await fetch(`/admin/api/polls/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: next }),
+      });
+      if (!res.ok) throw new Error("save failed");
+      router.refresh();
+    } catch {
+      setPolls(previous);
+      window.alert("Не удалось изменить голосование.");
+    }
   }
 
   return (
@@ -36,11 +48,11 @@ export function VotingPanel({ initialPolls }: { initialPolls: Poll[] }) {
         + Новое голосование
       </button>
 
-      {initialPolls.length === 0 ? (
+      {polls.length === 0 ? (
         <Card className="p-10 text-center text-sm text-moon-dim">Пока нет ни одного голосования.</Card>
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {initialPolls.map((poll) => {
+          {polls.map((poll) => {
             const total = poll.votes.reduce((a, b) => a + b, 0);
             return (
               <Card key={poll.id} className="p-5">

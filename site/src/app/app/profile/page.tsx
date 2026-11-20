@@ -212,15 +212,15 @@ export default async function ProfilePage({
               <p className="text-sm font-medium">Входящие запросы</p>
               <div className="mt-3 space-y-2">
                 {social.marriage_requests_in.map((x: any) => (
-                  <div key={"mi" + x.id} className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3 text-sm">
+                  <div key={"mi" + x.id} data-opt-item className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3 text-sm">
                     <span><b>Брак</b> · {x.requester_nickname}</span>
                     <div className="flex gap-2">
-                      <form action="/api/profile/social" method="post">
+                      <form action="/api/profile/social" method="post" data-opt-hide-item data-opt-silent>
                         <input type="hidden" name="action" value="MARRIAGE_ACCEPT" />
                         <input type="hidden" name="request_id" value={x.id} />
                         <Button type="submit" size="sm">Принять</Button>
                       </form>
-                      <form action="/api/profile/social" method="post">
+                      <form action="/api/profile/social" method="post" data-opt-hide-item data-opt-silent>
                         <input type="hidden" name="action" value="MARRIAGE_REJECT" />
                         <input type="hidden" name="request_id" value={x.id} />
                         <Button type="submit" variant="outline" size="sm">Отклонить</Button>
@@ -230,15 +230,15 @@ export default async function ProfilePage({
                 ))}
 
                 {social.relationship_requests_in.map((x: any) => (
-                  <div key={"ri" + x.id} className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3 text-sm">
+                  <div key={"ri" + x.id} data-opt-item className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3 text-sm">
                     <span><b>Связь</b> · {x.requester_nickname}</span>
                     <div className="flex gap-2">
-                      <form action="/api/profile/social" method="post">
+                      <form action="/api/profile/social" method="post" data-opt-hide-item data-opt-silent>
                         <input type="hidden" name="action" value="RELATIONSHIP_ACCEPT" />
                         <input type="hidden" name="request_id" value={x.id} />
                         <Button type="submit" size="sm">Принять</Button>
                       </form>
-                      <form action="/api/profile/social" method="post">
+                      <form action="/api/profile/social" method="post" data-opt-hide-item data-opt-silent>
                         <input type="hidden" name="action" value="RELATIONSHIP_REJECT" />
                         <input type="hidden" name="request_id" value={x.id} />
                         <Button type="submit" variant="outline" size="sm">Отклонить</Button>
@@ -255,9 +255,9 @@ export default async function ProfilePage({
               <p className="text-sm font-medium">Ожидающие запросы</p>
               <div className="mt-3 space-y-2">
                 {social.marriage_requests_out.map((x: any) => (
-                  <div key={"mo" + x.id} className="flex items-center justify-between gap-3 rounded-md border p-3 text-sm">
+                  <div key={"mo" + x.id} data-opt-item className="flex items-center justify-between gap-3 rounded-md border p-3 text-sm">
                     <span><b>Брак</b> · {x.target_nickname}</span>
-                    <form action="/api/profile/social" method="post">
+                    <form action="/api/profile/social" method="post" data-opt-hide-item data-opt-silent>
                       <input type="hidden" name="action" value="MARRIAGE_CANCEL_REQUEST" />
                       <input type="hidden" name="request_id" value={x.id} />
                       <Button type="submit" variant="outline" size="sm">Отменить</Button>
@@ -265,9 +265,9 @@ export default async function ProfilePage({
                   </div>
                 ))}
                 {social.relationship_requests_out.map((x: any) => (
-                  <div key={"ro" + x.id} className="flex items-center justify-between gap-3 rounded-md border p-3 text-sm">
+                  <div key={"ro" + x.id} data-opt-item className="flex items-center justify-between gap-3 rounded-md border p-3 text-sm">
                     <span><b>Связь</b> · {x.target_nickname}</span>
-                    <form action="/api/profile/social" method="post">
+                    <form action="/api/profile/social" method="post" data-opt-hide-item data-opt-silent>
                       <input type="hidden" name="action" value="RELATIONSHIP_CANCEL_REQUEST" />
                       <input type="hidden" name="request_id" value={x.id} />
                       <Button type="submit" variant="outline" size="sm">Отменить</Button>

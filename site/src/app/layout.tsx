@@ -6,6 +6,7 @@ import { PrismRays } from "@/components/PrismRays";
 import { GlassPointer } from "@/components/GlassPointer";
 import { SiteFooter } from "@/components/SiteFooter";
 import { AskWidget } from "@/components/AskWidget";
+import { OptimisticForms } from "@/components/OptimisticForms";
 import { QuickNav } from "@/components/QuickNav";
 import { PrismaProcessNotificationProvider } from "@/components/PrismaProcessNotification";
 import "./globals.css";
@@ -70,6 +71,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <main id="content" className="relative z-10 prisma-page-enter min-h-[calc(100vh-64px)]">{children}</main>
               <SiteFooter />
               <AskWidget />
+              <OptimisticForms />
             </>
           )}
         </PrismaProcessNotificationProvider>

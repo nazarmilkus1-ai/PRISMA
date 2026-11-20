@@ -70,29 +70,38 @@ export function ModulesPanel({
       window.alert("Укажите причину отключения механики.");
       return;
     }
+    // Optimistic: flip the switch immediately, sync in the background, roll back on failure.
+    const previous = modules;
+    const previousReasonFor = reasonFor;
+    const previousReason = reason;
+    const nextReason = (reasonFor === module.id ? reason : module.reason) || null;
+    setModules((current) =>
+      current.map((item) =>
+        item.id === module.id
+          ? { ...item, enabled, reason: nextReason, updated_at: new Date().toISOString() }
+          : item,
+      ),
+    );
+    setReasonFor(null);
+    setReason("");
     setSaving(module.id);
     try {
       const response = await fetch("/admin/api/modules", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          module_id: module.id,
-          enabled,
-          reason: (reasonFor === module.id ? reason : module.reason) || null,
-        }),
+        body: JSON.stringify({ module_id: module.id, enabled, reason: nextReason }),
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || "Не удалось изменить модуль.");
-      setModules((current) =>
-        current.map((item) =>
-          item.id === module.id
-            ? { ...item, enabled, reason: payload.reason ?? item.reason, updated_at: new Date().toISOString() }
-            : item,
-        ),
-      );
-      setReasonFor(null);
-      setReason("");
+      if (payload.reason !== undefined) {
+        setModules((current) =>
+          current.map((item) => (item.id === module.id ? { ...item, reason: payload.reason ?? item.reason } : item)),
+        );
+      }
     } catch (error) {
+      setModules(previous);
+      setReasonFor(previousReasonFor);
+      setReason(previousReason);
       window.alert(error instanceof Error ? error.message : "Не удалось изменить модуль.");
     } finally {
       setSaving(null);

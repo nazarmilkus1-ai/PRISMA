@@ -95,11 +95,11 @@ export default async function ClansPage({
        <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--muted-foreground)]">Входящие</p>
        <div className="space-y-2">
         {incomingInvites.slice(0,5).map((invite:any)=>(
-         <div key={invite.id} className="prisma-glass-surface prisma-glass-hover flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3 text-sm">
+         <div key={invite.id} data-opt-item className="prisma-glass-surface prisma-glass-hover flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3 text-sm">
           <div><span>{invite.name||invite.clans?.name||"Клан"} {invite.tag||invite.clans?.tag?"["+(invite.tag||invite.clans?.tag)+"]":""}</span>{invite.inviter_nickname?<p className="mt-1 text-[10px] text-[var(--muted-foreground)]">Пригласил: {invite.inviter_nickname}</p>:null}</div>
           <div className="flex gap-2">
-           <form action="/api/clans/action" method="post"><input type="hidden" name="action" value="accept"/><input type="hidden" name="invite_id" value={invite.id}/><button className="rounded-lg bg-[var(--primary)] px-3 py-1.5 text-xs font-semibold text-[var(--primary-foreground)]">Принять</button></form>
-           <form action="/api/clans/action" method="post"><input type="hidden" name="action" value="decline"/><input type="hidden" name="invite_id" value={invite.id}/><button className="rounded-lg border px-3 py-1.5 text-xs">Отклонить</button></form>
+           <form action="/api/clans/action" method="post" data-opt-hide-item data-opt-silent><input type="hidden" name="action" value="accept"/><input type="hidden" name="invite_id" value={invite.id}/><button className="rounded-lg bg-[var(--primary)] px-3 py-1.5 text-xs font-semibold text-[var(--primary-foreground)]">Принять</button></form>
+           <form action="/api/clans/action" method="post" data-opt-hide-item data-opt-silent><input type="hidden" name="action" value="decline"/><input type="hidden" name="invite_id" value={invite.id}/><button className="rounded-lg border px-3 py-1.5 text-xs">Отклонить</button></form>
           </div>
          </div>
         ))}
@@ -111,9 +111,9 @@ export default async function ClansPage({
        <div className="mb-2 flex items-center justify-between"><p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--muted-foreground)]">Отправленные</p><span className="text-xs text-[var(--muted-foreground)]">{outgoingInvites.length}</span></div>
        <div className="space-y-2">
         {outgoingInvites.slice(0,8).map((invite:any)=>(
-         <div key={invite.id} className="prisma-glass-surface prisma-glass-hover flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3 text-sm">
+         <div key={invite.id} data-opt-item className="prisma-glass-surface prisma-glass-hover flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3 text-sm">
           <div><p className="font-medium">{invite.invitee_nickname||"Игрок"}</p><p className="mt-1 text-[10px] text-[var(--muted-foreground)]">Отправлено {new Date(invite.created_at).toLocaleDateString("ru-RU")} · до {new Date(invite.expires_at).toLocaleDateString("ru-RU")}</p></div>
-          <form action="/api/clans/action" method="post"><input type="hidden" name="action" value="cancel_invite"/><input type="hidden" name="invite_id" value={invite.id}/><button className="rounded-lg border px-2.5 py-1.5 text-xs font-semibold">Отменить</button></form>
+          <form action="/api/clans/action" method="post" data-opt-hide-item data-opt-silent><input type="hidden" name="action" value="cancel_invite"/><input type="hidden" name="invite_id" value={invite.id}/><button className="rounded-lg border px-2.5 py-1.5 text-xs font-semibold">Отменить</button></form>
          </div>
         ))}
        </div>
