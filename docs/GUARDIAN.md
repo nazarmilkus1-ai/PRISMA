@@ -18,7 +18,9 @@
 | `RENDER_API_KEY`, `RENDER_SERVICE_ID` | рестарт/деплой/статус (без них — только алерты) |
 | `GUARDIAN_ALERT_THREAD_ID` | тема для алертов (опц.) |
 
-GitHub secrets: `GUARDIAN_URL` (например `https://prisma-minecraft.vercel.app`), `GUARDIAN_SECRET`.
+Основной триггер — Supabase `pg_cron` + `pg_net` каждые 5 минут (`private.guardian_ping`, секрет в Vault под именем `guardian_secret`). GitHub cron — запасной (GitHub сильно задерживает расписания).
+
+GitHub secrets (для запасного триггера): `GUARDIAN_URL` (например `https://prisma-minecraft.vercel.app`), `GUARDIAN_SECRET`.
 
 ## Самовыключение
 Охранник вне Render и вне бота, поэтому рестарт/деплой Render его не отключает. Бот-агент (A) не может менять Vercel/GitHub-часть охранника без подтверждения.
