@@ -1,3 +1,4 @@
+import { OptimisticToggle } from "@/components/OptimisticToggle";
 import { PARTICIPANT_MINECRAFT_AUTH_RPC, PARTICIPANT_NOTIFICATION_RPC } from "@prisma-eco/contracts";
 import Link from "next/link";
 import { getPublicModuleAvailability } from "@/lib/modules";
@@ -109,7 +110,7 @@ export default async function SettingsPage({
                   {minecraftConfigured ? "Пароль уже установлен." : "Пароль ещё не установлен."}
                 </p>
               </div>
-              <form action="/api/minecraft-auth/password" method="post" className="grid gap-4">
+              <form action="/api/minecraft-auth/password" method="post" data-native className="grid gap-4">
                 {minecraftConfigured ? (
                   <label className="grid gap-1.5 text-sm font-medium">
                     Текущий пароль
@@ -155,31 +156,17 @@ export default async function SettingsPage({
         <CardContent className="p-0">
           <div className="divide-y">
             {rows.map(([key, label]) => (
-              <form
-                key={key}
-                action="/api/settings/notifications"
-                method="post"
-                className="flex items-center justify-between gap-4 px-5 py-4"
-              >
-                <input type="hidden" name="key" value={key} />
-                <input
-                  type="hidden"
-                  name="value"
-                  value={String(!(prefs as any)?.[key])}
-                />
+              <div key={key} className="flex items-center justify-between gap-4 px-5 py-4">
                 <span className="text-sm font-medium">{label}</span>
-                <button
-                  type="submit"
-                  className={[
-                    "prisma-glass-control prisma-glass-hover rounded-full border px-3 py-1 text-xs font-medium",
-                    (prefs as any)?.[key] === false
-                      ? "text-muted-foreground hover:text-foreground"
-                      : "border-primary/40 bg-transparent text-primary",
-                  ].join(" ")}
-                >
-                  {(prefs as any)?.[key] === false ? "Выключено" : "Включено"}
-                </button>
-              </form>
+                <OptimisticToggle
+                  action="/api/settings/notifications"
+                  itemKey={key}
+                  initialOn={(prefs as any)?.[key] !== false}
+                  className="prisma-glass-control prisma-glass-hover rounded-full border px-3 py-1 text-xs font-medium transition-colors"
+                  onClassName="border-primary/40 bg-transparent text-primary"
+                  offClassName="text-muted-foreground hover:text-foreground"
+                />
+              </div>
             ))}
           </div>
         </CardContent>

@@ -45,7 +45,7 @@ export default async function NotificationsPage({
           description="Все изменения и события, которые относятся к вашему аккаунту."
         />
         {unread > 0 ? (
-          <form action="/api/notifications/read" method="post">
+          <form action="/api/notifications/read" method="post" data-opt-hide data-opt-done="Все уведомления прочитаны">
             <button
               type="submit"
               className="prisma-glass-control prisma-glass-hover rounded-xl border px-4 py-2.5 text-sm font-semibold text-foreground"
@@ -68,6 +68,7 @@ export default async function NotificationsPage({
           return (
             <Card
               key={item.id}
+              data-opt-item
               className={[
                 "prisma-glass-surface prisma-glass-hover",
                 isUnread ? "border-[var(--primary)]/40" : "",
@@ -75,7 +76,7 @@ export default async function NotificationsPage({
             >
               <div className="flex gap-4 p-5">
                 <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl bg-[var(--muted)] text-xs font-bold">
-                  {isUnread ? "●" : "✓"}
+                  {isUnread ? (<><span data-opt-pending-hide>●</span><span data-opt-pending-only>✓</span></>) : "✓"}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-start justify-between gap-2">
@@ -108,7 +109,7 @@ export default async function NotificationsPage({
                     </div>
                   ) : null}
                   {isUnread ? (
-                    <form action="/api/notifications/read" method="post" className="mt-4">
+                    <form action="/api/notifications/read" method="post" className="mt-4" data-opt-hide data-opt-silent>
                       <input type="hidden" name="id" value={item.id} />
                       <button
                         type="submit"

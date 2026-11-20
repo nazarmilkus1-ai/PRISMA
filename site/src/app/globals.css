@@ -728,3 +728,56 @@ body:has([data-prisma-participant]) [data-prisma-public-header] {
     animation: none;
   }
 }
+
+/* ---- Optimistic UI (see components/OptimisticForms.tsx) ---- */
+[data-opt-busy] { display: none; }
+form[data-opt="pending"] [data-opt-idle] { display: none; }
+form[data-opt="pending"] [data-opt-busy] { display: inline; }
+form[data-opt="pending"] button,
+form[data-opt="pending"] input[type="submit"] { pointer-events: none; opacity: 0.75; }
+/* Hide the nearest item (or the form itself) the moment the action is sent. */
+form[data-opt-hide][data-opt="pending"] { display: none; }
+[data-opt-item]:has(form[data-opt="pending"]) [data-opt-pending-hide] { display: none; }
+[data-opt-item]:has(form[data-opt="pending"]) [data-opt-pending-only] { display: inline; }
+[data-opt-pending-only] { display: none; }
+[data-opt-item]:has(form[data-opt-hide-item][data-opt="pending"]) {
+  opacity: 0;
+  transform: scale(0.98);
+  max-height: 0;
+  margin-block: 0;
+  padding-block: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease, max-height 0.28s ease 0.1s, margin 0.28s ease 0.1s, padding 0.28s ease 0.1s;
+}
+
+.prisma-toasts {
+  position: fixed;
+  left: 50%;
+  bottom: max(1.25rem, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
+  pointer-events: none;
+  width: min(92vw, 26rem);
+}
+.prisma-toast {
+  pointer-events: auto;
+  padding: 0.6rem 0.95rem;
+  border-radius: 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.15));
+  background: var(--card, rgba(20, 20, 28, 0.92));
+  color: var(--foreground, #fff);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  animation: prisma-toast-in 0.18s ease-out;
+}
+.prisma-toast-err { border-color: rgba(239, 68, 68, 0.6); }
+@keyframes prisma-toast-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  [data-opt-item]:has(form[data-opt-hide-item][data-opt="pending"]), .prisma-toast { transition: none; animation: none; }
+}

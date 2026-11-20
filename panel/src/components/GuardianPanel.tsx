@@ -31,12 +31,15 @@ export function GuardianPanel({ initial, canManage }: { initial: GuardianOvervie
   const decide = async (id: string, approve: boolean) => {
     setBusy(id);
     setMessage(null);
+    const previous = data;
+    setData((d) => ({ ...d, proposals: d.proposals.map((p) => (p.id === id ? { ...p, status: approve ? "approved" : "rejected" } : p)) }));
     const res = await fetch("/admin/api/guardian/proposals", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, approve }),
     });
     const body = await res.json().catch(() => ({}));
+    if (!res.ok) setData(previous);
     setMessage(res.ok ? (body.result ?? (approve ? "Готово." : "Отклонено.")) : (typeof body.error === "string" ? body.error : "Ошибка."));
     setBusy(null);
     await refresh();

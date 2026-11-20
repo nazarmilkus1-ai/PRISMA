@@ -68,12 +68,13 @@ export default async function EventPage({
       <div className="mt-5 flex flex-wrap items-center gap-3">
         <p className="max-w-3xl text-sm leading-7 text-muted-foreground">{event.description}</p>
         {canRegister&&registrationOpen?(
-          <form action="/api/events/register" method="post" className="shrink-0">
+          <form action="/api/events/register" method="post" className="shrink-0" data-opt-silent>
             <input type="hidden" name="event_id" value={event.id}/>
             <input type="hidden" name="slug" value={slug}/>
             <input type="hidden" name="action" value={registered?"unregister":"register"}/>
             <button className={registered?"prisma-glass-control prisma-glass-hover rounded-xl border px-4 py-2.5 text-sm font-semibold":"rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-[var(--primary-foreground)]"}>
-              {registered?"Отменить регистрацию":"Зарегистрироваться"}
+              <span data-opt-idle>{registered?"Отменить регистрацию":"Зарегистрироваться"}</span>
+              <span data-opt-busy>{registered?"Регистрация отменена":"Вы зарегистрированы ✓"}</span>
             </button>
           </form>
         ):null}
