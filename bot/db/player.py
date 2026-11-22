@@ -68,6 +68,7 @@ async def get_stats(tg_id: int):
 
 
 async def get_achievements(tg_id: int):
+    TgIdValidation.validate(tg_id, "player.get_achievements")
     result = await bot_get_achievements(tg_id)
     if result.error:
         return [], result.error
