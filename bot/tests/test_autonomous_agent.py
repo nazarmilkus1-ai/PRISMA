@@ -183,3 +183,40 @@ class ReadableReportTests(unittest.IsolatedAsyncioTestCase):
             text, markup = await report.build()
         for part in ("Что сделал", "Что дальше", "Готово, ждёт вашей кнопки", "Слить", "В памяти заметок: 3", "Второй ИИ проверил"):
             self.assertIn(part, text if part != "Слить" else str(markup))
+
+
+class EditToolTests(unittest.IsolatedAsyncioTestCase):
+    async def _run(self, text, old, new):
+        ctx = tools.Ctx(bot=None, goal={"id": 1, "title": "T", "branch": "agent/t-1-1", "head_sha": "x"})
+        captured = {}
+
+        async def fake_commit(c, message, files):
+            captured["files"] = files
+            return {"ok": True}
+
+        with patch.object(github, "read_raw", AsyncMock(return_value=(text, None))), patch.object(tools, "_commit", fake_commit):
+            out = json.loads(await tools.run_tool(ctx, "edit", {"path": "bot/a.py", "old_str": old, "new_str": new, "message": "m"}))
+        return out, captured
+
+    async def test_unique_replace(self):
+        out, cap = await self._run("a = 1\nb = 2\n", "b = 2", "b = 3")
+        self.assertTrue(out["ok"])
+        self.assertEqual(cap["files"][0]["content"], "a = 1\nb = 3\n")
+
+    async def test_ambiguous_or_missing(self):
+        self.assertIn("error", (await self._run("x\nx\n", "x", "y"))[0])
+        self.assertIn("error", (await self._run("x\n", "zzz", "y"))[0])
+        self.assertIn("error", (await self._run("x\n", "x", "x"))[0])
+
+    async def test_repeated_reads_are_refused(self):
+        ctx = tools.Ctx(bot=None)
+        with patch.object(github, "read", AsyncMock(return_value={"path": "a", "content": "c"})):
+            first = json.loads(await tools.run_tool(ctx, "repo_read", {"path": "a"}))
+            second = json.loads(await tools.run_tool(ctx, "repo_read", {"path": "a"}))
+        self.assertNotIn("error", first)
+        self.assertIn("error", second)
+
+    def test_act_only_toolset_has_no_reads(self):
+        names = {t["function"]["name"] for t in tools.act_schemas()}
+        self.assertTrue({"edit", "commit", "finish_cycle"} <= names)
+        self.assertFalse(names & tools.READ_ONLY)

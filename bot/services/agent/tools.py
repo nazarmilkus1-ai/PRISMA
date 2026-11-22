@@ -36,6 +36,7 @@ class Ctx:
     step: int = 0
     live_at: float = 0.0
     counts: dict = field(default_factory=dict)
+    seen: set = field(default_factory=set)
 
 
 def _s(name: str, desc: str, props: dict, required: list[str] | None = None) -> dict:
@@ -44,6 +45,7 @@ def _s(name: str, desc: str, props: dict, required: list[str] | None = None) -> 
 
 
 _STR = {"type": "string"}
+READ_ONLY = {"repo_read", "repo_search", "web_fetch", "render_status", "render_logs", "vercel_status"}
 SCHEMAS = [
     _s("repo_read", "Прочитать файл или список папки в репозитории (по умолчанию из ветки PRISMA; ref — ветка цели).",
        {"path": _STR, "ref": _STR}, ["path"]),
@@ -51,6 +53,9 @@ SCHEMAS = [
     _s("commit", "Один атомарный коммит в ветку текущей цели (создаётся сама, PR открывается сам). files: [{path, content}] "
                  "или {path, delete:true}. Полное содержимое файла, не патч. Нельзя трогать .github/ и env-файлы.",
        {"message": _STR, "files": {"type": "array", "items": {"type": "object"}}}, ["message", "files"]),
+    _s("edit", "Точечная правка существующего файла: заменить old_str (точно как в файле, встречается ровно 1 раз) на new_str, "
+               "и закоммитить. Предпочитай это вместо commit для изменения существующих файлов.",
+       {"path": _STR, "old_str": _STR, "new_str": _STR, "message": _STR}, ["path", "old_str", "new_str", "message"]),
     _s("ci_status", "Состояние CI последнего коммита цели: проценты, упавшие проверки.", {}),
     _s("render_status", "Последние деплои бота на Render.", {}),
     _s("render_logs", "Последние логи бота на Render (без секретов).", {"limit": {"type": "integer"}}),
@@ -71,6 +76,11 @@ SCHEMAS = [
                        "next — что будешь делать дальше (1 предложение). Попадает в отчёт для админов.",
        {"summary": _STR, "next": _STR}, ["summary"]),
 ]
+
+
+def act_schemas() -> list[dict]:
+    """After a few steps of pure reading the model only gets tools that change things, so it cannot loop on reads."""
+    return [t for t in SCHEMAS if t["function"]["name"] not in READ_ONLY]
 
 
 def _clip(obj, n: int = config.TOOL_RESULT_CHARS) -> str:
@@ -175,7 +185,7 @@ def label(name: str, a: dict) -> str:
     path = str(a.get("path") or "")[:70]
     return {
         "repo_read": f"📖 Читаю {path}", "repo_search": f"🔎 Ищу в коде «{str(a.get('query') or '')[:40]}»",
-        "commit": f"✍️ Коммит: {str(a.get('message') or '')[:60]}", "ci_status": "🚦 Проверяю тесты (CI)",
+        "edit": f"✂️ Правлю {path}", "commit": f"✍️ Коммит: {str(a.get('message') or '')[:60]}", "ci_status": "🚦 Проверяю тесты (CI)",
         "render_status": "🛰 Смотрю деплои бота (Render)", "render_logs": "🛰 Читаю логи бота", "vercel_status": "▲ Смотрю деплои сайта (Vercel)",
         "web_fetch": "🌐 Читаю документацию", "goal_new": f"🎯 Новая цель: {str(a.get('title') or '')[:60]}",
         "goal_update": "📈 Обновляю прогресс", "memory_save": "🧠 Запоминаю", "memory_search": "🧠 Вспоминаю",
@@ -188,8 +198,14 @@ async def run_tool(ctx: Ctx, name: str, args: dict) -> str:
     ctx.actions.append(label(name, args if isinstance(args, dict) else {}))
     from .report import live_progress  # late import: report imports github, tools must stay importable without it
     await live_progress(ctx)
+    args = args if isinstance(args, dict) else {}
+    if name in READ_ONLY:
+        key = (name, json.dumps(args, sort_keys=True, ensure_ascii=False))
+        if key in ctx.seen:
+            return _clip({"error": "ты уже делал точно такой вызов, результат не изменится. Переходи к действию: edit/commit, goal_update или finish_cycle."})
+        ctx.seen.add(key)
     try:
-        return _clip(await _dispatch(ctx, name, args if isinstance(args, dict) else {}))
+        return _clip(await _dispatch(ctx, name, args), 26_000 if name == "repo_read" else config.TOOL_RESULT_CHARS)
     except Exception as exc:  # a tool must never crash the cycle
         logger.warning("agent tool %s failed: %s", name, exc)
         return _clip({"error": f"{type(exc).__name__}"})
@@ -201,9 +217,24 @@ async def _dispatch(ctx: Ctx, name: str, a: dict):
         ref = a.get("ref") if github.valid_branch(str(a.get("ref") or "")) else None
         return await github.read(str(a.get("path") or ""), ref or (goal or {}).get("branch") or None)
     if name == "repo_search":
-        return await github.search(str(a.get("query") or ""))
+        found = await github.search(str(a.get("query") or ""))
+        if not found.get("error") and not found.get("hits"):
+            found["hint"] = "поиск пуст (индекс GitHub неполный): открывай файлы напрямую через repo_read по списку файлов"
+        return found
     if name == "commit":
         return await _commit(ctx, str(a.get("message") or ""), a.get("files"))
+    if name == "edit":
+        old, new = str(a.get("old_str") or ""), str(a.get("new_str") or "")
+        if not old or old == new:
+            return {"error": "old_str пустой или совпадает с new_str"}
+        ref = (goal or {}).get("branch") if (goal or {}).get("branch") and (goal or {}).get("head_sha") else None
+        text, err = await github.read_raw(str(a.get("path") or ""), ref)
+        if err or text is None:
+            return {"error": f"не смог прочитать файл: {err}"}
+        if text.count(old) != 1:
+            return {"error": f"old_str должен встречаться ровно 1 раз, сейчас {text.count(old)}: прочитай файл и скопируй кусок точно"}
+        result = await _commit(ctx, str(a.get("message") or "agent: edit"), [{"path": str(a.get("path")), "content": text.replace(old, new, 1)}])
+        return result
     if name == "ci_status":
         return await github.ci((goal or {}).get("head_sha") or "")
     if name == "render_status":
