@@ -2,12 +2,13 @@ from aiogram import Router, types
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from html import escape
-from db.rpc import bot_change_minecraft_nick
+from db.rpc import bot_change_minecraft_nick, bot_get_profile
 from utils.permissions import DENIED_MESSAGE, is_approved
 from fsm.states import LinkForm
 from utils.helpers import validate_minecraft_nick
 
-router=Router()
+router = Router()
+
 
 @router.message(Command("link"))
 async def cmd_link(message: types.Message, state: FSMContext):
@@ -17,22 +18,33 @@ async def cmd_link(message: types.Message, state: FSMContext):
     await state.set_state(LinkForm.waiting_for_nick)
     await message.answer("🔗 Введите новый Minecraft-ник или /cancel.")
 
+
 @router.message(Command("cancel"), StateFilter(LinkForm.waiting_for_nick))
 async def cancel_link(message: types.Message, state: FSMContext):
-    await state.clear(); await message.answer("❌ Изменение ника отменено.")
+    await state.clear()
+    await message.answer("❌ Изменение ника отменено.")
+
 
 @router.message(StateFilter(LinkForm.waiting_for_nick))
 async def process_link(message: types.Message, state: FSMContext):
-    nick=(message.text or "").strip()
+    nick = (message.text or "").strip()
     if not await is_approved(message.from_user.id):
         await state.clear()
         await message.answer(DENIED_MESSAGE)
         return
-    # The platform is not known here; the RPC re-checks the nick against the profile's platform.
-    valid,error=validate_minecraft_nick(nick)
-    if not valid: await message.answer(f"❌ {error}"); return
 
-    result=await bot_change_minecraft_nick(message.from_user.id,nick)
+    # Получаем профиль пользователя, чтобы узнать платформу для более точной валидации
+    profile_result = await bot_get_profile(message.from_user.id)
+    platform = None
+    if not profile_result.error and isinstance(profile_result.data, dict):
+        platform = profile_result.data.get("platform")
+
+    valid, error = validate_minecraft_nick(nick, platform)
+    if not valid:
+        await message.answer(f"❌ {error}")
+        return
+
+    result = await bot_change_minecraft_nick(message.from_user.id, nick)
     if result.error:
         error = str(result.error)
         messages = {
@@ -43,7 +55,7 @@ async def process_link(message: types.Message, state: FSMContext):
         }
         await message.answer(messages.get(error, f"❌ Не удалось изменить ник: {escape(error)}"), parse_mode="HTML")
         return
-    if isinstance(result.data,dict) and result.data.get("error"):
+    if isinstance(result.data, dict) and result.data.get("error"):
         error = str(result.data["error"])
         await message.answer(f"❌ {escape(error)}", parse_mode="HTML")
         return
