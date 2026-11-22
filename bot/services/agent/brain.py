@@ -1,6 +1,7 @@
 """One work cycle of the agent: read inbox + memory, pick or continue a goal, act with tools, log the result."""
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 
@@ -45,12 +46,18 @@ async def _budget_ok() -> bool:
 async def _ask(messages: list[dict]) -> dict:
     last: Exception | None = None
     for model in client.agent_models():
-        try:
-            await tools.bump("calls_day")
-            return await client.chat(messages, role="agent", model=model, tools=tools.SCHEMAS, max_tokens=3500, timeout=120.0)
-        except client.AIError as exc:
-            last = exc
-            logger.warning("agent model %s failed: %s", model, exc)
+        for attempt in range(3):
+            try:
+                reply = await client.chat(messages, role="agent", model=model, tools=tools.SCHEMAS, max_tokens=3500, timeout=120.0)
+                await tools.bump("calls_day")
+                return reply
+            except client.AIError as exc:
+                last = exc
+                logger.warning("agent model %s failed: %s", model, exc)
+                if "rate limit" in str(exc).lower() or "HTTP 429" in str(exc):
+                    await asyncio.sleep(25)  # our own RPM budget or the gateway's: wait for a free slot instead of dropping the cycle
+                    continue
+                break
     raise client.AIError(str(last or "no model"))
 
 
