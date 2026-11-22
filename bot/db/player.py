@@ -133,6 +133,7 @@ async def set_notification_preference(tg_id: int, key: str, enabled: bool):
 
 
 async def list_events(tg_id: int, limit: int = 20):
+    TgIdValidation.validate(tg_id, "player.list_events")
     result = await bot_list_events(tg_id, limit)
     if result.error:
         return [], result.error
