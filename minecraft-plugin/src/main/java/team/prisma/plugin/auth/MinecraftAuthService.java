@@ -98,12 +98,20 @@ public final class MinecraftAuthService {
     }
 
     public void register(Player player, String password, String repeat) {
-        if (isAuthenticated(player.getUniqueId())) {
+        UUID uuid = player.getUniqueId();
+        if (isAuthenticated(uuid)) {
             player.sendMessage("§eВы уже авторизованы.");
             return;
         }
         if (!validPassword(password) || !password.equals(repeat)) {
             player.sendMessage("§cПароль должен быть 8–72 байта, а два значения должны совпадать.");
+            return;
+        }
+
+        String nickname = player.getName();
+        if (!AuthValidation.isValidPlayerName(nickname)) {
+            AuthValidation.logInvalidInput(log, "register", "nickname", nickname);
+            player.sendMessage("§cНекорректное имя игрока. Обратитесь к администрации.");
             return;
         }
 
