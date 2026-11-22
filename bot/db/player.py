@@ -207,6 +207,7 @@ async def get_player_appeals(tg_id: int):
 
 
 async def create_appeal(tg_id: int, reason: str, punishment_id: str | None = None):
+    TgIdValidation.validate(tg_id, "player.create_appeal")
     result = await bot_create_appeal(tg_id, reason.strip(), punishment_id)
     if result.error:
         return None, result.error
