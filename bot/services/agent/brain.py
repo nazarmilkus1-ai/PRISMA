@@ -78,11 +78,11 @@ async def run_cycle(bot) -> dict:
     context += "\n\n## Файлы репозитория (ветка PRISMA) — читай нужные сразу через repo_read, не обходи папки по одной\n" + await github.tree_overview()
     messages = [
         {"role": "system", "content": SYSTEM},
-        {"role": "user", "content": f"{context}\n\n## Сообщения людей\n{_fmt_inbox(inbox)}\n\n## Цель\n{_fmt_goal(goal)}\n\nДействуй. Не трать шаги на обход папок: выбери конкретную небольшую улучшаемую вещь, прочитай нужные файлы, внеси изменения коммитом."},
+        {"role": "user", "content": f"{context}\n\n## Сообщения людей\n{_fmt_inbox(inbox)}\n\n## Цель\n{_fmt_goal(goal)}\n\nДействуй. Не трать шаги на обход папок: ПЕРВЫМ действием, если активной цели нет, вызови goal_new (одна конкретная небольшая улучшаемая вещь), потом читай нужные файлы и вноси изменения коммитом."},
     ]
     nudges = 0
     try:
-        for _ in range(config.MAX_STEPS):
+        for step in range(config.MAX_STEPS):
             msg = await _ask(messages)
             messages.append({k: v for k, v in msg.items() if k in {"role", "content", "tool_calls"}})
             calls = msg.get("tool_calls") or []
@@ -105,6 +105,8 @@ async def run_cycle(bot) -> dict:
                 result = await tools.run_tool(ctx, str(fn.get("name")), args)
                 logger.info("agent tool %s -> %s", fn.get("name"), result[:160])
                 messages.append({"role": "tool", "tool_call_id": call.get("id"), "content": result})
+            if step >= 2 and not ctx.goal and not ctx.finished:
+                messages.append({"role": "user", "content": "Ты уже читаешь код, но цели нет. Сейчас же вызови goal_new с конкретной небольшой целью по тому, что увидел."})
             if ctx.finished:
                 break
     except client.AIError as exc:
