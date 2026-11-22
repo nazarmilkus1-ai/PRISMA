@@ -40,6 +40,7 @@ TELEGRAM_ERRORS = {
 
 
 def new_code(primary_tg: int, now: float | None = None) -> str:
+    TgIdValidation.validate(primary_tg, "accounts.new_code")
     now = time.time() if now is None else now
     for code in [c for c, (_, exp) in _codes.items() if exp <= now]:
         _codes.pop(code, None)
