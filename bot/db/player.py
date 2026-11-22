@@ -143,6 +143,7 @@ async def list_events(tg_id: int, limit: int = 20):
 
 
 async def register_event(tg_id: int, event_id: str):
+    TgIdValidation.validate(tg_id, "player.register_event")
     result = await bot_register_event(tg_id, event_id)
     if result.error:
         return False, result.error
