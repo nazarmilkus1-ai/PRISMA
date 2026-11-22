@@ -88,6 +88,7 @@ async def get_own_punishments(tg_id: int):
 
 
 async def get_player_reports(tg_id: int):
+    TgIdValidation.validate(tg_id, "player.get_player_reports")
     result = await bot_get_player_reports(tg_id)
     if result.error:
         return [], result.error
