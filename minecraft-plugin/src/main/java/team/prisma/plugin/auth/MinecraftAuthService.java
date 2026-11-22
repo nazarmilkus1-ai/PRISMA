@@ -189,13 +189,16 @@ public final class MinecraftAuthService {
         supabase.postRpcAsync(RpcNames.MC_AUTH_LOGIN, body).thenAccept(result -> runMain(() -> {
             String error = stringField(result, "error");
             if (error != null) {
+                log.log(Level.WARNING, "[MinecraftAuthService] login: ошибка входа для {0}: {1}", new Object[]{uuid, error});
                 tellAuthError(player, error);
                 return;
             }
-            authenticated.add(player.getUniqueId());
+            authenticated.add(uuid);
+            log.info(() -> String.format("[MinecraftAuthService] login: игрок %s успешно вошёл", uuid));
             player.sendMessage("§aАвторизация PRISMA успешна. Добро пожаловать.");
         })).exceptionally(error -> {
             runMain(() -> {
+                log.log(Level.WARNING, "[MinecraftAuthService] login: исключение при входе для {0}: {1}", new Object[]{uuid, error.getMessage()});
                 if (player.isOnline()) player.sendMessage("§cОшибка связи с PRISMA Auth.");
             });
             return null;
