@@ -184,6 +184,7 @@ async def start_battle(tg_id: int, opponent_nickname: str):
 
 
 async def list_battles(tg_id: int, limit: int = 10):
+    TgIdValidation.validate(tg_id, "player.list_battles")
     result = await bot_get_battles(tg_id, limit)
     if result.error:
         return [], result.error
