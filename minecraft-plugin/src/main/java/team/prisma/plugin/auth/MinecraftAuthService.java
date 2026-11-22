@@ -7,10 +7,12 @@ import org.bukkit.plugin.java.JavaPlugin;
 import team.prisma.plugin.http.RpcNames;
 import team.prisma.plugin.http.SupabaseClient;
 
+import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public final class MinecraftAuthService {
