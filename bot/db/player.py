@@ -197,6 +197,7 @@ async def list_battles(tg_id: int, limit: int = 10):
 
 
 async def get_player_appeals(tg_id: int):
+    TgIdValidation.validate(tg_id, "player.get_player_appeals")
     result = await bot_get_player_appeals(tg_id)
     if result.error:
         return [], result.error
