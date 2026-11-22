@@ -282,3 +282,22 @@ async def merge(number: int, title: str) -> tuple[bool, str]:
     if err:
         return False, err
     return bool((data or {}).get("merged")), str((data or {}).get("message") or "")
+
+
+_tree_cache: dict = {"at": 0.0, "text": ""}
+
+
+async def tree_overview(max_paths: int = 260) -> str:
+    """Compact list of source files so the agent does not waste steps walking directories one by one (cached 10 min)."""
+    if time.monotonic() - _tree_cache["at"] < 600 and _tree_cache["text"]:
+        return _tree_cache["text"]
+    data, err = await _get(f"/git/trees/{config.BASE_BRANCH}", {"recursive": "1"})
+    if err or not isinstance(data, dict):
+        return _tree_cache["text"] or "(структура репозитория недоступна — используй repo_read)"
+    keep = ("bot/", "site/src/", "panel/src/", "minecraft-plugin/src/", "docs/", "scripts/")
+    skip = ("/__pycache__/", ".png", ".jpg", ".svg", ".ico", ".lock", "/tests/")
+    paths = [t["path"] for t in data.get("tree", []) if t.get("type") == "blob" and t["path"].startswith(keep)
+             and not any(x in t["path"] for x in skip)]
+    text = "\n".join(paths[:max_paths]) + (f"\n… и ещё {len(paths) - max_paths} файлов" if len(paths) > max_paths else "")
+    _tree_cache.update(at=time.monotonic(), text=text)
+    return text

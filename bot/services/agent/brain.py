@@ -8,7 +8,7 @@ import logging
 from db import rpc
 from services.ai import client
 
-from . import config, memory, reviewer, tools
+from . import config, github, memory, reviewer, tools
 
 logger = logging.getLogger(__name__)
 
@@ -75,9 +75,10 @@ async def run_cycle(bot) -> dict:
     goal = goals[0] if goals else None
     ctx = tools.Ctx(bot=bot, goal=goal)
     context = await memory.build_context(goal, inbox)
+    context += "\n\n## Файлы репозитория (ветка PRISMA) — читай нужные сразу через repo_read, не обходи папки по одной\n" + await github.tree_overview()
     messages = [
         {"role": "system", "content": SYSTEM},
-        {"role": "user", "content": f"{context}\n\n## Сообщения людей\n{_fmt_inbox(inbox)}\n\n## Цель\n{_fmt_goal(goal)}\n\nДействуй."},
+        {"role": "user", "content": f"{context}\n\n## Сообщения людей\n{_fmt_inbox(inbox)}\n\n## Цель\n{_fmt_goal(goal)}\n\nДействуй. Не трать шаги на обход папок: выбери конкретную небольшую улучшаемую вещь, прочитай нужные файлы, внеси изменения коммитом."},
     ]
     nudges = 0
     try:
