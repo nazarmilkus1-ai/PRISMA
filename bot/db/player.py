@@ -17,6 +17,7 @@ from db.rpc import (
     bot_start_battle,
     bot_unregister_event,
 )
+from services.validation import TgIdValidation
 
 async def _user(tg_id: int):
     result = await bot_get_profile(tg_id)
