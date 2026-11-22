@@ -103,6 +103,20 @@ async def read(path: str, ref: str | None = None, limit: int = 20_000) -> dict:
     return {"path": clean, "ref": ref or config.BASE_BRANCH, "size": len(text), "truncated": len(text) > limit, "content": redact(text[:limit])}
 
 
+async def read_raw(path: str, ref: str | None = None) -> tuple[str | None, str | None]:
+    """Unredacted file text for edits (the redacted copy given to the model must never be written back)."""
+    clean = ops.safe_path(path)
+    if not clean:
+        return None, "path not allowed"
+    data, err = await _get(f"/contents/{clean}", {"ref": ref or config.BASE_BRANCH})
+    if err or not isinstance(data, dict) or data.get("encoding") != "base64":
+        return None, err or "not a text file"
+    try:
+        return base64.b64decode(data.get("content") or "").decode("utf-8"), None
+    except Exception:
+        return None, "binary file"
+
+
 async def search(query: str) -> dict:
     repo, err = _repo()
     if err:
