@@ -108,6 +108,7 @@ async def get_notification_preferences(tg_id: int):
 
 
 async def set_notification_preference(tg_id: int, key: str, enabled: bool):
+    TgIdValidation.validate(tg_id, "player.set_notification_preference")
     allowed = {
         "news",
         "events",
