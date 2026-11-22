@@ -113,6 +113,10 @@ async def run_cycle(bot) -> dict:
                 messages.append({"role": "tool", "tool_call_id": call.get("id"), "content": result})
             if step >= 2 and not ctx.goal and not ctx.finished:
                 messages.append({"role": "user", "content": "Ты уже читаешь код, но цели нет. Сейчас же вызови goal_new с конкретной небольшой целью по тому, что увидел."})
+            if ctx.goal and not ctx.commits and step in (7, 11) and not ctx.finished:
+                messages.append({"role": "user", "content": "Ты достаточно прочитал. Теперь внеси первое небольшое изменение коммитом (commit), не читай больше файлов без нужды."})
+            if step == config.MAX_STEPS - 3 and not ctx.finished:
+                messages.append({"role": "user", "content": "Шаги заканчиваются: обнови прогресс (goal_update), запиши важное (memory_save) и заверши цикл через finish_cycle."})
             if ctx.finished:
                 break
     except client.AIError as exc:
@@ -139,6 +143,8 @@ async def run_cycle(bot) -> dict:
     if ctx.notes:
         summary += " ⚠ " + "; ".join(ctx.notes)[:200]
     await rpc.bot_agent_journal_add("cycle", summary[:900], {"goal": (goal or {}).get("id"), "commits": ctx.commits, "actions": len(ctx.actions)})
+    if ctx.commits or ctx.counts.get("goal_new"):
+        await rpc.bot_agent_mem_add("decision", f"{summary[:400]} (цель: {(goal or {}).get('title', '—')[:100]})", [], 3, False)
     if ctx.next_step:
         await rpc.bot_agent_state_patch({"next_step": ctx.next_step})
     await _live_done(bot, ctx, "😴 Цикл закончен", summary)
