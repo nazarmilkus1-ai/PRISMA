@@ -9,6 +9,7 @@ from html import escape
 from db.admin import open_appeals, open_reports, pending_applications
 from db.player import get_online_players, get_server_metrics
 from db.rpc import bot_get_server_status, bot_list_support_requests
+from services.validation import TgIdValidation
 
 
 def _can(perms, key: str) -> bool:
