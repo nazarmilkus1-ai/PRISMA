@@ -98,6 +98,7 @@ async def get_player_reports(tg_id: int):
 
 
 async def get_notification_preferences(tg_id: int):
+    TgIdValidation.validate(tg_id, "player.get_notification_preferences")
     result = await bot_get_notification_preferences(tg_id)
     if result.error:
         return {}, result.error
