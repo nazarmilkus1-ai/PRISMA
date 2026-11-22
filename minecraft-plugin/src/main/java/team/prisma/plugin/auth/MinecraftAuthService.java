@@ -225,11 +225,13 @@ public final class MinecraftAuthService {
         status(player).thenAccept(statusResult -> runMain(() -> {
             String error = stringField(statusResult, "error");
             if (error != null) {
+                log.log(Level.WARNING, "[MinecraftAuthService] changePassword: ошибка статуса для {0}: {1}", new Object[]{uuid, error});
                 tellAuthError(player, error);
                 return;
             }
             String userId = stringField(statusResult, "user_id");
             if (userId == null) {
+                log.log(Level.WARNING, "[MinecraftAuthService] changePassword: user_id отсутствует для {0}", uuid);
                 player.sendMessage("§cPRISMA не вернул ID аккаунта.");
                 return;
             }
@@ -242,16 +244,24 @@ public final class MinecraftAuthService {
             supabase.postRpcAsync(RpcNames.MC_AUTH_CHANGE_PASSWORD, body).thenAccept(result -> runMain(() -> {
                 String changeError = stringField(result, "error");
                 if (changeError != null) {
+                    log.log(Level.WARNING, "[MinecraftAuthService] changePassword: ошибка смены пароля для {0}: {1}", new Object[]{uuid, changeError});
                     tellAuthError(player, changeError);
                     return;
                 }
+                log.info(() -> String.format("[MinecraftAuthService] changePassword: игрок %s сменил пароль", uuid));
                 player.sendMessage("§aПароль PRISMA Auth изменён.");
             })).exceptionally(error2 -> {
-                runMain(() -> player.sendMessage("§cОшибка связи с PRISMA Auth."));
+                runMain(() -> {
+                    log.log(Level.WARNING, "[MinecraftAuthService] changePassword: исключение при смене пароля для {0}: {1}", new Object[]{uuid, error2.getMessage()});
+                    player.sendMessage("§cОшибка связи с PRISMA Auth.");
+                });
                 return null;
             });
         })).exceptionally(error -> {
-            runMain(() -> player.sendMessage("§cОшибка проверки PRISMA Auth."));
+            runMain(() -> {
+                log.log(Level.WARNING, "[MinecraftAuthService] changePassword: исключение при проверке статуса для {0}: {1}", new Object[]{uuid, error.getMessage()});
+                player.sendMessage("§cОшибка проверки PRISMA Auth.");
+            });
             return null;
         });
     }
