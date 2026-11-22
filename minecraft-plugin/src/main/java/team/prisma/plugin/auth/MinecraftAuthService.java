@@ -60,6 +60,7 @@ public final class MinecraftAuthService {
             if (!player.isOnline() || isAuthenticated(uuid)) return;
             String error = stringField(result, "error");
             if (error != null) {
+                log.log(Level.WARNING, "[MinecraftAuthService] begin: ошибка статуса для {0}: {1}", new Object[]{uuid, error});
                 player.sendMessage("§cНе удалось проверить состояние PRISMA Auth: §7" + error);
                 return;
             }
@@ -72,6 +73,7 @@ public final class MinecraftAuthService {
         })).exceptionally(error -> {
             runMain(() -> {
                 if (player.isOnline() && !isAuthenticated(uuid)) {
+                    log.log(Level.WARNING, "[MinecraftAuthService] begin: исключение при проверке статуса для {0}: {1}", new Object[]{uuid, error.getMessage()});
                     player.sendMessage("§cPRISMA Auth сейчас не отвечает. Повторите команду /login или /register.");
                 }
             });
