@@ -16,6 +16,7 @@ def _can(perms, key: str) -> bool:
 
 
 async def _count(fetch, admin_id: int):
+    TgIdValidation.validate(admin_id, "admin_dashboard._count")
     rows, err = await fetch(admin_id)
     return None if err else len(rows)
 
