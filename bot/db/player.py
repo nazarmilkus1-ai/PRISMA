@@ -56,6 +56,7 @@ async def get_center(tg_id: int):
 
 
 async def get_stats(tg_id: int):
+    TgIdValidation.validate(tg_id, "player.get_stats")
     result = await bot_get_player_activity_stats(tg_id)
     if result.error:
         return {}, result.error
