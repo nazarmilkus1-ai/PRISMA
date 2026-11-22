@@ -79,12 +79,20 @@ async def run_cycle(bot) -> dict:
         {"role": "system", "content": SYSTEM},
         {"role": "user", "content": f"{context}\n\n## Сообщения людей\n{_fmt_inbox(inbox)}\n\n## Цель\n{_fmt_goal(goal)}\n\nДействуй."},
     ]
+    nudges = 0
     try:
         for _ in range(config.MAX_STEPS):
             msg = await _ask(messages)
             messages.append({k: v for k, v in msg.items() if k in {"role", "content", "tool_calls"}})
             calls = msg.get("tool_calls") or []
+            logger.info("agent step: %d tool calls, text=%r", len(calls), str(msg.get("content") or "")[:160])
             if not calls:
+                if nudges < 2 and not ctx.finished:
+                    # The model answered with prose instead of acting: push it back to the tools.
+                    nudges += 1
+                    messages.append({"role": "user", "content": "Не пиши текстом — действуй инструментами: поставь цель (goal_new) или продолжи текущую, "
+                                                                 "затем заверши цикл через finish_cycle с кратким итогом."})
+                    continue
                 ctx.summary = ctx.summary or str(msg.get("content") or "")[:600]
                 break
             for call in calls:
@@ -94,6 +102,7 @@ async def run_cycle(bot) -> dict:
                 except ValueError:
                     args = {}
                 result = await tools.run_tool(ctx, str(fn.get("name")), args)
+                logger.info("agent tool %s -> %s", fn.get("name"), result[:160])
                 messages.append({"role": "tool", "tool_call_id": call.get("id"), "content": result})
             if ctx.finished:
                 break
