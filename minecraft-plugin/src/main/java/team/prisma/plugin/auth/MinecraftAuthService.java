@@ -120,6 +120,7 @@ public final class MinecraftAuthService {
         status(player).thenAccept(result -> runMain(() -> {
             String error = stringField(result, "error");
             if (error != null) {
+                log.log(Level.WARNING, "[MinecraftAuthService] register: ошибка статуса для {0}: {1}", new Object[]{uuid, error});
                 tellAuthError(player, error);
                 return;
             }
@@ -129,6 +130,7 @@ public final class MinecraftAuthService {
             }
             String userId = stringField(result, "user_id");
             if (userId == null) {
+                log.log(Level.WARNING, "[MinecraftAuthService] register: user_id отсутствует для {0}", uuid);
                 player.sendMessage("§cPRISMA не вернул ID аккаунта.");
                 return;
             }
@@ -140,17 +142,25 @@ public final class MinecraftAuthService {
             supabase.postRpcAsync(RpcNames.MC_AUTH_SET_PASSWORD, body).thenAccept(setResult -> runMain(() -> {
                 String setError = stringField(setResult, "error");
                 if (setError != null) {
+                    log.log(Level.WARNING, "[MinecraftAuthService] register: ошибка установки пароля для {0}: {1}", new Object[]{uuid, setError});
                     tellAuthError(player, setError);
                     return;
                 }
-                authenticated.add(player.getUniqueId());
+                authenticated.add(uuid);
+                log.info(() -> String.format("[MinecraftAuthService] register: игрок %s успешно зарегистрирован", uuid));
                 player.sendMessage("§aПароль PRISMA Auth установлен. Вы авторизованы.");
             })).exceptionally(error2 -> {
-                runMain(() -> player.sendMessage("§cОшибка связи с PRISMA Auth."));
+                runMain(() -> {
+                    log.log(Level.WARNING, "[MinecraftAuthService] register: исключение при установке пароля для {0}: {1}", new Object[]{uuid, error2.getMessage()});
+                    player.sendMessage("§cОшибка связи с PRISMA Auth.");
+                });
                 return null;
             });
         })).exceptionally(error -> {
-            runMain(() -> player.sendMessage("§cОшибка проверки PRISMA Auth."));
+            runMain(() -> {
+                log.log(Level.WARNING, "[MinecraftAuthService] register: исключение при проверке статуса для {0}: {1}", new Object[]{uuid, error.getMessage()});
+                player.sendMessage("§cОшибка проверки PRISMA Auth.");
+            });
             return null;
         });
     }
