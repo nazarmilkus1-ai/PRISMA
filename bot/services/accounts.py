@@ -11,6 +11,7 @@ import secrets
 import time
 
 from db.rpc import bot_telegram_alias_resolve
+from services.validation import TgIdValidation
 
 CODE_TTL = 600.0
 ALIAS_CACHE_TTL = 120.0
