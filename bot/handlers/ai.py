@@ -335,6 +335,12 @@ async def _copilot(message: types.Message, request: str):
         return
     admin_id = message.from_user.id
 
+    if os.getenv("AGENT_DM_COPILOT", "").strip().lower() not in {"1", "true", "on", "yes"}:
+        # The autonomous agent replaced the DM copilot: it lives only in its own topic, and the old key now powers its reviewer.
+        await message.answer("🤖 Теперь PRISMA-агент живёт и работает 24/7 только в своём топике админ-группы: там можно ставить ему задачи, "
+                             "смотреть часовые отчёты и жать «Слить». В личке его больше нет.")
+        return
+
     if not is_configured("admin"):
         await message.answer("🤖 PRISMA_AGENT не настроен: задайте AI_API_KEY_ADMIN.")
         return

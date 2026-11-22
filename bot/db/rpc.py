@@ -903,3 +903,72 @@ async def bot_ban_review_list():
 
 async def bot_ban_review_keep(user_tg_id, admin_tg_id):
     return await call_rpc_async("bot_ban_review_keep", {"p_user_tg_id": user_tg_id, "p_admin_tg_id": admin_tg_id})
+
+
+# ---- autonomous agent (service_role RPCs) ----
+async def bot_agent_state_get():
+    return await call_rpc_async("bot_agent_state_get", {})
+
+
+async def bot_agent_state_patch(patch):
+    return await call_rpc_async("bot_agent_state_patch", {"p_patch": patch})
+
+
+async def bot_agent_claim(what, min_seconds):
+    return await call_rpc_async("bot_agent_claim", {"p_what": what, "p_min_seconds": min_seconds})
+
+
+async def bot_agent_goal_save(goal_id, patch):
+    return await call_rpc_async("bot_agent_goal_save", {"p_id": goal_id, "p_patch": patch})
+
+
+async def bot_agent_goals_list(status=None, limit=20):
+    return await call_rpc_async("bot_agent_goals_list", {"p_status": status, "p_limit": limit})
+
+
+async def bot_agent_mem_add(kind, body, tags=None, importance=3, pinned=False):
+    return await call_rpc_async("bot_agent_mem_add", {
+        "p_kind": kind, "p_body": body, "p_tags": tags or [], "p_importance": importance, "p_pinned": pinned})
+
+
+async def bot_agent_mem_search(query, limit=8):
+    return await call_rpc_async("bot_agent_mem_search", {"p_query": query, "p_limit": limit})
+
+
+async def bot_agent_mem_core(limit=40):
+    return await call_rpc_async("bot_agent_mem_core", {"p_limit": limit})
+
+
+async def bot_agent_mem_old(older_than_days, limit=80):
+    return await call_rpc_async("bot_agent_mem_old", {"p_older_than_days": older_than_days, "p_limit": limit})
+
+
+async def bot_agent_mem_replace(ids, kind, body, importance=4):
+    return await call_rpc_async("bot_agent_mem_replace", {
+        "p_ids": ids, "p_kind": kind, "p_body": body, "p_importance": importance})
+
+
+async def bot_agent_mem_forget(mem_id):
+    return await call_rpc_async("bot_agent_mem_forget", {"p_id": mem_id})
+
+
+async def bot_agent_mem_count():
+    return await call_rpc_async("bot_agent_mem_count", {})
+
+
+async def bot_agent_inbox_add(tg_user_id, username, is_admin, body, tg_message_id=None):
+    return await call_rpc_async("bot_agent_inbox_add", {
+        "p_tg_user_id": tg_user_id, "p_username": username, "p_is_admin": is_admin,
+        "p_body": body, "p_tg_message_id": tg_message_id})
+
+
+async def bot_agent_inbox_take(limit=30):
+    return await call_rpc_async("bot_agent_inbox_take", {"p_limit": limit})
+
+
+async def bot_agent_journal_add(kind, body, data=None):
+    return await call_rpc_async("bot_agent_journal_add", {"p_kind": kind, "p_body": body, "p_data": data or {}})
+
+
+async def bot_agent_journal_recent(limit=10, kind=None):
+    return await call_rpc_async("bot_agent_journal_recent", {"p_limit": limit, "p_kind": kind})

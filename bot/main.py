@@ -15,7 +15,7 @@ from config import BOT_TOKEN, ADMIN_GROUP_ID, MODERATION_GROUP_ID, REDIS_URL, LO
 from handlers import (
     start, application, profile, link, moderation, reports, polls, clans, menu, news, errors,
     player, admin, admin_panel, cards, quick, reminders, automod, chat_commands, social, minecraft_commands, support,
-    help as help_, admin_actions, rules, guide, ai, quiz, activity, ban_review as ban_review_handler, accounts as accounts_handler, pp,
+    help as help_, admin_actions, rules, guide, ai, quiz, activity, ban_review as ban_review_handler, accounts as accounts_handler, pp, agent_topic,
 )
 from services.notifications import run_notification_worker
 from services.minecraft_bridge import MinecraftChatBridge
@@ -24,6 +24,7 @@ from services.briefing import run_briefing_worker
 from services.digest import run_digest_worker
 from services.inactivity import run_inactivity_worker
 from services import ban_review as ban_review_service
+from services.agent import loop as agent_loop
 from services.community_membership import run_community_membership_worker
 from utils.commands import PUBLIC_COMMANDS, set_group_commands
 from middlewares import TelegramActivityMiddleware
@@ -403,6 +404,7 @@ async def main():
     dp.include_router(quiz.router)
     dp.include_router(activity.router)
     dp.include_router(ban_review_handler.router)
+    dp.include_router(agent_topic.router)  # before the group AI: the agent topic is fully owned by the agent
     dp.include_router(ai.group_router)
     # Group social commands are intentionally handled by chat_commands; keep
     # legacy group handlers after the dedicated social router.
@@ -418,6 +420,7 @@ async def main():
     digest_task = asyncio.create_task(run_digest_worker(bot, worker_stop))
     inactivity_task = asyncio.create_task(run_inactivity_worker(bot, worker_stop))
     ban_review_task = asyncio.create_task(ban_review_service.run_worker(bot, worker_stop))
+    agent_task = asyncio.create_task(agent_loop.run_worker(bot, worker_stop))
 
     community_membership_task = asyncio.create_task(
         run_community_membership_worker(bot, worker_stop)
@@ -447,6 +450,7 @@ async def main():
         digest_task.cancel()
         inactivity_task.cancel()
         ban_review_task.cancel()
+        agent_task.cancel()
         community_membership_task.cancel()
         minecraft_chat_bridge_task.cancel()
         if release_polling_lock:

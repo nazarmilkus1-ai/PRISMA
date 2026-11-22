@@ -8,7 +8,8 @@ Configuration (environment, never committed):
   AI_MODEL_ADMIN      default am/nemotron-3-ultra-550b-a55b
   AI_MODEL_FALLBACK   default am/nemotron-3.5-lightning-30b-a3b
   AI_REASONING_EFFORT optional (low|medium|high): sent as reasoning_effort to cut "thinking" time
-  AI_RPM_USER / AI_RPM_ADMIN  requests per minute budget per key (default 30 / 20); a 429 pauses the key
+  AI_RPM_USER / AI_RPM_ADMIN / AI_RPM_AGENT / AI_RPM_REVIEWER  requests per minute per key (default 30 / 20 / 12 / 10); a 429 pauses the key
+  AI_API_KEY_AGENT + AI_MODEL_AGENT (comma list, best first): the autonomous agent; AI_MODEL_REVIEWER: second-opinion reviewer (uses AI_API_KEY_ADMIN)
 """
 from __future__ import annotations
 
@@ -37,10 +38,25 @@ def base_url() -> str:
 
 def key_for(role: str) -> str:
     user_key = _env("AI_API_KEY_USER")
-    return (_env("AI_API_KEY_ADMIN") or user_key) if role == "admin" else user_key
+    if role == "agent":  # the autonomous developer has its own key (and balance); never falls back to another role's key
+        return _env("AI_API_KEY_AGENT")
+    if role in {"admin", "reviewer"}:  # the former DM copilot key now powers the second-opinion reviewer
+        return _env("AI_API_KEY_ADMIN") or user_key
+    return user_key
+
+
+def agent_models() -> list[str]:
+    """Ordered model chain for the autonomous agent: AI_MODEL_AGENT is a comma-separated list, best first."""
+    raw = _env("AI_MODEL_AGENT") or "am/nemotron-3-ultra-550b-a55b,am/nemotron-3.5-lightning-30b-a3b"
+    models = [m.strip() for m in raw.split(",") if m.strip()]
+    return models or ["am/nemotron-3-ultra-550b-a55b"]
 
 
 def model_for(role: str) -> str:
+    if role == "agent":
+        return agent_models()[0]
+    if role == "reviewer":
+        return _env("AI_MODEL_REVIEWER") or "am/nemotron-3.5-lightning-30b-a3b"
     if role == "admin":
         return _env("AI_MODEL_ADMIN") or "am/nemotron-3-ultra-550b-a55b"
     return _env("AI_MODEL_USER") or "am/gpt-oss-20b"
@@ -75,7 +91,7 @@ def is_configured(role: str = "user") -> bool:
     return bool(key_for(role))
 
 
-_DEFAULT_RPM = {"user": 30, "admin": 20}
+_DEFAULT_RPM = {"user": 30, "admin": 20, "agent": 12, "reviewer": 10}
 _MAX_WAIT = 15.0
 _calls: dict[str, list[float]] = {}
 _paused_until: dict[str, float] = {}
