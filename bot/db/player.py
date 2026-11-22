@@ -20,6 +20,7 @@ from db.rpc import (
 from services.validation import TgIdValidation
 
 async def _user(tg_id: int):
+    TgIdValidation.validate(tg_id, "player._user")
     result = await bot_get_profile(tg_id)
     if result.error:
         return None, result.error
