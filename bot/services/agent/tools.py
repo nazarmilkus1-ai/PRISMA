@@ -31,6 +31,11 @@ class Ctx:
     summary: str = ""
     new_head: bool = False
     notes: list[str] = field(default_factory=list)
+    next_step: str = ""
+    actions: list[str] = field(default_factory=list)
+    step: int = 0
+    live_at: float = 0.0
+    counts: dict = field(default_factory=dict)
 
 
 def _s(name: str, desc: str, props: dict, required: list[str] | None = None) -> dict:
@@ -62,8 +67,9 @@ SCHEMAS = [
     _s("memory_search", "Поиск по долгой памяти.", {"query": _STR}, ["query"]),
     _s("memory_forget", "Удалить устаревшую заметку по id.", {"id": {"type": "integer"}}, ["id"]),
     _s("say", "Написать в топик админам (редко, коротко: вопрос, важная находка). Лимит 3 за цикл.", {"text": _STR}, ["text"]),
-    _s("finish_cycle", "Закончить цикл: summary — что сделано за цикл (1-4 предложения), попадёт в часовой отчёт.",
-       {"summary": _STR}, ["summary"]),
+    _s("finish_cycle", "Закончить цикл. summary — что сделано за цикл, ПО-РУССКИ, простыми словами без жаргона (1-3 предложения); "
+                       "next — что будешь делать дальше (1 предложение). Попадает в отчёт для админов.",
+       {"summary": _STR, "next": _STR}, ["summary"]),
 ]
 
 
@@ -165,7 +171,23 @@ async def _commit(ctx: Ctx, message: str, files) -> dict:
     return {"ok": True, "branch": branch, "commit": sha[:10], "pr": goal.get("pr_number")}
 
 
+def label(name: str, a: dict) -> str:
+    path = str(a.get("path") or "")[:70]
+    return {
+        "repo_read": f"📖 Читаю {path}", "repo_search": f"🔎 Ищу в коде «{str(a.get('query') or '')[:40]}»",
+        "commit": f"✍️ Коммит: {str(a.get('message') or '')[:60]}", "ci_status": "🚦 Проверяю тесты (CI)",
+        "render_status": "🛰 Смотрю деплои бота (Render)", "render_logs": "🛰 Читаю логи бота", "vercel_status": "▲ Смотрю деплои сайта (Vercel)",
+        "web_fetch": "🌐 Читаю документацию", "goal_new": f"🎯 Новая цель: {str(a.get('title') or '')[:60]}",
+        "goal_update": "📈 Обновляю прогресс", "memory_save": "🧠 Запоминаю", "memory_search": "🧠 Вспоминаю",
+        "memory_forget": "🧠 Чищу память", "say": "💬 Пишу в топик", "finish_cycle": "🏁 Подвожу итог",
+    }.get(name, name)
+
+
 async def run_tool(ctx: Ctx, name: str, args: dict) -> str:
+    ctx.counts[name] = ctx.counts.get(name, 0) + 1
+    ctx.actions.append(label(name, args if isinstance(args, dict) else {}))
+    from .report import live_progress  # late import: report imports github, tools must stay importable without it
+    await live_progress(ctx)
     try:
         return _clip(await _dispatch(ctx, name, args if isinstance(args, dict) else {}))
     except Exception as exc:  # a tool must never crash the cycle
@@ -238,5 +260,6 @@ async def _dispatch(ctx: Ctx, name: str, a: dict):
     if name == "finish_cycle":
         ctx.finished = True
         ctx.summary = str(a.get("summary") or "")[:900]
+        ctx.next_step = str(a.get("next") or "")[:300]
         return {"ok": True}
     return {"error": f"неизвестный инструмент {name}"}

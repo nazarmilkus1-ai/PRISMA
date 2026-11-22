@@ -140,3 +140,46 @@ class CommitToolTests(unittest.IsolatedAsyncioTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ReadableReportTests(unittest.IsolatedAsyncioTestCase):
+    def test_labels_are_russian_and_short(self):
+        self.assertTrue(tools.label("repo_read", {"path": "bot/main.py"}).startswith("📖 Читаю"))
+        self.assertIn("Коммит", tools.label("commit", {"message": "x" * 200}))
+        self.assertLessEqual(len(tools.label("commit", {"message": "x" * 200})), 80)
+
+    def test_fallback_summary(self):
+        from services.agent import brain
+        ctx = tools.Ctx(bot=None)
+        self.assertIn("ничего нового", brain._fallback_summary(ctx))
+        ctx.counts = {"repo_read": 3, "commit": 1}
+        text = brain._fallback_summary(ctx)
+        self.assertIn("3 файлов", text)
+        self.assertIn("1 изменений", text)
+
+    def test_live_text(self):
+        from services.agent import report
+        ctx = tools.Ctx(bot=None, goal={"title": "Цель <b>", "progress_pct": 40})
+        ctx.actions = ["📖 Читаю a.py"]
+        ctx.step = 2
+        text = report.live_text(ctx, 14)
+        self.assertIn("шаг 2/14", text)
+        self.assertIn("&lt;b&gt;", text)
+        self.assertIn("40%", text)
+
+    async def test_build_report_sections(self):
+        from services.agent import report
+        goals_done = [{"id": 1, "title": "Кнопка", "pr_number": 5, "progress_pct": 100, "health_pct": 100, "expected": "кнопка в меню",
+                       "review": {"verdict": "OK", "notes": "норм"}, "branch": "agent/x-1-1"}]
+
+        async def goals(status=None, limit=20):
+            return RPCResult(data=goals_done if status == "done" else [])
+
+        with patch.object(report.rpc, "bot_agent_state_get", AsyncMock(return_value=RPCResult(data={"next_step": "следующая задача"}))), \
+                patch.object(report.rpc, "bot_agent_journal_recent", AsyncMock(return_value=RPCResult(data=[{"body": "добавил кнопку"}]))), \
+                patch.object(report.rpc, "bot_agent_goals_list", goals), \
+                patch.object(report.rpc, "bot_agent_mem_count", AsyncMock(return_value=RPCResult(data=3))), \
+                patch.object(github, "_repo", lambda: ("o/r", None)):
+            text, markup = await report.build()
+        for part in ("Что сделал", "Что дальше", "Готово, ждёт вашей кнопки", "Слить", "В памяти заметок: 3", "Второй ИИ проверил"):
+            self.assertIn(part, text if part != "Слить" else str(markup))
