@@ -299,5 +299,5 @@ async def tree_overview(max_paths: int = 260) -> str:
     paths = [t["path"] for t in data.get("tree", []) if t.get("type") == "blob" and t["path"].startswith(keep)
              and not any(x in t["path"] for x in skip)]
     text = "\n".join(paths[:max_paths]) + (f"\n… и ещё {len(paths) - max_paths} файлов" if len(paths) > max_paths else "")
-    _tree_cache.update(at=time.monotonic(), text=text)
+    _tree_cache["at"], _tree_cache["text"] = time.monotonic(), text
     return text
