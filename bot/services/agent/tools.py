@@ -161,7 +161,7 @@ async def _commit(ctx: Ctx, message: str, files) -> dict:
         elif perr:
             ctx.notes.append(f"PR не открылся: {perr}")
     await rpc.bot_agent_goal_save(goal["id"], patch)
-    goal.update(patch)
+    goal |= patch
     return {"ok": True, "branch": branch, "commit": sha[:10], "pr": goal.get("pr_number")}
 
 
@@ -212,7 +212,7 @@ async def _dispatch(ctx: Ctx, name: str, a: dict):
         res = await rpc.bot_agent_goal_save(goal["id"], patch)
         if res.error:
             return {"error": "не удалось обновить"}
-        goal.update(res.data if isinstance(res.data, dict) else {})
+        goal |= res.data if isinstance(res.data, dict) else {}
         return {"ok": True, "progress_pct": goal.get("progress_pct"), "status": goal.get("status")}
     if name == "memory_save":
         body = redact(str(a.get("body") or ""))[:1500]
