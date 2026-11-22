@@ -154,12 +154,20 @@ public final class MinecraftAuthService {
     }
 
     public void login(Player player, String password) {
-        if (isAuthenticated(player.getUniqueId())) {
+        UUID uuid = player.getUniqueId();
+        if (isAuthenticated(uuid)) {
             player.sendMessage("§eВы уже авторизованы.");
             return;
         }
         if (!validPassword(password)) {
             player.sendMessage("§cПароль должен быть длиной 8–72 байта.");
+            return;
+        }
+
+        String nickname = player.getName();
+        if (!AuthValidation.isValidPlayerName(nickname)) {
+            AuthValidation.logInvalidInput(log, "login", "nickname", nickname);
+            player.sendMessage("§cНекорректное имя игрока. Обратитесь к администрации.");
             return;
         }
 
