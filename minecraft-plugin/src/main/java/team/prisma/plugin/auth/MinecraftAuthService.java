@@ -191,12 +191,20 @@ public final class MinecraftAuthService {
     }
 
     public void changePassword(Player player, String currentPassword, String newPassword) {
-        if (!isAuthenticated(player.getUniqueId())) {
+        UUID uuid = player.getUniqueId();
+        if (!isAuthenticated(uuid)) {
             player.sendMessage("§cСначала войдите через /login.");
             return;
         }
         if (!validPassword(currentPassword) || !validPassword(newPassword)) {
             player.sendMessage("§cПароли должны быть длиной 8–72 байта.");
+            return;
+        }
+
+        String nickname = player.getName();
+        if (!AuthValidation.isValidPlayerName(nickname)) {
+            AuthValidation.logInvalidInput(log, "changePassword", "nickname", nickname);
+            player.sendMessage("§cНекорректное имя игрока. Обратитесь к администрации.");
             return;
         }
         status(player).thenAccept(statusResult -> runMain(() -> {
