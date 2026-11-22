@@ -3,17 +3,34 @@ from aiogram.filters import Command
 from html import escape
 from db.rpc import bot_get_profile
 from utils.permissions import staff_context
+from utils.validation import Validation
 
 router = Router()
 
 @router.message(Command("profile"))
 async def cmd_profile(message: types.Message):
-    result = await bot_get_profile(message.from_user.id)
-    if result.error or not isinstance(result.data, dict):
-        await message.answer("❌ Не удалось получить профиль.")
+    user_id = message.from_user.id
+    
+    # Валидация Telegram ID
+    valid, error = Validation.validate_telegram_id(user_id)
+    if not valid:
+        Validation.log_warning("Profile command", user_id, "cmd_profile", error)
+        await message.answer("❌ Неверный идентификатор пользователя.")
         return
-    if result.data.get("error") == "USER_NOT_FOUND":
-        await message.answer("❌ Вы ещё не зарегистрированы. Нажмите /start.")
+    
+    try:
+        result = await bot_get_profile(user_id)
+        if result.error or not isinstance(result.data, dict):
+            Validation.log_error("Profile command", user_id, "cmd_profile", Exception(result.error or "Invalid response"), {"rpc_error": result.error})
+            await message.answer("❌ Не удалось получить профиль.")
+            return
+        if result.data.get("error") == "USER_NOT_FOUND":
+            Validation.log_warning("Profile command", user_id, "cmd_profile", "User not found in database")
+            await message.answer("❌ Вы ещё не зарегистрированы. Нажмите /start.")
+            return
+    except Exception as e:
+        Validation.log_error("Profile command", user_id, "cmd_profile", e)
+        await message.answer("❌ Произошла ошибка при получении профиля.")
         return
 
     d = result.data
