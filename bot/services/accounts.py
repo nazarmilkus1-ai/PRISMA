@@ -58,7 +58,9 @@ def take_code(code: str, now: float | None = None) -> int | None:
     entry = _codes.pop((code or "").strip().upper(), None)
     if not entry or entry[1] <= now:
         return None
-    return entry[0]
+    primary_tg = entry[0]
+    TgIdValidation.validate(primary_tg, "accounts.take_code")
+    return primary_tg
 
 
 def forget(tg_id: int | None = None) -> None:
