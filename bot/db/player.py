@@ -169,6 +169,7 @@ async def unregister_event(tg_id: int, event_id: str):
 
 
 async def start_battle(tg_id: int, opponent_nickname: str):
+    TgIdValidation.validate(tg_id, "player.start_battle")
     result = await bot_start_battle(tg_id, opponent_nickname.strip())
     if result.error:
         return None, result.error
