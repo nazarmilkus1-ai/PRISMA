@@ -156,6 +156,7 @@ async def register_event(tg_id: int, event_id: str):
 
 
 async def unregister_event(tg_id: int, event_id: str):
+    TgIdValidation.validate(tg_id, "player.unregister_event")
     result = await bot_unregister_event(tg_id, event_id)
     if result.error:
         return False, result.error
