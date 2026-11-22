@@ -237,9 +237,19 @@ public final class MinecraftAuthService {
     }
 
     private JsonObject identity(Player player) {
+        String nickname = player.getName();
+        String uuidStr = player.getUniqueId().toString();
+
+        if (!AuthValidation.isValidPlayerName(nickname)) {
+            AuthValidation.logInvalidInput(log, "identity", "nickname", nickname);
+        }
+        if (!AuthValidation.isValidUuid(uuidStr)) {
+            AuthValidation.logInvalidInput(log, "identity", "minecraft_uuid", uuidStr);
+        }
+
         JsonObject body = new JsonObject();
-        body.addProperty("p_nickname", player.getName());
-        body.addProperty("p_minecraft_uuid", player.getUniqueId().toString());
+        body.addProperty("p_nickname", nickname);
+        body.addProperty("p_minecraft_uuid", uuidStr);
         return body;
     }
 
