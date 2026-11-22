@@ -69,6 +69,7 @@ def forget(tg_id: int | None = None) -> None:
 
 async def primary_for(tg_id: int, now: float | None = None) -> int | None:
     """The primary Telegram id when tg_id is a linked second account, else None. Cached, failure-tolerant."""
+    TgIdValidation.validate(tg_id, "accounts.primary_for")
     now = time.time() if now is None else now
     hit = _alias_cache.get(tg_id)
     if hit and hit[1] > now:
