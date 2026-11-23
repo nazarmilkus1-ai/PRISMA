@@ -289,3 +289,33 @@ class IdeaModeTests(unittest.TestCase):
         names = {t["function"]["name"] for t in tools.idea_schemas()}
         self.assertTrue({"memory_save", "finish_cycle", "repo_read"} <= names)
         self.assertFalse(names & {"commit", "edit", "goal_new"})
+
+
+class RunCycleRegressionTests(unittest.IsolatedAsyncioTestCase):
+    async def _run(self, active):
+        from services.agent import brain, memory
+
+        async def goals(status=None, limit=20):
+            return RPCResult(data=active if status == "active" else [])
+
+        with patch.object(brain.rpc, "bot_agent_state_get", AsyncMock(return_value=RPCResult(data={}))), \
+                patch.object(brain.client, "is_configured", lambda role="user": True), \
+                patch.object(brain, "_budget_ok", AsyncMock(return_value=True)), \
+                patch.object(brain.rpc, "bot_agent_goals_list", goals), \
+                patch.object(brain.rpc, "bot_agent_inbox_take", AsyncMock(return_value=RPCResult(data=[]))), \
+                patch.object(brain.report, "live", AsyncMock()), \
+                patch.object(brain.rpc, "bot_agent_journal_add", AsyncMock(return_value=RPCResult(data=1))), \
+                patch.object(memory, "build_context", AsyncMock(return_value="ctx")), \
+                patch.object(brain.github, "tree_overview", AsyncMock(return_value="tree")), \
+                patch.object(brain, "_ask", AsyncMock(side_effect=brain.client.AIError("down"))):
+            return await brain.run_cycle(bot=None)
+
+    async def test_cycle_runs_with_an_active_goal(self):
+        # regression: the inbox was only read when there was no active goal -> UnboundLocalError on every cycle
+        out = await self._run([{"id": 1, "title": "T", "progress_pct": 10}])
+        self.assertFalse(out["ok"])
+        self.assertIn("ИИ недоступен", out["summary"])
+
+    async def test_cycle_runs_without_a_goal(self):
+        out = await self._run([])
+        self.assertIn("ИИ недоступен", out["summary"])
