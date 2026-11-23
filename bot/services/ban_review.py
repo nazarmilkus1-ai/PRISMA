@@ -29,6 +29,10 @@ CB_PREFIX = "banrev"
 
 
 def card_text(row: dict) -> str:
+    try:
+        TgIdValidation.validate(int(row.get("tg_id")), "ban_review.card_text")
+    except (ValueError, TypeError):
+        pass  # fallback to original behavior
     who = html.escape(str(row.get("nickname") or row.get("tg_id")))
     reason = html.escape(str(row.get("reason") or "—"))
     return (
