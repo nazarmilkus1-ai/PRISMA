@@ -44,7 +44,11 @@ def keyboard(tg_id: int) -> InlineKeyboardMarkup:
             break
         if key not in chosen:
             chosen.append(key)
-    buttons = [InlineKeyboardButton(text=ACTIONS[key], callback_data=key) for key in chosen]
+    buttons = []
+    for key in chosen:
+        label = ACTIONS.get(key)
+        if label:
+            buttons.append(InlineKeyboardButton(text=label, callback_data=key))
     rows = [buttons[i:i + 2] for i in range(0, len(buttons), 2)]
     rows.append([InlineKeyboardButton(text="🏠 Меню", callback_data="menu:back")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
