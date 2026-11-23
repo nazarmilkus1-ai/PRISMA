@@ -33,6 +33,8 @@ MAX_STEPS = _int("AGENT_MAX_STEPS", 24)
 MAX_CALLS_PER_DAY = _int("AGENT_MAX_CALLS_PER_DAY", 2500)
 MAX_COMMITS_PER_DAY = _int("AGENT_MAX_COMMITS_PER_DAY", 40)
 MAX_SAYS_PER_CYCLE = 3
+# More finished changes than this waiting for a human: the agent stops opening new PRs but keeps working (fixes + ideas).
+MAX_WAITING = _int("AGENT_MAX_WAITING", 6)
 MAX_FILES_PER_COMMIT = 8
 MAX_FILE_CHARS = 80_000
 TOOL_RESULT_CHARS = 7000

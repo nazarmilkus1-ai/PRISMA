@@ -147,8 +147,8 @@ async def build() -> tuple[str, InlineKeyboardMarkup]:
         if g.get("expected"):
             now += f"\n🧭 {short(g['expected'], 110)}"
         parts.append(f"🎯 <b>Сейчас</b>\n{now}\n{bar(g.get('progress_pct'))}")
-    elif waiting and len(waiting) >= 3:
-        parts.append("🎯 <b>Сейчас</b>\n😴 Жду ваших решений по готовым задачам")
+    elif waiting and len(waiting) >= config.MAX_WAITING:
+        parts.append("🎯 <b>Сейчас</b>\n💡 Ищу идеи и дорабатываю готовое, пока вы разбираете очередь")
     else:
         parts.append("🎯 <b>Сейчас</b>\nВыбираю следующую задачу")
     if waiting:

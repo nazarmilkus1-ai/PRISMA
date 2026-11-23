@@ -262,8 +262,8 @@ class GuardTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(tools._similar("Добавить валидацию Telegram ID в сервисах", "валидацию Telegram ID добавить в сервисы бота"))
         self.assertFalse(tools._similar("Кнопка гайд в меню", "Проверка ников игроков"))
 
-    async def test_goal_new_refused_with_three_waiting(self):
-        waiting = [{"pr_number": n, "merged_at": None} for n in (1, 2, 3)]
+    async def test_goal_new_refused_when_queue_full(self):
+        waiting = [{"pr_number": n, "merged_at": None} for n in range(1, config.MAX_WAITING + 1)]
 
         async def goals(status=None, limit=20):
             return RPCResult(data=[] if status == "active" else waiting)
@@ -282,3 +282,10 @@ class GuardTests(unittest.IsolatedAsyncioTestCase):
     def test_strip_tech(self):
         from services.agent import brain
         self.assertEqual(brain.strip_tech("Правка в bot/a.py и `Foo` готова"), "Правка в и готова")
+
+
+class IdeaModeTests(unittest.TestCase):
+    def test_idea_toolset_cannot_write_code(self):
+        names = {t["function"]["name"] for t in tools.idea_schemas()}
+        self.assertTrue({"memory_save", "finish_cycle", "repo_read"} <= names)
+        self.assertFalse(names & {"commit", "edit", "goal_new"})
