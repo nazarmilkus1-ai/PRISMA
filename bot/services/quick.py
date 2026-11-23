@@ -35,6 +35,7 @@ def record(tg_id: int, callback_data: str | None) -> None:
 
 
 def top(tg_id: int, limit: int = 4) -> list[str]:
+    TgIdValidation.validate(tg_id, "quick.top")
     counter = _usage.get(tg_id)
     return [key for key, _ in counter.most_common(limit)] if counter else []
 
