@@ -77,6 +77,7 @@ async def notify_admins(bot: Bot, rows: list[dict]) -> int:
 
 async def invite_back(bot: Bot, tg_id: int) -> str:
     """Unban in the community chat and send the player an invitation. Returns a short status for the admins."""
+    TgIdValidation.validate(tg_id, "ban_review.invite_back")
     chat = await bot_get_community_chat_id()
     chat_id = chat.data if not chat.error and isinstance(chat.data, int) else None
     link = None
