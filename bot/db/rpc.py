@@ -972,3 +972,8 @@ async def bot_agent_journal_add(kind, body, data=None):
 
 async def bot_agent_journal_recent(limit=10, kind=None):
     return await call_rpc_async("bot_agent_journal_recent", {"p_limit": limit, "p_kind": kind})
+
+
+async def bot_agent_inbox_peek():
+    """True when unread messages from people are waiting for the agent (without taking them)."""
+    return await call_rpc_async("bot_agent_inbox_peek", {})
