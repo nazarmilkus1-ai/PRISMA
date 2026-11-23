@@ -21,6 +21,7 @@ _usage: "OrderedDict[int, Counter]" = OrderedDict()
 
 
 def record(tg_id: int, callback_data: str | None) -> None:
+    TgIdValidation.validate(tg_id, "quick.record")
     if callback_data not in ACTIONS:
         return
     counter = _usage.get(tg_id)
