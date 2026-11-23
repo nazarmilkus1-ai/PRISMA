@@ -56,6 +56,7 @@ def keyboard(tg_id: int) -> InlineKeyboardMarkup:
 
 
 def text(tg_id: int) -> str:
+    TgIdValidation.validate(tg_id, "quick.text")
     if top(tg_id, 1):
         return "⚡ <b>Быстрые действия</b>\nСверху — то, чем вы пользуетесь чаще всего."
     return "⚡ <b>Быстрые действия</b>\nЧасто нужные разделы в один тап. Со временем здесь появятся ваши любимые."
