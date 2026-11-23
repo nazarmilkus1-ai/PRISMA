@@ -37,6 +37,9 @@ def record(tg_id: int, callback_data: str | None) -> None:
 
 
 def top(tg_id: int, limit: int = 4) -> list[str]:
+    ok, _ = Validation.validate_telegram_id(tg_id, "Telegram ID для быстрых действий")
+    if not ok:
+        return []
     counter = _usage.get(tg_id)
     return [key for key, _ in counter.most_common(limit)] if counter else []
 
