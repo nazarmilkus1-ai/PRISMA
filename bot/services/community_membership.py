@@ -195,6 +195,7 @@ async def clear_onboarding_restriction(
     tg_id: int,
     row: dict | None = None,
 ) -> bool:
+    TgIdValidation.validate(tg_id, "community_membership.clear_onboarding_restriction")
     # This helper is also called immediately after application submission.
     # Verify current moderation flags before restoring Telegram permissions,
     # otherwise submitting an application could accidentally lift a mute.
