@@ -11,11 +11,11 @@ logger = logging.getLogger(__name__)
 # callback_data -> button label. Only navigation targets that are safe to open with one tap.
 ACTIONS: dict[str, str] = {
     "profile": "👤 Профиль", "player:server": "🖥 Сервер", "player:stats": "📊 Статистика",
-    "player:top": "🏅 Топ", "player:events": "🎯 Ивенты", "clans": "⚔️ Кланы",
+    "player:top": "🏅 Топ", "clans": "⚔️ Кланы",
     "news": "📰 Новости", "polls": "🗳 Голосования", "reports": "📢 Жалоба", "support": "🆘 Поддержка",
-    "ask": "🤖 PRISMA_AI", "player:achievements": "🏆 Достижения", "player:notifications": "🔔 Уведомления",
+    "player:achievements": "🏆 Достижения", "player:notifications": "🔔 Уведомления",
 }
-DEFAULTS = ("player:server", "player:events", "ask", "profile", "player:stats")
+DEFAULTS = ("player:server", "profile", "player:stats", "player:top", "clans")
 MAX_USERS = 5000
 
 # Проверка при импорте: все DEFAULTS должны существовать в ACTIONS
