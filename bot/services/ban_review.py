@@ -29,14 +29,15 @@ CB_PREFIX = "banrev"
 
 
 def card_text(row: dict) -> str:
+    tg_id = row.get("tg_id")
     try:
-        TgIdValidation.validate(int(row.get("tg_id")), "ban_review.card_text")
+        TgIdValidation.validate(int(tg_id), "ban_review.card_text")
+        who = html.escape(str(row.get("nickname") or tg_id))
     except (ValueError, TypeError):
-        pass  # fallback to original behavior
-    who = html.escape(str(row.get("nickname") or row.get("tg_id")))
+        who = html.escape(str(row.get("nickname") or tg_id or "?"))
     reason = html.escape(str(row.get("reason") or "—"))
     return (
-        f"⏳ <b>Срок бана закончился</b>: {who} (<code>{row.get('tg_id')}</code>)\n"
+        f"⏳ <b>Срок бана закончился</b>: {who} (<code>{tg_id}</code>)\n"
         f"Причина бана: {reason}\n"
         "Игрок остаётся забаненным, пока вы не подтвердите возвращение."
     )
@@ -68,8 +69,12 @@ async def notify_admins(bot: Bot, rows: list[dict]) -> int:
     sent = 0
     for row in rows:
         try:
-            await bot.send_message(target, card_text(row), parse_mode="HTML", reply_markup=keyboard(int(row["tg_id"])))
+            tg_id = int(row["tg_id"])
+            TgIdValidation.validate(tg_id, "ban_review.notify_admins")
+            await bot.send_message(target, card_text(row), parse_mode="HTML", reply_markup=keyboard(tg_id))
             sent += 1
+        except (ValueError, TypeError):
+            logger.warning("ban review: invalid tg_id in row: %s", row.get("tg_id"))
         except Exception:
             logger.exception("ban review notification failed for %s", row.get("tg_id"))
     return sent
