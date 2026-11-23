@@ -86,7 +86,11 @@ def _full_member_permissions() -> types.ChatPermissions:
 
 
 async def _telegram_member(bot: Bot, tg_id: int):
-    TgIdValidation.validate(tg_id, "community_membership._telegram_member")
+    try:
+        TgIdValidation.validate(tg_id, "community_membership._telegram_member")
+    except ValueError:
+        logger.warning("community_membership._telegram_member: invalid tg_id=%s", tg_id)
+        return None
     try:
         return await bot.get_chat_member(MODERATION_GROUP_ID, tg_id)
     except TelegramBadRequest as exc:
