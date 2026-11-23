@@ -10,6 +10,7 @@ from aiogram import Bot
 from config import MODERATION_GROUP_ID
 from db.rpc import bot_claim_onboarding_digest
 from keyboards.inline import onboarding_group_keyboard
+from services.validation import TgIdValidation
 
 logger = logging.getLogger(__name__)
 
