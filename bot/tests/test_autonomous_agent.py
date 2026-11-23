@@ -105,6 +105,7 @@ class MergeGateTests(unittest.IsolatedAsyncioTestCase):
     def test_can_merge(self):
         self.assertTrue(merge.can_merge(1, ["*"]))
         self.assertFalse(merge.can_merge(1, ["bans.view"]))
+        self.assertTrue(merge.can_merge(2, ["ops.manage"]))  # head admin without the "*" permission
         with patch.object(config, "MERGE_ADMIN_IDS", {5}):
             self.assertTrue(merge.can_merge(5, []))
 
@@ -167,27 +168,56 @@ class ReadableReportTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("&lt;b&gt;", text)
         self.assertIn("40%", text)
 
-    async def test_build_report_sections(self):
+    async def test_compact_queue_and_detail(self):
         from services.agent import report
-        goals_done = [{"id": 1, "title": "Кнопка", "pr_number": 5, "progress_pct": 100, "health_pct": 100, "expected": "кнопка в меню",
-                       "review": {"verdict": "OK", "notes": "норм", "plain": "В меню появится кнопка Гайд."}, "branch": "agent/x-1-1"}]
+        done = [{"id": 2, "title": "Вторая", "pr_number": 9, "progress_pct": 100, "health_pct": 100, "expected": "вторая задача",
+                 "review": {"verdict": "OK", "plain": "Второе улучшение."}, "branch": "agent/b-1-1"},
+                {"id": 1, "title": "Первая", "pr_number": 5, "progress_pct": 100, "health_pct": 75, "expected": "первая задача",
+                 "review": {"verdict": "RISKS", "notes": "есть риск", "plain": "Первое улучшение в файле bot/a.py."}, "branch": "agent/a-1-1"}]
+        active = [{"id": 3, "title": "Текущая работа", "expected": "сделать что-то", "progress_pct": 40}]
 
         async def goals(status=None, limit=20):
-            return RPCResult(data=goals_done if status == "done" else [])
+            return RPCResult(data=done if status == "done" else (active if status == "active" else []))
 
-        journal = [{"body": "Цикл: изучал код проекта (7 файлов)"}, {"body": "Теперь бот понятнее отвечает на ошибки в файле bot/a.py"}]
-        with patch.object(report.rpc, "bot_agent_state_get", AsyncMock(return_value=RPCResult(data={"next_step": "следующая задача"}))), \
-                patch.object(report.rpc, "bot_agent_journal_recent", AsyncMock(return_value=RPCResult(data=journal))), \
+        with patch.object(report.rpc, "bot_agent_state_get", AsyncMock(return_value=RPCResult(data={"next_step": "дальше"}))), \
                 patch.object(report.rpc, "bot_agent_goals_list", goals), \
                 patch.object(github, "preview_url", AsyncMock(return_value=None)), \
                 patch.object(github, "_repo", lambda: ("o/r", None)):
             text, markup = await report.build()
-        for part in ("Что делал", "Дальше", "ждёт вашего решения", "В меню появится кнопка Гайд", "можно сливать", "внутри бота"):
-            self.assertIn(part, text)
-        self.assertNotIn("изучал код проекта", text)  # old technical fallback lines are hidden
-        self.assertNotIn("bot/a.py", text)  # file names never reach admins
-        self.assertIn("agent:merge:5", str(markup))
-        self.assertLess(len(text), 4000)
+            detail, dmarkup = await report.detail(5)
+        self.assertLess(text.index("№1 · Первое улучшение"), text.index("№2 · Второе улучшение"))  # oldest PR is №1
+        self.assertIn("40%", text)
+        self.assertNotIn("bot/a.py", text)
+        self.assertLess(len(text), 900)
+        buttons = [b.callback_data for row in markup.inline_keyboard for b in row]
+        self.assertEqual(buttons[:2], ["agent:open:5", "agent:open:9"])
+        self.assertTrue(detail.startswith("<b>№1 ·"))
+        self.assertEqual([b.callback_data for b in dmarkup.inline_keyboard[0]], ["agent:merge:5", "agent:reject:5"])
+        # after №1 is handled, the former №2 becomes №1
+        done.pop(1)
+        with patch.object(report.rpc, "bot_agent_goals_list", goals):
+            text2, _ = await report.build()
+        self.assertIn("№1 · Второе улучшение", text2)
+
+
+class RejectTests(unittest.IsolatedAsyncioTestCase):
+    async def test_reject_closes_and_remembers(self):
+        goals = [{"id": 4, "pr_number": 7, "title": "Т"}]
+        saved = {}
+
+        async def save(gid, patch):
+            saved.update(patch)
+            return RPCResult(data={})
+
+        with patch.object(github, "pr_info", AsyncMock(return_value=_info(number=7))), patch.object(github, "close_pr", AsyncMock(return_value=None)), \
+                patch.object(merge.rpc, "bot_agent_goals_list", AsyncMock(return_value=RPCResult(data=goals))), \
+                patch.object(merge.rpc, "bot_agent_goal_save", save), patch.object(merge.rpc, "bot_agent_mem_add", AsyncMock(return_value=RPCResult(data=1))), \
+                patch.object(merge.rpc, "bot_agent_journal_add", AsyncMock(return_value=RPCResult(data=1))):
+            ok, _ = await merge.reject(7)
+        self.assertTrue(ok)
+        self.assertEqual(saved["status"], "dropped")
+        with patch.object(github, "pr_info", AsyncMock(return_value=_info(head_ref="feat/x"))):
+            self.assertFalse((await merge.reject(7))[0])
 
 
 class EditToolTests(unittest.IsolatedAsyncioTestCase):

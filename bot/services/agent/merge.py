@@ -31,8 +31,12 @@ async def evaluate(number: int, *, owner: bool, override: bool = False) -> tuple
     return True, "ok", info
 
 
+_MERGE_PERMS = {"*", "ops.manage", "admin.manage"}
+
+
 def can_merge(user_id: int, permissions: list[str]) -> bool:
-    return "*" in (permissions or []) or user_id in config.MERGE_ADMIN_IDS
+    """Owner or any top admin (ops/admin management), plus ids listed in AGENT_MERGE_ADMIN_IDS."""
+    return bool(_MERGE_PERMS & set(permissions or [])) or user_id in config.MERGE_ADMIN_IDS
 
 
 async def do_merge(number: int, *, owner: bool, override: bool = False) -> tuple[bool, str]:
@@ -50,3 +54,24 @@ async def do_merge(number: int, *, owner: bool, override: bool = False) -> tuple
         await rpc.bot_agent_mem_add("decision", f"PR #{number} «{goal.get('title')}» слит админом. {note}".strip(), [], 3, False)
     await rpc.bot_agent_journal_add("merge", f"PR #{number} слит админом", {"pr": number})
     return True, "Слито в основную ветку. Деплой пойдёт автоматически."
+
+
+async def reject(number: int) -> tuple[bool, str]:
+    """Decline a finished change: the PR is closed and the agent remembers that people did not want it."""
+    info = await github.pr_info(number)
+    if info.get("error"):
+        return False, "Не смог прочитать задачу: " + str(info["error"])[:100]
+    if info.get("merged"):
+        return False, "Эта задача уже принята."
+    if not github.valid_branch(str(info.get("head_ref") or "")):
+        return False, "Это не задача агента."
+    err = await github.close_pr(number)
+    if err:
+        return False, "GitHub не закрыл: " + err[:100]
+    goals = (await rpc.bot_agent_goals_list(None, 50)).data or []
+    goal = next((g for g in goals if g.get("pr_number") == number), None)
+    if goal:
+        await rpc.bot_agent_goal_save(goal["id"], {"status": "dropped"})
+        await rpc.bot_agent_mem_add("decision", f"Админ ОТКЛОНИЛ задачу «{goal.get('title')}». Не повторяй такое без новой причины.", [], 4, False)
+    await rpc.bot_agent_journal_add("event", f"Задача #{number} отклонена админом", {"pr": number})
+    return True, "Отклонено."

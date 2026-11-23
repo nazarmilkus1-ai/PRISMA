@@ -53,8 +53,10 @@ def live_text(ctx, total: int, status: str = "⚙️ Работаю") -> str:
     goal = ctx.goal or {}
     lines = [f"🛰 <b>Агент прямо сейчас</b>", f"{status} · шаг {ctx.step}/{total} · {hhmm()}"]
     if goal:
-        lines.append(f"🎯 {html.escape(str(goal.get('title') or ''))[:120]}")
-        lines.append(f"📊 Готово: {bar(goal.get('progress_pct'))}")
+        lines.append(f"🎯 {short(goal.get('title'), 100)}")
+        if goal.get("expected"):
+            lines.append(f"🧭 Собираюсь: {short(goal['expected'], 140)}")
+        lines.append(bar(goal.get("progress_pct")))
     collapsed: list[list] = []
     for a in ctx.actions[-14:]:
         if collapsed and collapsed[-1][0] == a:
@@ -92,18 +94,27 @@ def _plain(text: str, n: int = 260) -> str:
     return html.escape(strip_tech(" ".join(str(text or "").split()))[:n])
 
 
+def short(text: str, n: int = 100) -> str:
+    """Plain, single-line, cut at a word boundary."""
+    from .brain import strip_tech
+    clean = " ".join(strip_tech(str(text or "")).split())
+    if len(clean) <= n:
+        return html.escape(clean)
+    return html.escape(clean[:n].rsplit(" ", 1)[0].rstrip(",;:- ") + "…")
+
+
 def _status_line(g: dict) -> str:
     health = g.get("health_pct")
     verdict = (g.get("review") or {}).get("verdict")
     if verdict == "BLOCK":
-        return "🔴 Второй ИИ против слияния — лучше не сливать"
+        return "🔴 Второй ИИ против — лучше отклонить"
     if health is None:
         return "⏳ Тесты ещё не запускались"
     if health < 100:
-        return f"⏳ Тесты ещё идут или не все прошли ({health}%) — кнопка пока может отказать"
+        return f"⏳ Тесты идут или не все прошли ({health}%)"
     if verdict == "RISKS":
-        return "🟡 Тесты прошли, но второй ИИ видит риски — посмотрите описание"
-    return "🟢 Тесты прошли — можно сливать"
+        return "🟡 Тесты прошли, но есть риски"
+    return "🟢 Тесты прошли"
 
 
 async def _live_link(g: dict) -> str:
@@ -111,67 +122,64 @@ async def _live_link(g: dict) -> str:
     url = await github.preview_url(branch) if branch else None
     if url:
         return f"👀 Посмотреть вживую: {url}"
-    return "🤖 Это изменение внутри бота — заработает после слияния (≈3 минуты)"
+    return "🤖 Внутри бота — заработает через ≈3 минуты после «Принять»"
 
 
-async def render_waiting(g: dict) -> str:
+async def waiting_goals() -> list[dict]:
+    goals = (await rpc.bot_agent_goals_list("done", 30)).data or []
+    return sorted((g for g in goals if g.get("pr_number") and not g.get("merged_at")), key=lambda g: g["pr_number"])[:8]
+
+
+def _summary(g: dict) -> str:
     review = g.get("review") or {}
-    explain = review.get("plain") or g.get("expected") or ""
-    lines = [f"<b>{html.escape(str(g.get('title')))}</b>"]
-    if explain:
-        lines.append(f"💡 {_plain(explain, 300)}")
-    lines.append(_status_line(g))
-    if review.get("verdict") == "RISKS" and review.get("notes"):
-        lines.append(f"⚠️ {_plain(review['notes'], 200)}")
-    lines.append(await _live_link(g))
-    lines.append(f"🔗 Подробности: {_pr_url(g.get('pr_number'))}")
-    return "\n".join(lines)
+    return short(review.get("plain") or g.get("expected") or g.get("title"), 90)
 
 
-def render_goal(g: dict) -> str:
-    lines = [f"<b>{html.escape(str(g.get('title')))}</b>", f"{bar(g.get('progress_pct'))}"]
-    if g.get("expected"):
-        lines.append(f"🎁 {_plain(g['expected'], 240)}")
-    return "\n".join(lines)
-
-
-def _dedupe(items: list[str], limit: int = 3) -> list[str]:
-    out, seen = [], set()
-    for text in items:
-        key = " ".join(text.lower().split()[:5])
-        if text and key not in seen:
-            seen.add(key)
-            out.append(text)
-    return out[:limit]
-
-
-async def build() -> tuple[str, InlineKeyboardMarkup | None]:
+async def build() -> tuple[str, InlineKeyboardMarkup]:
     state = (await rpc.bot_agent_state_get()).data or {}
-    journal = [j for j in ((await rpc.bot_agent_journal_recent(30, "cycle")).data or []) if isinstance(j, dict)]
-    skip = ("цикл без итога", "цикл: изучал", "пауза")
-    done = _dedupe([_plain(j.get("body"), 220) for j in journal if not str(j.get("body") or "").lower().startswith(skip)], 3)
     active = (await rpc.bot_agent_goals_list("active", 1)).data or []
-    waiting = [g for g in ((await rpc.bot_agent_goals_list("done", 20)).data or []) if g.get("pr_number") and not g.get("merged_at")][:4]
+    waiting = await waiting_goals()
     paused = bool(state.get("paused"))
-    parts = ["⏸ <b>Агент на паузе</b> — ничего не делает, пока не нажмёте «Продолжить»" if paused else f"🤖 <b>Отчёт агента</b> · {hhmm()}"]
-    parts.append("🛠 <b>Что делал</b>\n" + ("\n".join(f"• {d}" for d in done) if done else "• пока изучаю проект, новостей нет"))
+    parts = [("⏸ <b>Агент на паузе</b>" if paused else "🤖 <b>Агент</b>") + f" · {hhmm()}"]
+    if active:
+        g = active[0]
+        now = f"<b>{short(g.get('title'), 80)}</b>"
+        if g.get("expected"):
+            now += f"\n🧭 {short(g['expected'], 110)}"
+        parts.append(f"🎯 <b>Сейчас</b>\n{now}\n{bar(g.get('progress_pct'))}")
+    elif waiting and len(waiting) >= 3:
+        parts.append("🎯 <b>Сейчас</b>\n😴 Жду ваших решений по готовым задачам")
+    else:
+        parts.append("🎯 <b>Сейчас</b>\nВыбираю следующую задачу")
+    if waiting:
+        lines = [f"№{i} · {_summary(g)}" for i, g in enumerate(waiting, 1)]
+        parts.append("✅ <b>Готово — ждёт вас</b>\n" + "\n".join(lines) + "\n<i>Нажмите номер, чтобы посмотреть</i>")
     nxt = state.get("next_step")
     if nxt and not paused:
-        parts.append(f"🔜 <b>Дальше</b>\n{_plain(nxt, 220)}")
-    if active:
-        parts.append("⚙️ <b>Сейчас в работе</b>\n" + render_goal(active[0]))
+        parts.append(f"🔜 {short(nxt, 100)}")
     rows = []
     if waiting:
-        cards = []
-        for i, g in enumerate(waiting, 1):
-            cards.append(f"{i}️⃣ " + await render_waiting(g))
-            rows.append([InlineKeyboardButton(text=f"✅ Слить: {str(g.get('title'))[:28]}", callback_data=f"agent:merge:{g['pr_number']}")])
-        parts.append(f"✅ <b>Готово — ждёт вашего решения ({len(waiting)})</b>\n\n" + "\n\n".join(cards))
+        rows.append([InlineKeyboardButton(text=f"№{i}", callback_data=f"agent:open:{g['pr_number']}") for i, g in enumerate(waiting, 1)])
     rows.append([InlineKeyboardButton(text="▶ Продолжить" if paused else "⏸ Пауза", callback_data="agent:toggle")])
-    text = "\n\n".join(parts)
-    if len(text) > 3900:
-        text = text[:3850] + "…"
-    return text, InlineKeyboardMarkup(inline_keyboard=rows)
+    return "\n\n".join(parts), InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+async def detail(pr_number: int) -> tuple[str, InlineKeyboardMarkup]:
+    waiting = await waiting_goals()
+    pos = next((i for i, g in enumerate(waiting, 1) if g["pr_number"] == pr_number), None)
+    g = next((g for g in waiting if g["pr_number"] == pr_number), None)
+    back = [InlineKeyboardButton(text="← К списку", callback_data="agent:list")]
+    if not g:
+        return "Эта задача уже обработана.", InlineKeyboardMarkup(inline_keyboard=[back])
+    review = g.get("review") or {}
+    lines = [f"<b>№{pos} · {short(g.get('title'), 80)}</b>", f"💡 {short(review.get('plain') or g.get('expected'), 240)}", _status_line(g)]
+    if review.get("verdict") == "RISKS" and review.get("notes"):
+        lines.append(f"⚠️ {short(review['notes'], 140)}")
+    lines.append(await _live_link(g))
+    markup = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Принять", callback_data=f"agent:merge:{pr_number}"),
+         InlineKeyboardButton(text="❌ Отклонить", callback_data=f"agent:reject:{pr_number}")], back])
+    return "\n".join(lines), markup
 
 
 async def send_hourly(bot) -> None:

@@ -210,7 +210,7 @@ async def _live_done(bot, ctx, status: str, summary: str = "") -> None:
     text = report.live_text(ctx, config.MAX_STEPS, status)
     text = text.replace(f"шаг {ctx.step}/{config.MAX_STEPS}", f"шагов: {ctx.step}")
     if summary:
-        text += "\n\n📝 <b>Итог:</b> " + report._plain(summary, 500)
+        text += "\n\n📝 " + report.short(summary, 200)
     nxt = datetime.now(report.KYIV) + timedelta(seconds=config.CYCLE_SECONDS)
     text += f"\n⏭ Следующий цикл около {report.hhmm(nxt)}"
     try:
