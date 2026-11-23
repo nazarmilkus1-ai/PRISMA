@@ -12,6 +12,7 @@ from db.rpc import (
     bot_set_community_membership,
     bot_set_onboarding_restriction_state,
 )
+from services.validation import TgIdValidation
 
 logger = logging.getLogger(__name__)
 
