@@ -79,6 +79,7 @@ async def _keyboard(tg_id: int, current: str | None):
          InlineKeyboardButton(text="👤 Игрок", callback_data="help:player")],
         [InlineKeyboardButton(text="👥 Сообщество", callback_data="help:community"),
          InlineKeyboardButton(text="📢 Жалобы", callback_data="help:reports")],
+        [InlineKeyboardButton(text="🧭 Гайд", callback_data="help:guide")],
     ]
     if await ensure_mode(tg_id) == ADMIN_MODE and await has_any_staff_permission(tg_id):
         rows.append([InlineKeyboardButton(text="🛡 Администрация", callback_data="help:admin")])
@@ -91,6 +92,10 @@ async def _render(tg_id: int, section: str | None):
     if section in SECTIONS:
         title, body = SECTIONS[section]
         return f"{title}\n\n{body}", await _keyboard(tg_id, section)
+    if section == "guide":
+        from handlers.guide import _guide_for
+        text, markup = await _guide_for(tg_id)
+        return text, await _keyboard(tg_id, "guide")
     return OVERVIEW, await _keyboard(tg_id, None)
 
 
