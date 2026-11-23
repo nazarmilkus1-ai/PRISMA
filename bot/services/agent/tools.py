@@ -78,9 +78,22 @@ SCHEMAS = [
 ]
 
 
+_WORDS = re.compile(r"[\w]{4,}", re.U)
+
+
+def _similar(a: str, b: str) -> bool:
+    wa, wb = set(_WORDS.findall(a.lower())), set(_WORDS.findall(b.lower()))
+    return bool(wa and wb) and len(wa & wb) / min(len(wa), len(wb)) >= 0.6
+
+
+def wrapup_schemas() -> list[dict]:
+    """Last steps of a cycle: only bookkeeping tools, so the model finishes with a proper summary."""
+    return [t for t in SCHEMAS if t["function"]["name"] in {"goal_update", "memory_save", "finish_cycle"}]
+
+
 def act_schemas() -> list[dict]:
     """After a few steps of pure reading the model only gets tools that change things, so it cannot loop on reads."""
-    return [t for t in SCHEMAS if t["function"]["name"] not in READ_ONLY]
+    return [t for t in SCHEMAS if t["function"]["name"] not in READ_ONLY | {"ci_status"}]
 
 
 def _clip(obj, n: int = config.TOOL_RESULT_CHARS) -> str:
@@ -199,6 +212,9 @@ async def run_tool(ctx: Ctx, name: str, args: dict) -> str:
     from .report import live_progress  # late import: report imports github, tools must stay importable without it
     await live_progress(ctx)
     args = args if isinstance(args, dict) else {}
+    caps = {"repo_read": 10, "repo_search": 4, "ci_status": 2}
+    if name in caps and ctx.counts.get(name, 0) > caps[name]:
+        return _clip({"error": f"лимит {caps[name]} вызовов «{name}» за цикл исчерпан. Действуй: edit/commit, goal_update или finish_cycle."})
     if name in READ_ONLY:
         key = (name, json.dumps(args, sort_keys=True, ensure_ascii=False))
         if key in ctx.seen:
@@ -249,6 +265,13 @@ async def _dispatch(ctx: Ctx, name: str, a: dict):
         active = (await rpc.bot_agent_goals_list("active", 1)).data or []
         if active:
             return {"error": f"уже есть активная цель #{active[0].get('id')}: закончи её (goal_update status=done) или брось"}
+        waiting = [g for g in ((await rpc.bot_agent_goals_list("done", 20)).data or []) if g.get("pr_number") and not g.get("merged_at")]
+        if len(waiting) >= 3:
+            return {"error": "уже 3 готовых изменения ждут кнопки «Слить». Новую цель не ставь: проверь тесты (ci_status) этих PR, "
+                             "поправь замечания или запиши идеи в память и заверши цикл."}
+        recent = (await rpc.bot_agent_goals_list(None, 30)).data or []
+        if any(_similar(str(a.get("title") or ""), str(g.get("title") or "")) for g in recent if isinstance(g, dict)):
+            return {"error": "похожая цель уже есть или была. Придумай другую небольшую цель или продолжи ту, что в работе."}
         res = await rpc.bot_agent_goal_save(None, {
             "title": str(a.get("title") or "")[:200], "why": str(a.get("why") or "")[:1500], "expected": str(a.get("expected") or "")[:1500],
             "tasks": [{"t": str(t)[:200], "done": False} for t in (a.get("tasks") or [])][:12] if isinstance(a.get("tasks"), list) else []})
@@ -262,6 +285,8 @@ async def _dispatch(ctx: Ctx, name: str, a: dict):
         patch = {k: a[k] for k in ("progress_pct", "expected", "tasks") if k in a}
         if a.get("status") in {"active", "done", "dropped", "paused"}:
             patch["status"] = a["status"]
+            if a["status"] == "done":
+                patch["progress_pct"] = 100
         res = await rpc.bot_agent_goal_save(goal["id"], patch)
         if res.error:
             return {"error": "не удалось обновить"}

@@ -315,3 +315,24 @@ async def tree_overview(max_paths: int = 260) -> str:
     text = "\n".join(paths[:max_paths]) + (f"\n… и ещё {len(paths) - max_paths} файлов" if len(paths) > max_paths else "")
     _tree_cache["at"], _tree_cache["text"] = time.monotonic(), text
     return text
+
+
+_preview_cache: dict = {}
+
+
+async def preview_url(branch: str) -> str | None:
+    """Vercel preview of an agent branch (only exists when the branch touches site/panel). Best effort, cached 5 min."""
+    hit = _preview_cache.get(branch)
+    if hit and time.monotonic() - hit[0] < 300:
+        return hit[1]
+    url = None
+    if not ops.missing("VERCEL_TOKEN", "VERCEL_PROJECT_ID") and valid_branch(branch):
+        data, err = await ops._request("GET", "https://api.vercel.com/v6/deployments", {"Authorization": f"Bearer {ops._env('VERCEL_TOKEN')}"},
+                                       ops._vercel_params({"projectId": ops._env("VERCEL_PROJECT_ID"), "limit": 20}))
+        if not err:
+            for d in (data or {}).get("deployments", []):
+                if (d.get("meta") or {}).get("githubCommitRef") == branch and (d.get("state") or d.get("readyState")) == "READY" and d.get("url"):
+                    url = "https://" + d["url"]
+                    break
+    _preview_cache[branch] = (time.monotonic(), url)
+    return url

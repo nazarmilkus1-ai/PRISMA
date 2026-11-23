@@ -51,6 +51,10 @@ async def ingest(message: types.Message):
     ctx = await staff_context(message.from_user.id)
     user = message.from_user
     await rpc.bot_agent_inbox_add(user.id, user.username or user.full_name, bool(ctx.get("is_staff")), (message.text or "")[:1500], message.message_id)
+    text = (message.text or "").strip()
+    if ctx.get("is_staff") and len(text) >= 12 and not text.startswith("/"):
+        # What admins say is remembered right away, so the agent keeps their wishes even if it forgets the chat.
+        await rpc.bot_agent_mem_add("user", f"Админ @{user.username or user.full_name} написал в топике: {text[:600]}", [], 4, False)
     me = await message.bot.me()
     if _addressed(message, me.id, me.username or "") and time.monotonic() - _last_ack.get(user.id, 0) > 60:
         _last_ack[user.id] = time.monotonic()

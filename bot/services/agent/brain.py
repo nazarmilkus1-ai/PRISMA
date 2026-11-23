@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 
 from db import rpc
 from services.ai import client
@@ -22,7 +23,9 @@ SYSTEM = """Ты — PRISMA-Агент, автономный разработч�
 - Маленькие проверяемые шаги: прочитай код (repo_read/repo_search) → измени (commit) → проверь (ci_status) → поправь. Если CI красный — чини в первую очередь.
 - Важное записывай в память (memory_save): решения, уроки, предпочтения людей, идеи на потом. Закреплённое (pinned) — самое главное.
 - В конце каждого цикла вызывай finish_cycle с кратким итогом: что сделал, что дальше. Оценивай progress_pct честно.
-- ВСЁ, что видят люди, пиши по-русски простыми словами, как для человека без опыта в программировании: без жаргона и английских терминов (title и expected цели, summary и next в finish_cycle, текст say, названия коммитов — тоже по-русски). Вместо «добавил валидацию UUID в MinecraftAuthService» — «теперь бот не примет неправильный ник игрока и скажет понятную ошибку».
+- ГЛАВНОЕ ПРАВИЛО ТЕКСТОВ: люди, которые читают тебя, — админы Minecraft-сообщества, НЕ программисты. Всё, что они видят (title и expected цели, summary и next в finish_cycle, say, названия коммитов и PR), пиши по-русски, коротко, без названий файлов, функций, классов и терминов. Пример плохо: «Добавил TgIdValidation в community_membership.py». Пример хорошо: «Теперь бот не ломается, если ему пришёл неправильный номер пользователя Telegram». Пиши, что стало лучше для игроков или админов.
+- Раньше сказано то же самое подробнее: ВСЁ, что видят люди, пиши по-русски простыми словами, как для человека без опыта в программировании: без жаргона и английских терминов (title и expected цели, summary и next в finish_cycle, текст say, названия коммитов — тоже по-русски). Вместо «добавил валидацию UUID в MinecraftAuthService» — «теперь бот не примет неправильный ник игрока и скажет понятную ошибку».
+- Слушай админов из топика: если они ругают или просят изменить, как ты пишешь/работаешь — сразу memory_save (importance 5, pinned) и исполняй.
 - Оценивай progress_pct честно и обновляй его через goal_update после каждого заметного шага; отмечай выполненные задачи в tasks.
 - Узнал что-то важное (как устроен проект, чего хотят люди, что сработало или нет) — сразу memory_save.
 - say используй редко."""
@@ -90,7 +93,8 @@ async def run_cycle(bot) -> dict:
         for step in range(config.MAX_STEPS):
             ctx.step = step + 1
             act_only = bool(ctx.goal) and not ctx.commits and step >= 8
-            msg = await _ask(messages, tools.act_schemas() if act_only else None)
+            wrap = step >= config.MAX_STEPS - 2 and not ctx.finished
+            msg = await _ask(messages, tools.wrapup_schemas() if wrap else (tools.act_schemas() if act_only else None))
             messages.append({k: v for k, v in msg.items() if k in {"role", "content", "tool_calls"}})
             calls = msg.get("tool_calls") or []
             logger.info("agent step: %d tool calls, text=%r", len(calls), str(msg.get("content") or "")[:160])
@@ -140,16 +144,44 @@ async def run_cycle(bot) -> dict:
         if patch:
             await rpc.bot_agent_goal_save(goal["id"], patch)
     await _refresh_waiting()
-    summary = ctx.summary.strip() or _fallback_summary(ctx)
+    raw = ctx.summary.strip()
+    summary = await _plainify(raw or _fallback_summary(ctx), goal, ctx)
     if ctx.notes:
-        summary += " ⚠ " + "; ".join(ctx.notes)[:200]
-    await rpc.bot_agent_journal_add("cycle", summary[:900], {"goal": (goal or {}).get("id"), "commits": ctx.commits, "actions": len(ctx.actions)})
+        logger.info("agent notes: %s", "; ".join(ctx.notes)[:200])
+    fallback = not raw
+    await rpc.bot_agent_journal_add("cycle", summary[:900], {"goal": (goal or {}).get("id"), "commits": ctx.commits,
+                                                            "actions": len(ctx.actions), "fallback": fallback, "raw": raw[:400]})
     if ctx.commits or ctx.counts.get("goal_new"):
         await rpc.bot_agent_mem_add("decision", f"{summary[:400]} (цель: {(goal or {}).get('title', '—')[:100]})", [], 3, False)
     if ctx.next_step:
         await rpc.bot_agent_state_patch({"next_step": ctx.next_step})
     await _live_done(bot, ctx, "😴 Цикл закончен", summary)
     return {"ok": True, "summary": summary}
+
+
+_TECH = re.compile(r"\b[\w./-]+\.(?:py|ts|tsx|js|java|sql|md|json|yml|yaml)\b|`[^`]*`")
+
+
+def strip_tech(text: str) -> str:
+    return " ".join(_TECH.sub("", text or "").split())
+
+
+async def _plainify(text: str, goal: dict | None, ctx) -> str:
+    """One short extra call that rewrites the cycle result in plain words for non-programmers."""
+    text = text.strip()
+    try:
+        msg = await client.chat(
+            [{"role": "system", "content": "Перепиши итог работы разработчика для админа Minecraft-сообщества, который НЕ программист. "
+                                           "1-2 коротких предложения по-русски. Никаких названий файлов, функций, классов, кода и английских терминов. "
+                                           "Скажи, что стало лучше или что изучено и зачем. Ответ: только текст."},
+             {"role": "user", "content": f"Цель: {(goal or {}).get('title', '—')}\nКоммитов за цикл: {ctx.commits}\nИтог: {text[:700]}"}],
+            role="agent", model=client.agent_models()[0], max_tokens=300, timeout=60.0)
+        out = strip_tech(str(msg.get("content") or "")).strip()
+        if len(out) >= 15:
+            return out[:400]
+    except client.AIError as exc:
+        logger.info("plain rewrite skipped: %s", exc)
+    return strip_tech(text)[:300] or "Работаю над задачей, видимых изменений пока нет."
 
 
 def _fallback_summary(ctx) -> str:
@@ -193,5 +225,7 @@ async def _refresh_waiting() -> None:
             await rpc.bot_agent_goal_save(g["id"], {"status": "dropped"})
             continue
         ci = await github.ci(g["head_sha"])
+        patch = {"progress_pct": 100}
         if "health_pct" in ci:
-            await rpc.bot_agent_goal_save(g["id"], {"health_pct": ci["health_pct"]})
+            patch["health_pct"] = ci["health_pct"]
+        await rpc.bot_agent_goal_save(g["id"], patch)
