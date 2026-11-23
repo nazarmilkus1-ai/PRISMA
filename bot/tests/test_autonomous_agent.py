@@ -170,19 +170,24 @@ class ReadableReportTests(unittest.IsolatedAsyncioTestCase):
     async def test_build_report_sections(self):
         from services.agent import report
         goals_done = [{"id": 1, "title": "Кнопка", "pr_number": 5, "progress_pct": 100, "health_pct": 100, "expected": "кнопка в меню",
-                       "review": {"verdict": "OK", "notes": "норм"}, "branch": "agent/x-1-1"}]
+                       "review": {"verdict": "OK", "notes": "норм", "plain": "В меню появится кнопка Гайд."}, "branch": "agent/x-1-1"}]
 
         async def goals(status=None, limit=20):
             return RPCResult(data=goals_done if status == "done" else [])
 
+        journal = [{"body": "Цикл: изучал код проекта (7 файлов)"}, {"body": "Теперь бот понятнее отвечает на ошибки в файле bot/a.py"}]
         with patch.object(report.rpc, "bot_agent_state_get", AsyncMock(return_value=RPCResult(data={"next_step": "следующая задача"}))), \
-                patch.object(report.rpc, "bot_agent_journal_recent", AsyncMock(return_value=RPCResult(data=[{"body": "добавил кнопку"}]))), \
+                patch.object(report.rpc, "bot_agent_journal_recent", AsyncMock(return_value=RPCResult(data=journal))), \
                 patch.object(report.rpc, "bot_agent_goals_list", goals), \
-                patch.object(report.rpc, "bot_agent_mem_count", AsyncMock(return_value=RPCResult(data=3))), \
+                patch.object(github, "preview_url", AsyncMock(return_value=None)), \
                 patch.object(github, "_repo", lambda: ("o/r", None)):
             text, markup = await report.build()
-        for part in ("Что сделал", "Что дальше", "Готово, ждёт вашей кнопки", "Слить", "В памяти заметок: 3", "Второй ИИ проверил"):
-            self.assertIn(part, text if part != "Слить" else str(markup))
+        for part in ("Что делал", "Дальше", "ждёт вашего решения", "В меню появится кнопка Гайд", "можно сливать", "внутри бота"):
+            self.assertIn(part, text)
+        self.assertNotIn("изучал код проекта", text)  # old technical fallback lines are hidden
+        self.assertNotIn("bot/a.py", text)  # file names never reach admins
+        self.assertIn("agent:merge:5", str(markup))
+        self.assertLess(len(text), 4000)
 
 
 class EditToolTests(unittest.IsolatedAsyncioTestCase):
@@ -220,3 +225,30 @@ class EditToolTests(unittest.IsolatedAsyncioTestCase):
         names = {t["function"]["name"] for t in tools.act_schemas()}
         self.assertTrue({"edit", "commit", "finish_cycle"} <= names)
         self.assertFalse(names & tools.READ_ONLY)
+
+
+class GuardTests(unittest.IsolatedAsyncioTestCase):
+    def test_similar_titles(self):
+        self.assertTrue(tools._similar("Добавить валидацию Telegram ID в сервисах", "валидацию Telegram ID добавить в сервисы бота"))
+        self.assertFalse(tools._similar("Кнопка гайд в меню", "Проверка ников игроков"))
+
+    async def test_goal_new_refused_with_three_waiting(self):
+        waiting = [{"pr_number": n, "merged_at": None} for n in (1, 2, 3)]
+
+        async def goals(status=None, limit=20):
+            return RPCResult(data=[] if status == "active" else waiting)
+
+        ctx = tools.Ctx(bot=None)
+        with patch.object(tools.rpc, "bot_agent_goals_list", goals):
+            out = json.loads(await tools.run_tool(ctx, "goal_new", {"title": "Новая", "expected": "x"}))
+        self.assertIn("error", out)
+
+    async def test_read_cap(self):
+        ctx = tools.Ctx(bot=None)
+        ctx.counts["repo_read"] = 11
+        out = json.loads(await tools.run_tool(ctx, "repo_read", {"path": "a.py"}))
+        self.assertIn("лимит", out["error"])
+
+    def test_strip_tech(self):
+        from services.agent import brain
+        self.assertEqual(brain.strip_tech("Правка в bot/a.py и `Foo` готова"), "Правка в и готова")

@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 PROMPT = ("Ты строгий ревьюер кода проекта PRISMA (Python/aiogram бот, Next.js сайт и панель, Supabase, плагин Paper). "
           "Тебе дают diff, написанный другим ИИ-агентом. Ищи: баги, утечки секретов, опасные действия, слом безопасности (RPC только service_role), "
-          "поломку существующего. Ответ строго JSON: {\"verdict\":\"OK|RISKS|BLOCK\",\"notes\":\"до 500 символов по-русски\"}. "
+          "поломку существующего. Ответ строго JSON: {\"verdict\":\"OK|RISKS|BLOCK\",\"notes\":\"до 300 символов по-русски, простыми словами для не программиста, без названий файлов\",\"plain\":\"1-2 коротких предложения по-русски: что изменится для игроков или админов Minecraft-сообщества, без терминов и названий файлов\"}. "
           "BLOCK только за серьёзную опасность или явную поломку.")
 
 
@@ -26,7 +26,7 @@ def parse_verdict(text: str) -> dict:
     verdict = str(data.get("verdict") or "").upper()
     if verdict not in {"OK", "RISKS", "BLOCK"}:
         return {"verdict": "RISKS", "notes": "Ревьюер не дал чёткий ответ — проверьте diff вручную."}
-    return {"verdict": verdict, "notes": str(data.get("notes") or "")[:600]}
+    return {"verdict": verdict, "notes": str(data.get("notes") or "")[:400], "plain": str(data.get("plain") or "")[:400]}
 
 
 async def review(head_sha: str) -> dict:
