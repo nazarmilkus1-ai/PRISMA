@@ -2,8 +2,11 @@
 from __future__ import annotations
 
 from collections import Counter, OrderedDict
+import logging
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+
+logger = logging.getLogger(__name__)
 
 # callback_data -> button label. Only navigation targets that are safe to open with one tap.
 ACTIONS: dict[str, str] = {
@@ -14,6 +17,11 @@ ACTIONS: dict[str, str] = {
 }
 DEFAULTS = ("player:server", "player:events", "ask", "profile", "player:stats")
 MAX_USERS = 5000
+
+# Проверка при импорте: все DEFAULTS должны существовать в ACTIONS
+for key in DEFAULTS:
+    if key not in ACTIONS:
+        logger.warning("quick.py: ключ DEFAULTS '%s' отсутствует в ACTIONS — кнопка не появится", key)
 
 _usage: "OrderedDict[int, Counter]" = OrderedDict()
 
