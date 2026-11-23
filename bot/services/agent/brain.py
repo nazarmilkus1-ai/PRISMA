@@ -31,6 +31,11 @@ SYSTEM = """Ты — PRISMA-Агент, автономный разработч�
 - say используй редко."""
 
 
+IDEA_HINT = ("\n\nРЕЖИМ ИДЕЙ: готовых задач уже много, люди ещё не разобрали их. Новый код не пиши. Изучай проект, ищи слабые места и полезные "
+             "идеи для игроков и админов, записывай каждую в память (memory_save, kind=idea, коротко и по-русски, с важностью), "
+             "в конце finish_cycle с простым итогом.\n\n")
+
+
 def _fmt_inbox(items: list[dict]) -> str:
     if not items:
         return "(новых сообщений нет)"
@@ -78,30 +83,39 @@ async def run_cycle(bot) -> dict:
         return {"ok": True, "summary": "дневной бюджет вызовов исчерпан, отдыхаю"}
     goals = (await rpc.bot_agent_goals_list("active", 1)).data or []
     goal = goals[0] if goals else None
+    idea_mode = False
+    rework = ""
     if not goal:
-        waiting = [g for g in ((await rpc.bot_agent_goals_list("done", 20)).data or []) if g.get("pr_number") and not g.get("merged_at")]
-        if len(waiting) >= 3 and (await rpc.bot_agent_inbox_peek()).data is not True:
-            # Nothing to do until a human decides: no AI calls, just keep the data fresh and say so in the status message.
-            await _refresh_waiting()
-            await _idle_status(bot, len(waiting))
-            return {"ok": True, "summary": "жду решения админов"}
-    inbox = (await rpc.bot_agent_inbox_take(30)).data or []
+        waiting = [g for g in ((await rpc.bot_agent_goals_list("done", 30)).data or []) if g.get("pr_number") and not g.get("merged_at")]
+        if len(waiting) >= config.MAX_WAITING:
+            # Too many finished changes are waiting for people: never sit idle. First fix what is flagged, otherwise hunt for ideas.
+            flagged = [g for g in waiting if (g.get("health_pct") or 0) < 100 or (g.get("review") or {}).get("verdict") in {"RISKS", "BLOCK"}]
+            if flagged:
+                pick = flagged[0]
+                res = await rpc.bot_agent_goal_save(pick["id"], {"status": "active", "progress_pct": 80})
+                if not res.error and isinstance(res.data, dict):
+                    goal = res.data
+                    notes = (pick.get("review") or {}).get("notes") or "тесты прошли не полностью"
+                    rework = f"\n\nДОРАБОТКА: это уже готовая задача (PR #{pick.get('pr_number')}), но есть замечания: {notes}. Исправь их правками в её ветке и закончи (goal_update status=done)."
+            if not goal:
+                idea_mode = True
+        inbox = (await rpc.bot_agent_inbox_take(30)).data or []
     ctx = tools.Ctx(bot=bot, goal=goal)
     await report.live(bot, report.live_text(ctx, config.MAX_STEPS, "🚀 Начинаю цикл"))
     context = await memory.build_context(goal, inbox)
     context += "\n\n## Файлы репозитория (ветка PRISMA) — читай нужные сразу через repo_read, не обходи папки по одной\n" + await github.tree_overview()
     messages = [
         {"role": "system", "content": SYSTEM},
-        {"role": "user", "content": f"{context}\n\n## Сообщения людей\n{_fmt_inbox(inbox)}\n\n## Цель\n{_fmt_goal(goal)}\n\nДействуй. Не трать шаги на обход папок: ПЕРВЫМ действием, если активной цели нет, вызови goal_new (одна конкретная небольшая улучшаемая вещь), потом читай нужные файлы и вноси изменения коммитом."},
+        {"role": "user", "content": f"{context}\n\n## Сообщения людей\n{_fmt_inbox(inbox)}\n\n## Цель\n{_fmt_goal(goal)}\n\n{rework}{IDEA_HINT if idea_mode else ""}{"Действуй по режиму идей." if idea_mode else "Действуй. Не трать шаги на обход папок: ПЕРВЫМ действием, если активной цели нет, вызови goal_new (одна конкретная небольшая улучшаемая вещь), потом читай нужные файлы и вноси изменения коммитом."}"},
     ]
     nudges = 0
     start_pct = (goal or {}).get("progress_pct")
     try:
         for step in range(config.MAX_STEPS):
             ctx.step = step + 1
-            act_only = bool(ctx.goal) and not ctx.commits and step >= 8
+            act_only = bool(ctx.goal) and not ctx.commits and step >= 8 and not idea_mode
             wrap = step >= config.MAX_STEPS - 2 and not ctx.finished
-            msg = await _ask(messages, tools.wrapup_schemas() if wrap else (tools.act_schemas() if act_only else None))
+            msg = await _ask(messages, tools.wrapup_schemas() if wrap else (tools.idea_schemas() if idea_mode else (tools.act_schemas() if act_only else None)))
             messages.append({k: v for k, v in msg.items() if k in {"role", "content", "tool_calls"}})
             calls = msg.get("tool_calls") or []
             logger.info("agent step: %d tool calls, text=%r", len(calls), str(msg.get("content") or "")[:160])

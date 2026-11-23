@@ -86,6 +86,12 @@ def _similar(a: str, b: str) -> bool:
     return bool(wa and wb) and len(wa & wb) / min(len(wa), len(wb)) >= 0.6
 
 
+def idea_schemas() -> list[dict]:
+    """Idea mode (many finished changes are waiting): research and remember, but do not start new code work."""
+    ok = READ_ONLY | {"memory_save", "memory_search", "say", "finish_cycle", "goal_update"}
+    return [t for t in SCHEMAS if t["function"]["name"] in ok]
+
+
 def wrapup_schemas() -> list[dict]:
     """Last steps of a cycle: only bookkeeping tools, so the model finishes with a proper summary."""
     return [t for t in SCHEMAS if t["function"]["name"] in {"goal_update", "memory_save", "finish_cycle"}]
@@ -266,9 +272,9 @@ async def _dispatch(ctx: Ctx, name: str, a: dict):
         if active:
             return {"error": f"уже есть активная цель #{active[0].get('id')}: закончи её (goal_update status=done) или брось"}
         waiting = [g for g in ((await rpc.bot_agent_goals_list("done", 20)).data or []) if g.get("pr_number") and not g.get("merged_at")]
-        if len(waiting) >= 3:
-            return {"error": "уже 3 готовых изменения ждут кнопки «Слить». Новую цель не ставь: проверь тесты (ci_status) этих PR, "
-                             "поправь замечания или запиши идеи в память и заверши цикл."}
+        if len(waiting) >= config.MAX_WAITING:
+            return {"error": f"уже {len(waiting)} готовых изменений ждут решения людей. Новую цель не ставь: запиши идеи в память (memory_save, kind=idea) "
+                             "и заверши цикл."}
         recent = (await rpc.bot_agent_goals_list(None, 30)).data or []
         if any(_similar(str(a.get("title") or ""), str(g.get("title") or "")) for g in recent if isinstance(g, dict)):
             return {"error": "похожая цель уже есть или была. Придумай другую небольшую цель или продолжи ту, что в работе."}
