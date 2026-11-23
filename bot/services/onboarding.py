@@ -34,6 +34,7 @@ def _display_name(row: dict) -> str:
 def _mention(row: dict) -> str:
     try:
         telegram_id = int(row["telegram_id"])
+        TgIdValidation.validate(telegram_id, "onboarding._mention")
     except (KeyError, TypeError, ValueError):
         return escape(_display_name(row))
     return f'<a href="tg://user?id={telegram_id}">{escape(_display_name(row))}</a>'
