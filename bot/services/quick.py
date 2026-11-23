@@ -5,6 +5,8 @@ from collections import Counter, OrderedDict
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+from services.validation import TgIdValidation
+
 # callback_data -> button label. Only navigation targets that are safe to open with one tap.
 ACTIONS: dict[str, str] = {
     "profile": "👤 Профиль", "player:server": "🖥 Сервер", "player:stats": "📊 Статистика",
