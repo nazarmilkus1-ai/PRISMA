@@ -290,6 +290,11 @@ async def pr_info(number: int) -> dict:
     }
 
 
+async def close_pr(number: int) -> str | None:
+    _, err = await _send("PATCH", f"/pulls/{int(number)}", {"state": "closed"})
+    return err
+
+
 async def merge(number: int, title: str) -> tuple[bool, str]:
     """Squash-merge into the base branch. Only ever called from the admin's merge button."""
     data, err = await _send("PUT", f"/pulls/{int(number)}/merge", {"merge_method": "squash", "commit_title": title[:200]})

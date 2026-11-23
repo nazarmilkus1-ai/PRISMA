@@ -62,6 +62,13 @@ async def ingest(message: types.Message):
         await message.reply(f"👌 Принял, учту {who} в ближайшем цикле (до 10 минут).")
 
 
+async def _show(callback: types.CallbackQuery, text: str, markup: InlineKeyboardMarkup) -> None:
+    try:
+        await callback.message.edit_text(text, parse_mode="HTML", reply_markup=markup, disable_web_page_preview=True)
+    except Exception as exc:  # "message is not modified" and the like
+        logger.debug("agent card not edited: %s", exc)
+
+
 @router.callback_query(F.data.startswith("agent:"))
 async def buttons(callback: types.CallbackQuery):
     msg = callback.message
@@ -70,30 +77,50 @@ async def buttons(callback: types.CallbackQuery):
         return
     ctx = await staff_context(callback.from_user.id)
     if not ctx.get("is_staff"):
-        await callback.answer("Только для админов.", show_alert=True)
+        await callback.answer("Это только для админов.", show_alert=True)
         return
+    perms = ctx.get("permissions") or []
     parts = (callback.data or "").split(":")
     action = parts[1] if len(parts) > 1 else ""
+    number = int(parts[2]) if len(parts) == 3 and parts[2].isdigit() else 0
     if action == "toggle":
         paused = bool(((await rpc.bot_agent_state_get()).data or {}).get("paused"))
         await rpc.bot_agent_state_patch({"paused": not paused})
         await callback.answer("Продолжаю" if paused else "Пауза")
+        text, markup = await report.build()
+        await _show(callback, text, markup)
         return
-    if action in {"merge", "force"} and len(parts) == 3 and parts[2].isdigit():
-        number = int(parts[2])
-        owner = "*" in (ctx.get("permissions") or [])
-        if not merge.can_merge(callback.from_user.id, ctx.get("permissions") or []):
-            await callback.answer("Сливать может только владелец или назначенный админ.", show_alert=True)
+    if action == "list":
+        await callback.answer()
+        text, markup = await report.build()
+        await _show(callback, text, markup)
+        return
+    if action == "open" and number:
+        await callback.answer()
+        text, markup = await report.detail(number)
+        await _show(callback, text, markup)
+        return
+    if action in {"merge", "force", "reject"} and number:
+        if not merge.can_merge(callback.from_user.id, perms):
+            await callback.answer("Принимать и отклонять могут только главные админы.", show_alert=True)
             return
-        await callback.answer("Проверяю и сливаю…")
-        ok, text = await merge.do_merge(number, owner=owner, override=(action == "force"))
         who = html.escape(callback.from_user.full_name)
-        if ok:
-            await report.post(callback.bot, f"✅ <b>PR #{number} слит</b> — {who}. {html.escape(text)}")
+        if action == "reject":
+            await callback.answer("Отклоняю…")
+            ok, text = await merge.reject(number)
+            await report.post(callback.bot, f"❌ Задача отклонена — {who}" if ok else f"⛔ {html.escape(text)}")
         else:
-            markup = None
-            if owner and "BLOCK" in text:
-                markup = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Слить всё равно", callback_data=f"agent:force:{number}")]])
-            await report.post(callback.bot, f"⛔ <b>PR #{number} не слит:</b> {html.escape(text)}", markup)
+            await callback.answer("Проверяю и принимаю…")
+            top = bool({"*", "admin.manage"} & set(perms))
+            ok, text = await merge.do_merge(number, owner=top, override=(action == "force"))
+            if ok:
+                await report.post(callback.bot, f"✅ Задача принята — {who}. Заработает через ≈3 минуты.")
+            else:
+                markup = None
+                if top and "BLOCK" in text:
+                    markup = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Принять всё равно", callback_data=f"agent:force:{number}")]])
+                await report.post(callback.bot, f"⛔ Не принято: {html.escape(text)}", markup)
+        text, markup = await report.build()  # the queue renumbers itself: №2 becomes №1
+        await _show(callback, text, markup)
         return
     await callback.answer()
