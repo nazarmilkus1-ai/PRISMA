@@ -100,7 +100,11 @@ async def _telegram_member(bot: Bot, tg_id: int):
 
 
 async def _load_onboarding_row(tg_id: int) -> dict | None:
-    TgIdValidation.validate(tg_id, "community_membership._load_onboarding_row")
+    try:
+        TgIdValidation.validate(tg_id, "community_membership._load_onboarding_row")
+    except ValueError:
+        logger.warning("community_membership._load_onboarding_row: invalid tg_id=%s", tg_id)
+        return None
     result = await bot_list_onboarding_restriction_candidates()
     if result.error or not isinstance(result.data, list):
         return None
