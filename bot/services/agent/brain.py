@@ -99,7 +99,7 @@ async def run_cycle(bot) -> dict:
                     rework = f"\n\nДОРАБОТКА: это уже готовая задача (PR #{pick.get('pr_number')}), но есть замечания: {notes}. Исправь их правками в её ветке и закончи (goal_update status=done)."
             if not goal:
                 idea_mode = True
-        inbox = (await rpc.bot_agent_inbox_take(30)).data or []
+    inbox = (await rpc.bot_agent_inbox_take(30)).data or []
     ctx = tools.Ctx(bot=bot, goal=goal)
     await report.live(bot, report.live_text(ctx, config.MAX_STEPS, "🚀 Начинаю цикл"))
     context = await memory.build_context(goal, inbox)
