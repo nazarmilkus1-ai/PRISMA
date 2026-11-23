@@ -45,6 +45,12 @@ def top(tg_id: int, limit: int = 4) -> list[str]:
 
 
 def keyboard(tg_id: int) -> InlineKeyboardMarkup:
+    ok, _ = Validation.validate_telegram_id(tg_id, "Telegram ID для быстрых действий")
+    if not ok:
+        buttons = [InlineKeyboardButton(text=ACTIONS[key], callback_data=key) for key in DEFAULTS[:6]]
+        rows = [buttons[i:i + 2] for i in range(0, len(buttons), 2)]
+        rows.append([InlineKeyboardButton(text="🏠 Меню", callback_data="menu:back")])
+        return InlineKeyboardMarkup(inline_keyboard=rows)
     frequent = top(tg_id, 4)
     chosen = list(frequent)
     for key in DEFAULTS:
