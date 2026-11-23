@@ -43,8 +43,12 @@ def card_text(row: dict) -> str:
     )
 
 
-def keyboard(tg_id: int) -> InlineKeyboardMarkup:
-    TgIdValidation.validate(tg_id, "ban_review.keyboard")
+def keyboard(tg_id: int) -> InlineKeyboardMarkup | None:
+    try:
+        TgIdValidation.validate(tg_id, "ban_review.keyboard")
+    except ValueError:
+        logger.warning("ban_review.keyboard: invalid tg_id=%s", tg_id)
+        return None
     return InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="✅ Вернуть", callback_data=f"{CB_PREFIX}:ok:{int(tg_id)}"),
         InlineKeyboardButton(text="⛔ Оставить бан", callback_data=f"{CB_PREFIX}:keep:{int(tg_id)}"),
