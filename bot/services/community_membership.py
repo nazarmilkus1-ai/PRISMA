@@ -96,6 +96,7 @@ async def _telegram_member(bot: Bot, tg_id: int):
 
 
 async def _load_onboarding_row(tg_id: int) -> dict | None:
+    TgIdValidation.validate(tg_id, "community_membership._load_onboarding_row")
     result = await bot_list_onboarding_restriction_candidates()
     if result.error or not isinstance(result.data, list):
         return None
