@@ -112,6 +112,7 @@ async def ensure_onboarding_restriction(
     display_name: str | None = None,
     row: dict | None = None,
 ) -> bool:
+    TgIdValidation.validate(tg_id, "community_membership.ensure_onboarding_restriction")
     if not MODERATION_GROUP_ID:
         return False
 
