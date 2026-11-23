@@ -76,9 +76,16 @@ async def run_cycle(bot) -> dict:
         return {"ok": False, "summary": "ключ ИИ агента не настроен"}
     if not await _budget_ok():
         return {"ok": True, "summary": "дневной бюджет вызовов исчерпан, отдыхаю"}
-    inbox = (await rpc.bot_agent_inbox_take(30)).data or []
     goals = (await rpc.bot_agent_goals_list("active", 1)).data or []
     goal = goals[0] if goals else None
+    if not goal:
+        waiting = [g for g in ((await rpc.bot_agent_goals_list("done", 20)).data or []) if g.get("pr_number") and not g.get("merged_at")]
+        if len(waiting) >= 3 and (await rpc.bot_agent_inbox_peek()).data is not True:
+            # Nothing to do until a human decides: no AI calls, just keep the data fresh and say so in the status message.
+            await _refresh_waiting()
+            await _idle_status(bot, len(waiting))
+            return {"ok": True, "summary": "жду решения админов"}
+    inbox = (await rpc.bot_agent_inbox_take(30)).data or []
     ctx = tools.Ctx(bot=bot, goal=goal)
     await report.live(bot, report.live_text(ctx, config.MAX_STEPS, "🚀 Начинаю цикл"))
     context = await memory.build_context(goal, inbox)
@@ -172,7 +179,7 @@ async def _plainify(text: str, goal: dict | None, ctx) -> str:
     try:
         msg = await client.chat(
             [{"role": "system", "content": "Перепиши итог работы разработчика для админа Minecraft-сообщества, который НЕ программист. "
-                                           "1-2 коротких предложения по-русски. Никаких названий файлов, функций, классов, кода и английских терминов. "
+                                           "1-2 коротких предложения по-русски. Никаких названий файлов, функций, классов, кода и английских терминов. Не упоминай PR, CI, ветки, деплой, коммиты, инструменты и «систему» — говори «готовые изменения», «автопроверка», «я». "
                                            "Скажи, что стало лучше или что изучено и зачем. Ответ: только текст."},
              {"role": "user", "content": f"Цель: {(goal or {}).get('title', '—')}\nКоммитов за цикл: {ctx.commits}\nИтог: {text[:700]}"}],
             role="agent", model=client.agent_models()[0], max_tokens=300, timeout=60.0)
@@ -212,6 +219,14 @@ async def _live_done(bot, ctx, status: str, summary: str = "") -> None:
         pass
 
 
+async def _idle_status(bot, n: int) -> None:
+    from datetime import datetime, timedelta
+    nxt = datetime.now(report.KYIV) + timedelta(seconds=config.CYCLE_SECONDS)
+    await report.live(bot, f"🛰 <b>Агент прямо сейчас</b>\n😴 Отдыхаю · {report.hhmm()}\n\n"
+                           f"Готовых изменений, которые ждут вашего решения: {n}. Пока вы их не примете или не отклоните, "
+                           f"новую работу не начинаю — так вы не утонете в правках.\n⏭ Проверю снова около {report.hhmm(nxt)}")
+
+
 async def _refresh_waiting() -> None:
     """Keep CI health of finished PRs fresh and notice PRs that were merged or closed outside the button."""
     for g in ((await rpc.bot_agent_goals_list("done", 10)).data or []):
@@ -226,6 +241,8 @@ async def _refresh_waiting() -> None:
             continue
         ci = await github.ci(g["head_sha"])
         patch = {"progress_pct": 100}
+        if not (g.get("review") or {}).get("plain"):
+            patch["review"] = await reviewer.review(g["head_sha"])  # older PRs get the plain-words explanation too
         if "health_pct" in ci:
             patch["health_pct"] = ci["health_pct"]
         await rpc.bot_agent_goal_save(g["id"], patch)
