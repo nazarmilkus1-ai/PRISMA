@@ -41,6 +41,7 @@ def top(tg_id: int, limit: int = 4) -> list[str]:
 
 
 def keyboard(tg_id: int) -> InlineKeyboardMarkup:
+    TgIdValidation.validate(tg_id, "quick.keyboard")
     frequent = top(tg_id, 4)
     chosen = list(frequent)
     for key in DEFAULTS:
