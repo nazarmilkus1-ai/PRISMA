@@ -4,7 +4,7 @@ import unittest
 
 os.environ.update(
     SUPABASE_URL="http://127.0.0.1:54321",
-    SUPABASE_KEY="eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.c2lnbmF0dXJlc2lnbmF0dXJl",
+    SUPABASE_ANON_KEY="test",
     BOT_TOKEN="1:x",
     MODERATION_GROUP_ID="-100123",
 )
@@ -51,6 +51,17 @@ class QuickTests(unittest.TestCase):
         menu = set(cbs(main_menu_approved())) | {"player:stats", "player:achievements", "player:notifications"}
         self.assertTrue(set(quick.ACTIONS) <= menu)
         self.assertIn("quick", menu)
+
+    def test_invalid_tg_id_returns_empty(self):
+        """Невалидный Telegram ID должен возвращать пустые/фоллбэк результаты."""
+        self.assertEqual(quick.top(0), [])
+        self.assertEqual(quick.top(-1), [])
+        kb = quick.keyboard(0)
+        self.assertEqual(len(kb.inline_keyboard), 1)
+        self.assertEqual(kb.inline_keyboard[0][0].callback_data, "menu:back")
+        self.assertEqual(quick.text(0), "⚡ <b>Быстрые действия</b>\nЧасто нужные разделы в один тап.")
+        quick.record(0, "clans")  # не должно падать
+        quick.record(-1, "clans")  # не должно падать
 
 
 if __name__ == "__main__":
