@@ -75,7 +75,11 @@ async def notify_admins(bot: Bot, rows: list[dict]) -> int:
         try:
             tg_id = int(row["tg_id"])
             TgIdValidation.validate(tg_id, "ban_review.notify_admins")
-            await bot.send_message(target, card_text(row), parse_mode="HTML", reply_markup=keyboard(tg_id))
+            kb = keyboard(tg_id)
+            if kb is None:
+                logger.warning("ban review: skipping row with invalid tg_id for keyboard: %s", tg_id)
+                continue
+            await bot.send_message(target, card_text(row), parse_mode="HTML", reply_markup=kb)
             sent += 1
         except (ValueError, TypeError):
             logger.warning("ban review: invalid tg_id in row: %s", row.get("tg_id"))
