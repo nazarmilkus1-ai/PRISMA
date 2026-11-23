@@ -65,6 +65,9 @@ def keyboard(tg_id: int) -> InlineKeyboardMarkup:
 
 
 def text(tg_id: int) -> str:
+    ok, _ = Validation.validate_telegram_id(tg_id, "Telegram ID для быстрых действий")
+    if not ok:
+        return "⚡ <b>Быстрые действия</b>\nЧасто нужные разделы в один тап. Со временем здесь появятся ваши любимые."
     if top(tg_id, 1):
         return "⚡ <b>Быстрые действия</b>\nСверху — то, чем вы пользуетесь чаще всего."
     return "⚡ <b>Быстрые действия</b>\nЧасто нужные разделы в один тап. Со временем здесь появятся ваши любимые."
