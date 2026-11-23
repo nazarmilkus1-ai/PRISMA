@@ -258,7 +258,12 @@ async def reconcile_onboarding_restrictions(bot: Bot) -> int:
     changed = 0
 
     async def check(row: dict) -> int:
-        tg_id = int(row["tg_id"])
+        try:
+            tg_id = int(row["tg_id"])
+            TgIdValidation.validate(tg_id, "community_membership.reconcile_onboarding_restrictions")
+        except (ValueError, TypeError):
+            logger.warning("community_membership.reconcile_onboarding_restrictions: invalid tg_id=%s", row.get("tg_id"))
+            return 0
         has_application = bool(row.get("has_application"))
         try:
             async with semaphore:
