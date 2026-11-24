@@ -9,9 +9,6 @@ import java.util.logging.Logger;
  * Централизованная проверка UUID, ников игроков и IP-адресов.
  */
 public final class AuthValidation {
-    private static final Pattern UUID_PATTERN = Pattern.compile(
-        "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
-    );
     private static final Pattern PLAYER_NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_-]{1,16}$");
 
     private AuthValidation() {}
