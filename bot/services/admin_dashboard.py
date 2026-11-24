@@ -11,19 +11,34 @@ from db.player import get_online_players, get_server_metrics
 from db.rpc import bot_get_server_status, bot_list_support_requests
 from services.validation import TgIdValidation
 
+log = logging.getLogger(__name__)
+
+
+def _safe_tg_id(tg_id: int | None, context: str) -> int | None:
+    """Вернуть tg_id если валидный, иначе None с логом."""
+    try:
+        return TgIdValidation.validate(tg_id, context)
+    except ValueError:
+        return None
+
 
 def _can(perms, key: str) -> bool:
     return "*" in perms or key in perms
 
 
 async def _count(fetch, admin_id: int):
-    TgIdValidation.validate(admin_id, "admin_dashboard._count")
-    rows, err = await fetch(admin_id)
+    safe_id = _safe_tg_id(admin_id, "admin_dashboard._count")
+    if safe_id is None:
+        return None
+    rows, err = await fetch(safe_id)
     return None if err else len(rows)
 
 
 async def _support(admin_id: int):
-    result = await bot_list_support_requests(admin_id, "OPEN", 100)
+    safe_id = _safe_tg_id(admin_id, "admin_dashboard._support")
+    if safe_id is None:
+        return None
+    result = await bot_list_support_requests(safe_id, "OPEN", 100)
     data = result.data if isinstance(result.data, dict) else {}
     if result.error or not data.get("success"):
         return None
@@ -31,16 +46,27 @@ async def _support(admin_id: int):
 
 
 async def snapshot(admin_id: int, perms: list[str]) -> dict:
+    safe_id = _safe_tg_id(admin_id, "admin_dashboard.snapshot")
+    if safe_id is None:
+        return {
+            "applications": None,
+            "reports": None,
+            "appeals": None,
+            "support": None,
+            "server": None,
+            "max_players": None,
+            "online": None,
+        }
     perms = list(perms or [])
     tasks: dict[str, object] = {}
     if _can(perms, "application.view"):
-        tasks["applications"] = _count(pending_applications, admin_id)
+        tasks["applications"] = _count(pending_applications, safe_id)
     if _can(perms, "report.view"):
-        tasks["reports"] = _count(open_reports, admin_id)
+        tasks["reports"] = _count(open_reports, safe_id)
     if _can(perms, "appeal.view"):
-        tasks["appeals"] = _count(open_appeals, admin_id)
+        tasks["appeals"] = _count(open_appeals, safe_id)
     if _can(perms, "player.view"):
-        tasks["support"] = _support(admin_id)
+        tasks["support"] = _support(safe_id)
     tasks["status"] = bot_get_server_status()
     tasks["metrics"] = get_server_metrics()
     tasks["players"] = get_online_players()
