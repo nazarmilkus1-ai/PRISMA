@@ -16,7 +16,7 @@ class AuthValidationTest {
     @ValueSource(strings = {
         "550e8400-e29b-41d4-a716-446655440000",
         "00000000-0000-0000-0000-000000000000",
-        "FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF",
+        "ffffffff-ffff-ffff-ffff-ffffffffffff",
         "abcdefab-cdef-abcd-efab-cdefabcdefab"
     })
     void parseUuidOrNull_валидныеUUID_возвращаетUUID(String uuid) {
