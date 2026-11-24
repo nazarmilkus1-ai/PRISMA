@@ -13,12 +13,6 @@ public final class AuthValidation {
 
     private AuthValidation() {}
 
-    /** Проверяет, что строка — валидный UUID в стандартном формате. */
-    public static boolean isValidUuid(String uuidStr) {
-        if (uuidStr == null || uuidStr.isBlank()) return false;
-        return UUID_PATTERN.matcher(uuidStr).matches();
-    }
-
     /** Пытается распарсить UUID, возвращает null если невалиден. */
     public static UUID parseUuidOrNull(String uuidStr) {
         if (uuidStr == null || uuidStr.isBlank()) return null;
