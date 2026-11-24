@@ -63,3 +63,12 @@ class TestTgIdValidation:
         assert TgIdValidation.validate_optional(123456789, "test") == 123456789
         with pytest.raises(ValueError):
             TgIdValidation.validate_optional(0, "test")
+
+    def test_float_is_invalid(self):
+        """Числа с плавающей точкой (даже целые вроде 123.0) — невалидны."""
+        with pytest.raises(ValueError):
+            TgIdValidation.validate(123.0, "test")
+        with pytest.raises(ValueError):
+            TgIdValidation.validate(123.5, "test")
+        assert TgIdValidation.is_valid(123.0) is False
+        assert TgIdValidation.is_valid(123.5) is False
