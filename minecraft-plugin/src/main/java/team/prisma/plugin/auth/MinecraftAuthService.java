@@ -189,6 +189,10 @@ public final class MinecraftAuthService {
         }
 
         JsonObject body = identity(player);
+        if (body == null) {
+            player.sendMessage("§cНекорректные данные игрока. Обратитесь к администрации.");
+            return;
+        }
         body.addProperty("p_password", password);
 
         supabase.postRpcAsync(RpcNames.MC_AUTH_LOGIN, body).thenAccept(result -> runMain(() -> {
