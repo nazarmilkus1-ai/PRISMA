@@ -43,8 +43,8 @@ public final class AuthValidation {
     public static boolean isValidIp(String ip) {
         if (ip == null || ip.isBlank()) return false;
         try {
-            InetAddress address = InetAddress.getByName(ip);
-            return address.getHostAddress().equals(ip) || ip.contains(":");
+            InetAddress.getByName(ip);
+            return true;
         } catch (Exception e) {
             return false;
         }
