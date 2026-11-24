@@ -98,7 +98,8 @@ async def ingest(message: types.Message):
     me = await message.bot.me()
     asked = (staff and text.endswith("?")) or _addressed(message, me.id, me.username or "")
     gap = 20 if staff else 60
-    if not asked or time.monotonic() - _last_ack.get(user.id, 0) <= gap:
+    last = _last_ack.get(user.id)  # None for a first message: monotonic() can be tiny right after a host boot
+    if not asked or (last is not None and time.monotonic() - last <= gap):
         return
     _last_ack[user.id] = time.monotonic()
     out = await chat.answer(text.replace(f"@{me.username}", "").strip() if me.username else text, _who(user), staff)
