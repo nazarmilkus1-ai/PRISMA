@@ -16,7 +16,8 @@ from db import rpc
 from services.ai import ops
 from services.ai.diagnostics import redact
 
-from . import config, github
+from . import checks, config, github
+from .checks import norm_tasks, plan_progress
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,7 @@ class Ctx:
     live_at: float = 0.0
     counts: dict = field(default_factory=dict)
     seen: set = field(default_factory=set)
+    steps_marked: int = 0
 
 
 def _s(name: str, desc: str, props: dict, required: list[str] | None = None) -> dict:
@@ -47,25 +49,32 @@ def _s(name: str, desc: str, props: dict, required: list[str] | None = None) -> 
 _STR = {"type": "string"}
 READ_ONLY = {"repo_read", "repo_search", "web_fetch", "render_status", "render_logs", "vercel_status"}
 SCHEMAS = [
-    _s("repo_read", "Прочитать файл или список папки в репозитории (по умолчанию из ветки PRISMA; ref — ветка цели).",
-       {"path": _STR, "ref": _STR}, ["path"]),
-    _s("repo_search", "Поиск текста по коду репозитория.", {"query": _STR}, ["query"]),
+    _s("repo_read", "Прочитать файл или список папки (по умолчанию из ветки PRISMA; ref — ветка цели). Большой файл читай кусками: "
+                    "start и end — номера строк (до 400 строк за раз), строки приходят с номерами.",
+       {"path": _STR, "ref": _STR, "start": {"type": "integer"}, "end": {"type": "integer"}}, ["path"]),
+    _s("repo_search", "Быстрый поиск по ВСЕМУ коду репозитория (слово или регулярка, без учёта регистра): вернёт файл, номер строки и саму строку. "
+                      "path — необязательно, папка для сужения (например bot/services). Сначала ищи так, потом читай нужные строки через repo_read start/end.",
+       {"query": _STR, "path": _STR}, ["query"]),
     _s("commit", "Один атомарный коммит в ветку текущей цели (создаётся сама, PR открывается сам). files: [{path, content}] "
                  "или {path, delete:true}. Полное содержимое файла, не патч. Нельзя трогать .github/ и env-файлы.",
        {"message": _STR, "files": {"type": "array", "items": {"type": "object"}}}, ["message", "files"]),
     _s("edit", "Точечная правка существующего файла: заменить old_str (точно как в файле, встречается ровно 1 раз) на new_str, "
                "и закоммитить. Предпочитай это вместо commit для изменения существующих файлов.",
        {"path": _STR, "old_str": _STR, "new_str": _STR, "message": _STR}, ["path", "old_str", "new_str", "message"]),
-    _s("ci_status", "Состояние CI последнего коммита цели: проценты, упавшие проверки.", {}),
+    _s("ci_status", "Состояние автопроверок (CI) последнего коммита цели. Если что-то упало — вернёт и выдержку из лога: что именно сломалось.", {}),
     _s("render_status", "Последние деплои бота на Render.", {}),
     _s("render_logs", "Последние логи бота на Render (без секретов).", {"limit": {"type": "integer"}}),
     _s("vercel_status", "Последние деплои сайта/панели на Vercel.", {}),
     _s("web_fetch", "Прочитать страницу документации (только https и разрешённые доки-сайты).", {"url": _STR}, ["url"]),
-    _s("goal_new", "Поставить себе новую цель (своя идея или из просьбы людей). Одновременно одна активная цель.",
+    _s("goal_new", "Поставить себе новую цель (своя идея или из просьбы людей). Одновременно одна активная цель. "
+                   "tasks — план из 3-6 коротких шагов по-русски (например: «Найти место в коде», «Внести правку», «Проверить тесты»): по нему считается прогресс.",
        {"title": _STR, "why": _STR, "expected": _STR, "tasks": {"type": "array", "items": {"type": "string"}}}, ["title", "expected"]),
-    _s("goal_update", "Обновить цель: прогресс 0-100, задачи, ожидаемый результат, статус (active/done/dropped/paused). "
-                      "Менять ожидания и идеи можно. done = работа закончена, PR ждёт кнопку «Слить».",
-       {"progress_pct": {"type": "integer"}, "expected": _STR, "status": _STR, "tasks": {"type": "array", "items": {"type": "object"}}}),
+    _s("step_done", "Отметить шаг плана выполненным (n — номер шага с единицы; без n — первый невыполненный). Прогресс пересчитается сам. "
+                    "Отмечай сразу, как шаг сделан.",
+       {"n": {"type": "integer"}}),
+    _s("goal_update", "Обновить цель: ожидаемый результат, план (tasks — список коротких строк), статус (active/done/dropped/paused). "
+                      "progress_pct нужен только если плана нет — иначе прогресс считается по шагам. done = работа закончена, PR ждёт кнопку «Принять».",
+       {"progress_pct": {"type": "integer"}, "expected": _STR, "status": _STR, "tasks": {"type": "array", "items": _STR}}),
     _s("memory_save", "Записать в долгую память факт, урок, решение, идею или предпочтение людей.",
        {"kind": {"type": "string", "enum": ["fact", "lesson", "user", "decision", "idea"]}, "body": _STR,
         "importance": {"type": "integer"}, "pinned": {"type": "boolean"}, "tags": {"type": "array", "items": _STR}}, ["kind", "body"]),
@@ -94,12 +103,19 @@ def idea_schemas() -> list[dict]:
 
 def wrapup_schemas() -> list[dict]:
     """Last steps of a cycle: only bookkeeping tools, so the model finishes with a proper summary."""
-    return [t for t in SCHEMAS if t["function"]["name"] in {"goal_update", "memory_save", "finish_cycle"}]
+    return [t for t in SCHEMAS if t["function"]["name"] in {"goal_update", "step_done", "memory_save", "finish_cycle"}]
 
 
 def act_schemas() -> list[dict]:
     """After a few steps of pure reading the model only gets tools that change things, so it cannot loop on reads."""
     return [t for t in SCHEMAS if t["function"]["name"] not in READ_ONLY | {"ci_status"}]
+
+
+def _int(value) -> int | None:
+    try:
+        return int(value) if value not in (None, "", False) else None
+    except (TypeError, ValueError):
+        return None
 
 
 def _clip(obj, n: int = config.TOOL_RESULT_CHARS) -> str:
@@ -172,6 +188,9 @@ async def _commit(ctx: Ctx, message: str, files) -> dict:
     clean, err = github.validate_files(files)
     if err:
         return {"error": err}
+    problem = checks.precheck(clean)
+    if problem:
+        return {"error": "коммит НЕ сделан, в файлах найдены ошибки — исправь и повтори:\n" + problem}
     branch, err = await _goal_branch(ctx)
     if err:
         return {"error": err}
@@ -207,7 +226,7 @@ def label(name: str, a: dict) -> str:
         "edit": f"✂️ Правлю {path}", "commit": f"✍️ Коммит: {str(a.get('message') or '')[:60]}", "ci_status": "🚦 Проверяю тесты (CI)",
         "render_status": "🛰 Смотрю деплои бота (Render)", "render_logs": "🛰 Читаю логи бота", "vercel_status": "▲ Смотрю деплои сайта (Vercel)",
         "web_fetch": "🌐 Читаю документацию", "goal_new": f"🎯 Новая цель: {str(a.get('title') or '')[:60]}",
-        "goal_update": "📈 Обновляю прогресс", "memory_save": "🧠 Запоминаю", "memory_search": "🧠 Вспоминаю",
+        "goal_update": "📈 Обновляю прогресс", "step_done": "☑️ Шаг плана готов", "memory_save": "🧠 Запоминаю", "memory_search": "🧠 Вспоминаю",
         "memory_forget": "🧠 Чищу память", "say": "💬 Пишу в топик", "finish_cycle": "🏁 Подвожу итог",
     }.get(name, name)
 
@@ -237,12 +256,10 @@ async def _dispatch(ctx: Ctx, name: str, a: dict):
     goal = ctx.goal
     if name == "repo_read":
         ref = a.get("ref") if github.valid_branch(str(a.get("ref") or "")) else None
-        return await github.read(str(a.get("path") or ""), ref or (goal or {}).get("branch") or None)
+        return await github.read(str(a.get("path") or ""), ref or (goal or {}).get("branch") or None,
+                                 start=_int(a.get("start")), end=_int(a.get("end")))
     if name == "repo_search":
-        found = await github.search(str(a.get("query") or ""))
-        if not found.get("error") and not found.get("hits"):
-            found["hint"] = "поиск пуст (индекс GitHub неполный): открывай файлы напрямую через repo_read по списку файлов"
-        return found
+        return await github.grep(str(a.get("query") or ""), str(a.get("path") or ""))
     if name == "commit":
         return await _commit(ctx, str(a.get("message") or ""), a.get("files"))
     if name == "edit":
@@ -258,7 +275,7 @@ async def _dispatch(ctx: Ctx, name: str, a: dict):
         result = await _commit(ctx, str(a.get("message") or "agent: edit"), [{"path": str(a.get("path")), "content": text.replace(old, new, 1)}])
         return result
     if name == "ci_status":
-        return await github.ci((goal or {}).get("head_sha") or "")
+        return await github.ci_details((goal or {}).get("head_sha") or "")
     if name == "render_status":
         return await ops.render_status()
     if name == "render_logs":
@@ -280,7 +297,7 @@ async def _dispatch(ctx: Ctx, name: str, a: dict):
             return {"error": "похожая цель уже есть или была. Придумай другую небольшую цель или продолжи ту, что в работе."}
         res = await rpc.bot_agent_goal_save(None, {
             "title": str(a.get("title") or "")[:200], "why": str(a.get("why") or "")[:1500], "expected": str(a.get("expected") or "")[:1500],
-            "tasks": [{"t": str(t)[:200], "done": False} for t in (a.get("tasks") or [])][:12] if isinstance(a.get("tasks"), list) else []})
+            "tasks": norm_tasks(a.get("tasks")), "progress_pct": 5 if norm_tasks(a.get("tasks")) else 0})
         if res.error or not isinstance(res.data, dict):
             return {"error": "не удалось создать цель"}
         ctx.goal = res.data
@@ -288,7 +305,13 @@ async def _dispatch(ctx: Ctx, name: str, a: dict):
     if name == "goal_update":
         if not goal:
             return {"error": "нет активной цели"}
-        patch = {k: a[k] for k in ("progress_pct", "expected", "tasks") if k in a}
+        patch = {k: a[k] for k in ("progress_pct", "expected") if k in a}
+        tasks = norm_tasks(a["tasks"]) if "tasks" in a else norm_tasks(goal.get("tasks"))
+        if "tasks" in a:
+            patch["tasks"] = tasks
+        derived = plan_progress(tasks, bool(goal.get("pr_number")))
+        if derived is not None:
+            patch["progress_pct"] = derived  # the plan decides, not the model's guess
         if a.get("status") in {"active", "done", "dropped", "paused"}:
             patch["status"] = a["status"]
             if a["status"] == "done":
@@ -298,6 +321,24 @@ async def _dispatch(ctx: Ctx, name: str, a: dict):
             return {"error": "не удалось обновить"}
         goal |= res.data if isinstance(res.data, dict) else {}
         return {"ok": True, "progress_pct": goal.get("progress_pct"), "status": goal.get("status")}
+    if name == "step_done":
+        if not goal:
+            return {"error": "нет активной цели"}
+        tasks = norm_tasks(goal.get("tasks"))
+        if not tasks:
+            return {"error": "у цели нет плана: задай его через goal_update (tasks) или goal_new"}
+        n = _int(a.get("n"))
+        idx = (n - 1) if n and 1 <= n <= len(tasks) else next((i for i, t in enumerate(tasks) if not t["done"]), None)
+        if idx is None:
+            return {"ok": True, "note": "все шаги уже отмечены"}
+        tasks[idx]["done"] = True
+        patch = {"tasks": tasks, "progress_pct": plan_progress(tasks, bool(goal.get("pr_number")))}
+        res = await rpc.bot_agent_goal_save(goal["id"], patch)
+        if res.error:
+            return {"error": "не удалось отметить шаг"}
+        goal |= patch
+        ctx.steps_marked += 1
+        return {"ok": True, "progress_pct": patch["progress_pct"], "осталось": [t["t"] for t in tasks if not t["done"]][:6]}
     if name == "memory_save":
         body = redact(str(a.get("body") or ""))[:1500]
         if len(body) < 8:
