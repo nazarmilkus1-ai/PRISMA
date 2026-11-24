@@ -97,9 +97,9 @@ public final class MinecraftAuthService {
     public java.util.concurrent.CompletableFuture<JsonObject> status(Player player) {
         JsonObject body = identity(player);
         if (body == null) {
-            return java.util.concurrent.CompletableFuture.completedFuture(
-                new com.google.gson.JsonObject()
-            );
+            JsonObject errorResult = new com.google.gson.JsonObject();
+            errorResult.addProperty("error", "INVALID_IDENTITY");
+            return java.util.concurrent.CompletableFuture.completedFuture(errorResult);
         }
         return supabase.postRpcAsync(RpcNames.MC_AUTH_STATUS, body);
     }
