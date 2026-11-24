@@ -160,7 +160,8 @@ async def web_fetch(url: str) -> dict:
             async with s.get(url, allow_redirects=False, headers={"User-Agent": "prisma-agent"}) as r:
                 if r.status >= 300:
                     return {"error": f"HTTP {r.status}"}
-                raw = (await r.content.read(300_000)).decode("utf-8", "ignore")
+                body, _ = await github.read_capped(r, 300_000)
+                raw = body.decode("utf-8", "ignore")
     except Exception as exc:
         return {"error": type(exc).__name__}
     text = re.sub(r"(?is)<(script|style)[^>]*>.*?</\1>", " ", raw)
