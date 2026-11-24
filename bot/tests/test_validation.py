@@ -69,3 +69,11 @@ class TestTgIdValidation:
             TgIdValidation.validate_optional(0, "test")
         with pytest.raises(ValueError, match="Некорректный Telegram ID"):
             TgIdValidation.validate_optional(-1, "test")
+
+    def test_validate_optional_max_safe_integer(self):
+        """validate_optional принимает максимально безопасное целое (2^53-1)."""
+        assert TgIdValidation.validate_optional(9_007_199_254_740_991, "test") == 9_007_199_254_740_991
+
+    def test_validate_max_safe_integer(self):
+        """validate принимает максимально безопасное целое (2^53-1)."""
+        assert TgIdValidation.validate(9_007_199_254_740_991, "test") == 9_007_199_254_740_991
