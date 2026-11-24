@@ -1,5 +1,6 @@
 package team.prisma.plugin.auth;
 
+import java.net.InetAddress;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.logging.Logger;
@@ -13,23 +14,6 @@ public final class AuthValidation {
         "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
     );
     private static final Pattern PLAYER_NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_-]{1,16}$");
-    private static final Pattern IPV4_PATTERN = Pattern.compile(
-        "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
-    );
-    private static final Pattern IPV6_PATTERN = Pattern.compile(
-        "^(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|"
-        + "([0-9a-fA-F]{1,4}:){1,7}:|"
-        + "([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|"
-        + "([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|"
-        + "([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|"
-        + "([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|"
-        + "([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|"
-        + "[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|"
-        + ":((:[0-9a-fA-F]{1,4}){1,7}|:)|"
-        + "fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|"
-        + "::(ffff(:0{1,4})?:)?((25[0-5]|(2[0-4]|1?[0-9])?[0-9])\.){3,3}(25[0-5]|(2[0-4]|1?[0-9])?[0-9])|"
-        + "([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1?[0-9])?[0-9])\.){3,3}(25[0-5]|(2[0-4]|1?[0-9])?[0-9]))$"
-    );
 
     private AuthValidation() {}
 
@@ -41,7 +25,7 @@ public final class AuthValidation {
 
     /** Пытается распарсить UUID, возвращает null если невалиден. */
     public static UUID parseUuidOrNull(String uuidStr) {
-        if (!isValidUuid(uuidStr)) return null;
+        if (uuidStr == null || uuidStr.isBlank()) return null;
         try {
             return UUID.fromString(uuidStr);
         } catch (IllegalArgumentException e) {
@@ -58,7 +42,12 @@ public final class AuthValidation {
     /** Проверяет IP-адрес (IPv4 или IPv6 в полном и сжатом формате). */
     public static boolean isValidIp(String ip) {
         if (ip == null || ip.isBlank()) return false;
-        return IPV4_PATTERN.matcher(ip).matches() || IPV6_PATTERN.matcher(ip).matches();
+        try {
+            InetAddress address = InetAddress.getByName(ip);
+            return address.getHostAddress().equals(ip) || ip.contains(":");
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     /** Логирует предупреждение о невалидных входных данных с контекстом. */
