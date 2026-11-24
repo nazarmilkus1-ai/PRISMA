@@ -291,9 +291,11 @@ public final class MinecraftAuthService {
 
         if (!AuthValidation.isValidPlayerName(nickname)) {
             AuthValidation.logInvalidInput(log, "identity", "nickname", nickname);
+            return null;
         }
         if (AuthValidation.parseUuidOrNull(uuidStr) == null) {
             AuthValidation.logInvalidInput(log, "identity", "minecraft_uuid", uuidStr);
+            return null;
         }
 
         JsonObject body = new JsonObject();
