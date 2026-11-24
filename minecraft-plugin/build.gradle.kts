@@ -21,6 +21,11 @@ dependencies {
     // Targets Paper/Minecraft 26.3 and its required Java 25 runtime.
     compileOnly("io.papermc.paper:paper-api:26.3.build.195-stable")
     implementation("com.google.code.gson:gson:2.11.0")
+
+    // Test dependencies
+    testImplementation("org.junit.jupiter:junit-jupiter:5.11.0")
+    testImplementation("org.mockito:mockito-core:5.14.2")
+    testImplementation("org.mockito:mockito-junit-jupiter:5.14.2")
 }
 
 tasks.withType<JavaCompile> {
