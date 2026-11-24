@@ -35,6 +35,10 @@ tasks.withType<JavaCompile> {
     options.release.set(25)
 }
 
+tasks.named<Test>("test") {
+    useJUnitPlatform()
+}
+
 tasks.shadowJar {
     archiveBaseName.set("PrismaPlugin")
     archiveVersion.set(project.version.toString())
