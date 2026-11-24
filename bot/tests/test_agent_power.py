@@ -112,6 +112,21 @@ class ReadAndGrepTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("hits", github.grep_files(files, "def ("))  # invalid regex falls back to plain text, no crash
         self.assertIn("error", github.grep_files(files, " "))
 
+    async def test_read_capped_collects_every_chunk(self):
+        # regression: StreamReader.read(n) returned only the first 8 KB chunk, so the repo zip never parsed on the live bot
+        class Stream:
+            def __init__(self, chunks):
+                self.chunks = chunks
+
+            async def iter_chunked(self, size):
+                for c in self.chunks:
+                    yield c
+
+        resp = SimpleNamespace(content=Stream([b"a" * 10, b"b" * 10, b"c" * 10]))
+        self.assertEqual(await github.read_capped(resp, 100), (b"a" * 10 + b"b" * 10 + b"c" * 10, False))
+        body, cut = await github.read_capped(SimpleNamespace(content=Stream([b"a" * 10, b"b" * 10])), 15)
+        self.assertEqual((len(body), cut), (15, True))
+
     def test_parse_zip_keeps_only_source_text(self):
         import io
         import zipfile

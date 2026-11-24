@@ -275,6 +275,19 @@ async def ci(sha: str) -> dict:
     return summarize_checks((data or {}).get("check_runs") or [])
 
 
+async def read_capped(resp, limit: int) -> tuple[bytes, bool]:
+    """Whole response body up to `limit` bytes (StreamReader.read(n) returns only the first available chunk, not the body)."""
+    chunks: list[bytes] = []
+    size = 0
+    async for chunk in resp.content.iter_chunked(65_536):
+        size += len(chunk)
+        if size > limit:
+            chunks.append(chunk[: len(chunk) - (size - limit)])
+            return b"".join(chunks), True
+        chunks.append(chunk)
+    return b"".join(chunks), False
+
+
 async def job_log(job_id: int, max_bytes: int = 3_000_000) -> str | None:
     """Raw log of one GitHub Actions job (check-run id == job id). Needs actions:read; returns None when unavailable."""
     repo, err = _repo()
@@ -285,7 +298,8 @@ async def job_log(job_id: int, max_bytes: int = 3_000_000) -> str | None:
             async with session.get(f"{_API}/repos/{repo}/actions/jobs/{int(job_id)}/logs", headers=ops._gh_headers()) as resp:
                 if resp.status >= 300:
                     return None
-                return (await resp.content.read(max_bytes)).decode("utf-8", "ignore")
+                body, _ = await read_capped(resp, max_bytes)
+                return body.decode("utf-8", "ignore")
     except Exception:
         return None
 
@@ -432,9 +446,11 @@ async def _repo_files() -> dict[str, str]:
     try:
         async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=45)) as session:
             async with session.get(f"{_API}/repos/{repo}/zipball/{config.BASE_BRANCH}", headers=ops._gh_headers()) as resp:
-                if resp.status >= 300 or (resp.content_length or 0) > 30_000_000:
+                if resp.status >= 300:
                     return _zip_cache["files"]
-                raw = await resp.content.read(30_000_000)
+                raw, too_big = await read_capped(resp, 30_000_000)
+                if too_big:
+                    return _zip_cache["files"]
     except Exception:
         return _zip_cache["files"]
     files = parse_zip(raw)

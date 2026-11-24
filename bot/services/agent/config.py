@@ -31,7 +31,7 @@ CYCLE_SECONDS = max(120, _int("AGENT_CYCLE_SECONDS", 600))
 REPORT_SECONDS = max(600, _int("AGENT_REPORT_SECONDS", 3600))
 MAX_STEPS = _int("AGENT_MAX_STEPS", 24)
 MAX_CALLS_PER_DAY = _int("AGENT_MAX_CALLS_PER_DAY", 2500)
-MAX_COMMITS_PER_DAY = _int("AGENT_MAX_COMMITS_PER_DAY", 40)
+MAX_COMMITS_PER_DAY = _int("AGENT_MAX_COMMITS_PER_DAY", 150)  # every edit is one small commit: 40 was used up by the morning
 MAX_SAYS_PER_CYCLE = 3
 # More finished changes than this waiting for a human: the agent stops opening new PRs but keeps working (fixes + ideas).
 MAX_WAITING = _int("AGENT_MAX_WAITING", 6)
