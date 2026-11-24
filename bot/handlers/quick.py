@@ -13,7 +13,9 @@ class QuickUsageMiddleware(BaseMiddleware):
     async def __call__(self, handler, event, data):
         try:
             if isinstance(event, types.CallbackQuery) and event.from_user:
-                quick.record(event.from_user.id, event.data)
+                callback_data = event.data
+                if callback_data:  # игнорируем пустые callback data
+                    quick.record(event.from_user.id, callback_data)
         except Exception:  # statistics must never break navigation
             pass
         return await handler(event, data)
