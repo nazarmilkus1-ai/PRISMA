@@ -12,12 +12,23 @@ public final class AuthValidation {
     private static final Pattern UUID_PATTERN = Pattern.compile(
         "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
     );
-    private static final Pattern PLAYER_NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_]{1,16}$");
+    private static final Pattern PLAYER_NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_-]{1,16}$");
     private static final Pattern IPV4_PATTERN = Pattern.compile(
         "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
     );
     private static final Pattern IPV6_PATTERN = Pattern.compile(
-        "^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$"
+        "^(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|"
+        + "([0-9a-fA-F]{1,4}:){1,7}:|"
+        + "([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|"
+        + "([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|"
+        + "([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|"
+        + "([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|"
+        + "([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|"
+        + "[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|"
+        + ":((:[0-9a-fA-F]{1,4}){1,7}|:)|"
+        + "fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|"
+        + "::(ffff(:0{1,4})?:)?((25[0-5]|(2[0-4]|1?[0-9])?[0-9])\.){3,3}(25[0-5]|(2[0-4]|1?[0-9])?[0-9])|"
+        + "([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1?[0-9])?[0-9])\.){3,3}(25[0-5]|(2[0-4]|1?[0-9])?[0-9]))$"
     );
 
     private AuthValidation() {}
@@ -38,13 +49,13 @@ public final class AuthValidation {
         }
     }
 
-    /** Проверяет ник игрока Minecraft (1-16 символов, буквы/цифры/подчёркивание). */
+    /** Проверяет ник игрока Minecraft (1-16 символов, буквы/цифры/подчёркивание/дефис). */
     public static boolean isValidPlayerName(String name) {
         if (name == null || name.isBlank()) return false;
         return PLAYER_NAME_PATTERN.matcher(name).matches();
     }
 
-    /** Проверяет IP-адрес (IPv4 или IPv6 в полном формате). */
+    /** Проверяет IP-адрес (IPv4 или IPv6 в полном и сжатом формате). */
     public static boolean isValidIp(String ip) {
         if (ip == null || ip.isBlank()) return false;
         return IPV4_PATTERN.matcher(ip).matches() || IPV6_PATTERN.matcher(ip).matches();
