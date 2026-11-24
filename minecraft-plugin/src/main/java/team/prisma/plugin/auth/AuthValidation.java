@@ -32,6 +32,17 @@ public final class AuthValidation {
         }
     }
 
+    /** Проверяет, что строка — валидный UUID в стандартном формате. */
+    public static boolean isValidUuid(String uuidStr) {
+        if (uuidStr == null || uuidStr.isBlank()) return false;
+        try {
+            UUID.fromString(uuidStr);
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
     /** Проверяет ник игрока Minecraft (1-16 символов, буквы/цифры/подчёркивание/дефис). */
     public static boolean isValidPlayerName(String name) {
         if (name == null || name.isBlank()) return false;
