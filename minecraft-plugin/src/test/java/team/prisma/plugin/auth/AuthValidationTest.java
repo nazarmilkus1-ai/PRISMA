@@ -74,7 +74,10 @@ class AuthValidationTest {
         "Player",
         "player123",
         "Player_Name",
+        "Player-Name",
+        "player-name",
         "_",
+        "-",
         "a",
         "abcdefghijklmnop"
     })
@@ -87,7 +90,6 @@ class AuthValidationTest {
         "",
         "   ",
         "Player Name",
-        "player-name",
         "player.name",
         "player@name",
         "abcdefghijklmnopq",
@@ -118,7 +120,12 @@ class AuthValidationTest {
     @ValueSource(strings = {
         "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
         "::1",
-        "fe80::1ff:fe23:4567:890a"
+        "fe80::1ff:fe23:4567:890a",
+        "::",
+        "2001:db8::1",
+        "2001:db8::",
+        "::ffff:192.168.1.1",
+        "2001:db8:0:0:0:0:0:1"
     })
     void isValidIp_валидныеIPv6_возвращаетTrue(String ip) {
         assertTrue(AuthValidation.isValidIp(ip), "IPv6 должен быть валидным: " + ip);
