@@ -30,9 +30,9 @@ class MinecraftAuthServiceTest {
     @BeforeEach
     void setUp() {
         authService = new MinecraftAuthService(plugin, supabase, log);
-        when(player.getUniqueId()).thenReturn(testUuid);
-        when(player.getName()).thenReturn("TestPlayer");
-        when(player.isOnline()).thenReturn(true);
+        lenient().when(player.getUniqueId()).thenReturn(testUuid);
+        lenient().when(player.getName()).thenReturn("TestPlayer");
+        lenient().when(player.isOnline()).thenReturn(true);
     }
 
     @Test
