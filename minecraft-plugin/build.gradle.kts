@@ -24,8 +24,8 @@ dependencies {
 
     // Test dependencies
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.0")
-    testImplementation("org.mockito:mockito-core:5.14.2")
-    testImplementation("org.mockito:mockito-junit-jupiter:5.14.2")
+    testImplementation("org.mockito:mockito-core:5.18.0")
+    testImplementation("org.mockito:mockito-junit-jupiter:5.18.0")
     // JUnit Platform launcher for test execution
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.11.0")
     // Paper API needed for test compilation (Player, JavaPlugin, etc.)
