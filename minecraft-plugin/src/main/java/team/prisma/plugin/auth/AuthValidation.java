@@ -2,7 +2,6 @@ package team.prisma.plugin.auth;
 
 import java.net.InetAddress;
 import java.util.UUID;
-import java.util.regex.Pattern;
 import java.util.logging.Logger;
 
 /***
