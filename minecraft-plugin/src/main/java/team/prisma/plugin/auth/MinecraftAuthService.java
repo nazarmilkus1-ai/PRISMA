@@ -292,7 +292,7 @@ public final class MinecraftAuthService {
         if (!AuthValidation.isValidPlayerName(nickname)) {
             AuthValidation.logInvalidInput(log, "identity", "nickname", nickname);
         }
-        if (!AuthValidation.isValidUuid(uuidStr)) {
+        if (AuthValidation.parseUuidOrNull(uuidStr) == null) {
             AuthValidation.logInvalidInput(log, "identity", "minecraft_uuid", uuidStr);
         }
 
