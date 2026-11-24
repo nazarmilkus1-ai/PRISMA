@@ -26,6 +26,8 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.0")
     testImplementation("org.mockito:mockito-core:5.14.2")
     testImplementation("org.mockito:mockito-junit-jupiter:5.14.2")
+    // Paper API needed for test compilation (Player, JavaPlugin, etc.)
+    testImplementation("io.papermc.paper:paper-api:26.3.build.195-stable")
 }
 
 tasks.withType<JavaCompile> {
