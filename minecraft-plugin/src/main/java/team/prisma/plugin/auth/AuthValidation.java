@@ -3,8 +3,9 @@ package team.prisma.plugin.auth;
 import java.net.InetAddress;
 import java.util.UUID;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
-/***
+/**
  * Валидация входных данных для MinecraftAuthService.
  * Централизованная проверка UUID, ников игроков и IP-адресов.
  */
@@ -20,17 +21,6 @@ public final class AuthValidation {
             return UUID.fromString(uuidStr);
         } catch (IllegalArgumentException e) {
             return null;
-        }
-    }
-
-    /** Проверяет, что строка — валидный UUID в стандартном формате. */
-    public static boolean isValidUuid(String uuidStr) {
-        if (uuidStr == null || uuidStr.isBlank()) return false;
-        try {
-            UUID.fromString(uuidStr);
-            return true;
-        } catch (IllegalArgumentException e) {
-            return false;
         }
     }
 
