@@ -19,8 +19,10 @@ class AuthValidationTest {
         "FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF",
         "abcdefab-cdef-abcd-efab-cdefabcdefab"
     })
-    void isValidUuid_валидныеUUID_возвращаетTrue(String uuid) {
-        assertTrue(AuthValidation.isValidUuid(uuid), "UUID должен быть валидным: " + uuid);
+    void parseUuidOrNull_валидныеUUID_возвращаетUUID(String uuid) {
+        UUID result = AuthValidation.parseUuidOrNull(uuid);
+        assertNotNull(result);
+        assertEquals(uuid, result.toString());
     }
 
     @ParameterizedTest
@@ -34,34 +36,8 @@ class AuthValidationTest {
         "gggggggg-gggg-gggg-gggg-gggggggggggg",
         "550e8400_e29b_41d4_a716_446655440000"
     })
-    void isValidUuid_невалидныеUUID_возвращаетFalse(String uuid) {
-        assertFalse(AuthValidation.isValidUuid(uuid), "UUID не должен быть валидным: " + uuid);
-    }
-
-    @Test
-    void isValidUuid_null_возвращаетFalse() {
-        assertFalse(AuthValidation.isValidUuid(null));
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {
-        "550e8400-e29b-41d4-a716-446655440000",
-        "00000000-0000-0000-0000-000000000000"
-    })
-    void parseUuidOrNull_валидныеUUID_возвращаетUUID(String uuid) {
-        UUID result = AuthValidation.parseUuidOrNull(uuid);
-        assertNotNull(result);
-        assertEquals(uuid, result.toString());
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {
-        "",
-        "not-a-uuid",
-        "550e8400-e29b-41d4-a716"
-    })
     void parseUuidOrNull_невалидныеUUID_возвращаетNull(String uuid) {
-        assertNull(AuthValidation.parseUuidOrNull(uuid));
+        assertNull(AuthValidation.parseUuidOrNull(uuid), "UUID не должен быть валидным: " + uuid);
     }
 
     @Test
