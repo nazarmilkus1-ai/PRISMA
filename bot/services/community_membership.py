@@ -344,7 +344,12 @@ async def reconcile_community_membership(bot: Bot) -> int:
     changed = 0
 
     async def check(row: dict) -> int:
-        tg_id = int(row["tg_id"])
+        try:
+            tg_id = int(row["tg_id"])
+            TgIdValidation.validate(tg_id, "community_membership.reconcile_community_membership")
+        except (ValueError, TypeError):
+            logger.warning("community_membership.reconcile_community_membership: invalid tg_id=%s", row.get("tg_id"))
+            return 0
         try:
             async with semaphore:
                 member = await bot.get_chat_member(MODERATION_GROUP_ID, tg_id)
