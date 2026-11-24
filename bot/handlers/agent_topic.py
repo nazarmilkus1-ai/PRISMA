@@ -10,7 +10,7 @@ from aiogram.filters import Command
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from db import rpc
-from services.agent import config, merge, report
+from services.agent import chat, config, jobs, merge, report
 from utils.permissions import staff_context
 
 logger = logging.getLogger(__name__)
@@ -28,18 +28,55 @@ def _addressed(message: types.Message, bot_id: int, username: str) -> bool:
     return bool(username) and f"@{username.lower()}" in text
 
 
-@router.message(Command("agent_pause", "agent_resume", "agent_status", "agent_report"), _in_topic)
+def _who(user: types.User) -> str:
+    return f"@{user.username}" if user.username else user.full_name
+
+
+async def _task_reply(goal: dict, note: str) -> str:
+    title = html.escape(str(goal.get("title") or ""))
+    if note:
+        return f"ℹ️ {html.escape(note)}\n📝 <b>{title}</b>"
+    queue = await jobs.queued()
+    pos = next((i for i, g in enumerate(queue, 1) if g.get("id") == goal.get("id")), 1)
+    active = (await rpc.bot_agent_goals_list("active", 1)).data or []
+    soon = not active or (active[0].get("source") != "admin" and not active[0].get("pr_number") and int(active[0].get("progress_pct") or 0) <= 20)
+    when = "Начну в течение минуты." if soon and pos == 1 else f"Я в работе над другим — ваша задача №{pos} в очереди, возьму сразу после."
+    return f"📝 Принял задачу: <b>{title}</b>\n{when} Когда будет готово, пришлю карточку с кнопкой «Принять»."
+
+
+@router.message(Command("agent_pause", "agent_resume", "agent_status", "agent_report", "agent", "agent_help", "task", "ideas"), _in_topic)
 async def admin_commands(message: types.Message):
+    cmd = (message.text or "").split()[0].lstrip("/").split("@")[0]
+    if cmd == "agent_help":
+        await message.reply(report.HELP, parse_mode="HTML", disable_web_page_preview=True)
+        return
     ctx = await staff_context(message.from_user.id)
     if not ctx.get("is_staff"):
+        if cmd == "task":
+            await message.reply("Задачи ставят админы. Напишите свою идею обычным сообщением — я запишу её как предложение.")
         return
-    cmd = (message.text or "").split()[0].lstrip("/").split("@")[0]
     if cmd == "agent_pause":
         await rpc.bot_agent_state_patch({"paused": True})
-        await message.reply("⏸ Пауза. Продолжить: /agent_resume")
+        await message.reply("⏸ Пауза. Вернуть работу: /agent_resume или кнопка «▶ Продолжить».")
     elif cmd == "agent_resume":
         await rpc.bot_agent_state_patch({"paused": False})
-        await message.reply("▶ Работаю дальше.")
+        await jobs.wake()
+        await message.reply("▶ Работаю дальше — следующий цикл начнётся в течение минуты.")
+    elif cmd == "task":
+        parts = (message.text or "").split(maxsplit=1)
+        if len(parts) < 2 or not parts[1].strip():
+            await message.reply("Напишите задачу после команды, например:\n<code>/task добавить в меню кнопку «Правила»</code>", parse_mode="HTML")
+            return
+        goal, note = await jobs.add_task(parts[1], _who(message.from_user))
+        if not goal:
+            await message.reply(html.escape(note))
+            return
+        if not note:
+            await jobs.wake()
+        await message.reply(await _task_reply(goal, note), parse_mode="HTML", reply_markup=report.panel())
+    elif cmd == "ideas":
+        text, markup = await report.ideas_view()
+        await message.reply(text, parse_mode="HTML", reply_markup=markup, disable_web_page_preview=True)
     else:
         text, markup = await report.build()
         await message.reply(text, parse_mode="HTML", reply_markup=markup, disable_web_page_preview=True)
@@ -47,24 +84,60 @@ async def admin_commands(message: types.Message):
 
 @router.message(_in_topic, F.text, ~F.from_user.is_bot)
 async def ingest(message: types.Message):
-    """Every human message is remembered for the agent; admin messages carry priority, others are only suggestions."""
+    """Every human message is remembered for the agent; admin messages carry priority, others are only suggestions.
+    When someone talks to the agent (reply / mention) or an admin asks a question, it answers in plain words — and an admin's
+    request for work becomes a queued task right away."""
     ctx = await staff_context(message.from_user.id)
+    staff = bool(ctx.get("is_staff"))
     user = message.from_user
-    await rpc.bot_agent_inbox_add(user.id, user.username or user.full_name, bool(ctx.get("is_staff")), (message.text or "")[:1500], message.message_id)
     text = (message.text or "").strip()
-    if ctx.get("is_staff") and len(text) >= 12 and not text.startswith("/"):
+    await rpc.bot_agent_inbox_add(user.id, user.username or user.full_name, staff, text[:1500], message.message_id)
+    if staff and len(text) >= 12 and not text.startswith("/") and not text.endswith("?"):
         # What admins say is remembered right away, so the agent keeps their wishes even if it forgets the chat.
         await rpc.bot_agent_mem_add("user", f"Админ @{user.username or user.full_name} написал в топике: {text[:600]}", [], 4, False)
     me = await message.bot.me()
-    if _addressed(message, me.id, me.username or "") and time.monotonic() - _last_ack.get(user.id, 0) > 60:
-        _last_ack[user.id] = time.monotonic()
-        who = "приоритетно" if ctx.get("is_staff") else "как предложение"
-        await message.reply(f"👌 Принял, учту {who} в ближайшем цикле (до 10 минут).")
+    asked = (staff and text.endswith("?")) or _addressed(message, me.id, me.username or "")
+    gap = 20 if staff else 60
+    if not asked or time.monotonic() - _last_ack.get(user.id, 0) <= gap:
+        return
+    _last_ack[user.id] = time.monotonic()
+    out = await chat.answer(text.replace(f"@{me.username}", "").strip() if me.username else text, _who(user), staff)
+    if not out:
+        who = "приоритетно" if staff else "как предложение"
+        await message.reply(f"👌 Принял, учту {who} в ближайшем цикле (до {jobs.cycle_minutes()} минут).")
+        return
+    reply, task = out
+    answer = html.escape(reply)
+    if task:
+        goal, note = await jobs.add_task(task, _who(user))
+        if goal and not note:
+            await jobs.wake()
+            answer += f"\n\n📝 Поставил задачу: <b>{html.escape(str(goal.get('title') or ''))}</b>. Начну в течение минуты."
+        elif goal:
+            answer += f"\n\nℹ️ {html.escape(note)}"
+    await message.reply(answer, parse_mode="HTML", reply_markup=report.panel())
 
 
 async def _show(callback: types.CallbackQuery, text: str, markup: InlineKeyboardMarkup) -> None:
+    """Edit the message the button was pressed on. The live status itself is never overwritten: its buttons open one shared panel message."""
+    msg = callback.message
+    state = (await rpc.bot_agent_state_get()).data or {}
+    if msg and msg.message_id == state.get("live_msg_id"):
+        panel_id = state.get("panel_msg_id")
+        if panel_id:
+            try:
+                await callback.bot.edit_message_text(text, chat_id=config.CHAT_ID, message_id=panel_id, parse_mode="HTML",
+                                                     reply_markup=markup, disable_web_page_preview=True)
+                return
+            except Exception as exc:
+                if "not modified" in str(exc).lower():
+                    return
+        sent = await report.post(callback.bot, text, markup)
+        if sent:
+            await rpc.bot_agent_state_patch({"panel_msg_id": sent.message_id})
+        return
     try:
-        await callback.message.edit_text(text, parse_mode="HTML", reply_markup=markup, disable_web_page_preview=True)
+        await msg.edit_text(text, parse_mode="HTML", reply_markup=markup, disable_web_page_preview=True)
     except Exception as exc:  # "message is not modified" and the like
         logger.debug("agent card not edited: %s", exc)
 
@@ -87,7 +160,36 @@ async def buttons(callback: types.CallbackQuery):
         paused = bool(((await rpc.bot_agent_state_get()).data or {}).get("paused"))
         await rpc.bot_agent_state_patch({"paused": not paused})
         await callback.answer("Продолжаю" if paused else "Пауза")
+        if paused:
+            await jobs.wake()
+        if msg.message_id == ((await rpc.bot_agent_state_get()).data or {}).get("live_msg_id"):
+            try:
+                await msg.edit_reply_markup(reply_markup=report.panel(not paused))  # only the button flips; the live text stays
+            except Exception as exc:
+                logger.debug("live buttons not edited: %s", exc)
+            return
         text, markup = await report.build()
+        await _show(callback, text, markup)
+        return
+    if action == "help":
+        await callback.answer()
+        await _show(callback, report.HELP, InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="← К списку", callback_data="agent:list")]]))
+        return
+    if action == "ideas":
+        await callback.answer()
+        text, markup = await report.ideas_view()
+        await _show(callback, text, markup)
+        return
+    if action in {"idea", "noidea"} and number:
+        if action == "idea":
+            goal, note = await jobs.take_idea(number, _who(callback.from_user))
+            if goal and not note:
+                await jobs.wake()
+            await callback.answer(note or "▶ Беру в работу — начну в течение минуты", show_alert=bool(note))
+        else:
+            await jobs.drop_idea(number)
+            await callback.answer("✖ Убрал")
+        text, markup = await report.ideas_view()
         await _show(callback, text, markup)
         return
     if action == "list":

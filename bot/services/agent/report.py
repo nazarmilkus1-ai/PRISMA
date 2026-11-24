@@ -11,7 +11,8 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from db import rpc
 
-from . import config, github
+from . import config, github, jobs
+from .checks import norm_tasks
 
 logger = logging.getLogger(__name__)
 _VERDICT = {"OK": "🟢 Второй ИИ проверил: всё ок", "RISKS": "🟡 Второй ИИ: есть риски", "BLOCK": "🔴 Второй ИИ: блокирует"}
@@ -37,16 +38,35 @@ async def live(bot, text: str) -> None:
     """One status message that is edited in place, so the process is visible without spamming the topic."""
     state = (await rpc.bot_agent_state_get()).data or {}
     mid = state.get("live_msg_id")
+    markup = panel(bool(state.get("paused")))
     if mid:
         try:
-            await bot.edit_message_text(text[:4000], chat_id=config.CHAT_ID, message_id=mid, parse_mode="HTML")
+            await bot.edit_message_text(text[:4000], chat_id=config.CHAT_ID, message_id=mid, parse_mode="HTML", reply_markup=markup)
             return
         except Exception as exc:
             if "not modified" in str(exc).lower():
                 return
-    sent = await post(bot, text)
+    sent = await post(bot, text, markup)
     if sent:
         await rpc.bot_agent_state_patch({"live_msg_id": sent.message_id})
+
+
+def panel(paused: bool = False, refresh: bool = False) -> InlineKeyboardMarkup:
+    """The same four buttons under the live status, the hourly report and every list: nothing to remember."""
+    return InlineKeyboardMarkup(inline_keyboard=panel_rows(paused, refresh))
+
+
+def panel_rows(paused: bool = False, refresh: bool = False) -> list[list[InlineKeyboardButton]]:
+    return [[InlineKeyboardButton(text="🔄 Обновить" if refresh else "📋 Очередь", callback_data="agent:list"),
+             InlineKeyboardButton(text="💡 Идеи", callback_data="agent:ideas")],
+            [InlineKeyboardButton(text="▶ Продолжить" if paused else "⏸ Пауза", callback_data="agent:toggle"),
+             InlineKeyboardButton(text="❓ Помощь", callback_data="agent:help")]]
+
+
+def plan_lines(goal: dict, limit: int = 6) -> list[str]:
+    tasks = norm_tasks(goal.get("tasks"))[:limit]
+    first_open = next((i for i, t in enumerate(tasks) if not t["done"]), None)
+    return [f"{'✅' if t['done'] else ('▶' if i == first_open else '▫')} {short(t['t'], 70)}" for i, t in enumerate(tasks)]
 
 
 def live_text(ctx, total: int, status: str = "⚙️ Работаю") -> str:
@@ -57,6 +77,9 @@ def live_text(ctx, total: int, status: str = "⚙️ Работаю") -> str:
         if goal.get("expected"):
             lines.append(f"🧭 Собираюсь: {short(goal['expected'], 140)}")
         lines.append(bar(goal.get("progress_pct")))
+        plan = plan_lines(goal)
+        if plan:
+            lines += ["", "<b>План:</b>"] + plan
     collapsed: list[list] = []
     for a in ctx.actions[-14:]:
         if collapsed and collapsed[-1][0] == a:
@@ -108,6 +131,9 @@ def _status_line(g: dict) -> str:
     verdict = (g.get("review") or {}).get("verdict")
     if verdict == "BLOCK":
         return "🔴 Второй ИИ против — лучше отклонить"
+    meta = (g.get("review") or {}).get("ci") or {}
+    if meta.get("failed") and not meta.get("pending"):
+        return "🔴 Тесты не прошли — принять нельзя, я пытаюсь починить"
     if health is None:
         return "⏳ Тесты ещё не запускались"
     if health < 100:
@@ -135,10 +161,17 @@ def _summary(g: dict) -> str:
     return short(review.get("plain") or g.get("expected") or g.get("title"), 90)
 
 
+def plain_summary(g: dict) -> str:
+    from .brain import strip_tech
+    review = g.get("review") or {}
+    return strip_tech(str(review.get("plain") or g.get("expected") or g.get("title") or ""))[:90]
+
+
 async def build() -> tuple[str, InlineKeyboardMarkup]:
     state = (await rpc.bot_agent_state_get()).data or {}
     active = (await rpc.bot_agent_goals_list("active", 1)).data or []
     waiting = await waiting_goals()
+    queue = await jobs.queued()
     paused = bool(state.get("paused"))
     parts = [("⏸ <b>Агент на паузе</b>" if paused else "🤖 <b>Агент</b>") + f" · {hhmm()}"]
     if active:
@@ -151,6 +184,8 @@ async def build() -> tuple[str, InlineKeyboardMarkup]:
         parts.append("🎯 <b>Сейчас</b>\n💡 Ищу идеи и дорабатываю готовое, пока вы разбираете очередь")
     else:
         parts.append("🎯 <b>Сейчас</b>\nВыбираю следующую задачу")
+    if queue:
+        parts.append("📝 <b>Ваши задачи — следующие</b>\n" + "\n".join(f"• {short(g.get('title'), 80)}" for g in queue[:3]))
     if waiting:
         lines = [f"№{i} · {_summary(g)}" for i, g in enumerate(waiting, 1)]
         parts.append("✅ <b>Готово — ждёт вас</b>\n" + "\n".join(lines) + "\n<i>Нажмите номер, чтобы посмотреть</i>")
@@ -160,11 +195,36 @@ async def build() -> tuple[str, InlineKeyboardMarkup]:
     rows = []
     if waiting:
         rows.append([InlineKeyboardButton(text=f"№{i}", callback_data=f"agent:open:{g['pr_number']}") for i, g in enumerate(waiting, 1)])
-    rows.append([InlineKeyboardButton(text="▶ Продолжить" if paused else "⏸ Пауза", callback_data="agent:toggle")])
+    rows += panel_rows(paused, refresh=True)
     return "\n\n".join(parts), InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-async def detail(pr_number: int) -> tuple[str, InlineKeyboardMarkup]:
+async def ideas_view() -> tuple[str, InlineKeyboardMarkup]:
+    items = await jobs.ideas(6)
+    back = [InlineKeyboardButton(text="← К списку", callback_data="agent:list")]
+    if not items:
+        return ("💡 <b>Идеи</b>\nПока пусто: я копил их по ходу работы, но новых нет. Загляните позже или дайте задачу сами: "
+                "<code>/task что сделать</code>"), InlineKeyboardMarkup(inline_keyboard=[back])
+    lines = [f"{i}. {short(m.get('body'), 120)}" for i, m in enumerate(items, 1)]
+    text = "💡 <b>Мои идеи</b>\n" + "\n".join(lines) + "\n\n<i>▶ — сделать это следующим · ✖ — убрать идею</i>"
+    rows = [[InlineKeyboardButton(text=f"▶ {i}", callback_data=f"agent:idea:{m['id']}") for i, m in enumerate(items, 1)],
+            [InlineKeyboardButton(text=f"✖ {i}", callback_data=f"agent:noidea:{m['id']}") for i, m in enumerate(items, 1)], back]
+    return text, InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+HELP = ("🤖 <b>Как пользоваться агентом</b>\n"
+        "Я — ИИ-разработчик PRISMA. Работаю сам: каждые ~10 минут беру задачу, пишу код и проверяю его автотестами. "
+        "Само в бота и на сайт ничего не попадает — только после вашего «Принять».\n\n"
+        "📋 <b>Очередь</b> — готовые задачи. Нажмите №, прочитайте, что изменится, и выберите ✅ Принять или ❌ Отклонить.\n"
+        "💡 <b>Идеи</b> — что я придумал по ходу работы. «▶» — сделаю это следующим, «✖» — уберу.\n"
+        "⏸ <b>Пауза</b> — остановить работу, «▶ Продолжить» вернёт её.\n\n"
+        "✍️ <b>Дать задачу</b>: <code>/task что сделать</code> — я начну в течение минуты. Или просто ответьте на моё сообщение / "
+        "упомяните меня: можно спросить «что сейчас делаешь?».\n"
+        "Сообщения админов для меня приоритет, сообщения остальных — предложения.\n\n"
+        "Команды: /agent — панель, /task, /ideas, /agent_pause, /agent_resume, /agent_report")
+
+
+async def detail(pr_number: int, header: str = "") -> tuple[str, InlineKeyboardMarkup]:
     waiting = await waiting_goals()
     pos = next((i for i, g in enumerate(waiting, 1) if g["pr_number"] == pr_number), None)
     g = next((g for g in waiting if g["pr_number"] == pr_number), None)
@@ -172,7 +232,7 @@ async def detail(pr_number: int) -> tuple[str, InlineKeyboardMarkup]:
     if not g:
         return "Эта задача уже обработана.", InlineKeyboardMarkup(inline_keyboard=[back])
     review = g.get("review") or {}
-    lines = [f"<b>№{pos} · {short(g.get('title'), 80)}</b>", f"💡 {short(review.get('plain') or g.get('expected'), 240)}", _status_line(g)]
+    lines = ([header] if header else []) + [f"<b>№{pos} · {short(g.get('title'), 80)}</b>", f"💡 {short(review.get('plain') or g.get('expected'), 240)}", _status_line(g)]
     if review.get("verdict") == "RISKS" and review.get("notes"):
         lines.append(f"⚠️ {short(review['notes'], 140)}")
     lines.append(await _live_link(g))

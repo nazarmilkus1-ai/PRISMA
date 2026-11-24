@@ -977,3 +977,8 @@ async def bot_agent_journal_recent(limit=10, kind=None):
 async def bot_agent_inbox_peek():
     """True when unread messages from people are waiting for the agent (without taking them)."""
     return await call_rpc_async("bot_agent_inbox_peek", {})
+
+
+async def bot_agent_mem_list(kind, limit=8):
+    """Notes of one kind (the agent's ideas) for the admin «Идеи» view."""
+    return await call_rpc_async("bot_agent_mem_list", {"p_kind": kind, "p_limit": limit})

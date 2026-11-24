@@ -2,13 +2,17 @@
 from __future__ import annotations
 
 import base64
+import io
 import re
 import time
+import zipfile
+
+import aiohttp
 
 from services.ai import ops
 from services.ai.diagnostics import redact
 
-from . import config
+from . import checks, config
 
 _BRANCH_OK = re.compile(r"^agent/[a-z0-9][a-z0-9._\-/]{2,100}$")
 _API = "https://api.github.com"
@@ -85,13 +89,14 @@ def validate_files(files) -> tuple[list[dict] | None, str | None]:
     return out, None
 
 
-async def read(path: str, ref: str | None = None, limit: int = 20_000) -> dict:
+async def read(path: str, ref: str | None = None, limit: int = 20_000, start: int | None = None, end: int | None = None) -> dict:
+    """Whole file (first `limit` chars) or, with start/end, a numbered slice of lines so huge files can be read in parts."""
     clean = ops.safe_path(path)
     if not clean:
         return {"error": "path not allowed"}
     data, err = await _get(f"/contents/{clean}", {"ref": ref or config.BASE_BRANCH})
     if err:
-        return {"error": f"GitHub {err}"}
+        return {"error": f"GitHub {err}" + (" (такого пути нет — смотри список файлов в контексте)" if err.endswith("404") else "")}
     if isinstance(data, list):
         return {"directory": clean, "entries": [{"name": e.get("name"), "type": e.get("type")} for e in data[:100] if isinstance(e, dict)]}
     if not isinstance(data, dict) or data.get("encoding") != "base64":
@@ -100,7 +105,20 @@ async def read(path: str, ref: str | None = None, limit: int = 20_000) -> dict:
         text = base64.b64decode(data.get("content") or "").decode("utf-8")
     except Exception:
         return {"error": "binary file"}
-    return {"path": clean, "ref": ref or config.BASE_BRANCH, "size": len(text), "truncated": len(text) > limit, "content": redact(text[:limit])}
+    lines = text.split("\n")
+    if start or end:
+        first = max(1, int(start or 1))
+        last = min(len(lines), int(end or first + 119), first + 399)
+        if first > len(lines):
+            return {"error": f"в файле всего {len(lines)} строк"}
+        chunk = "\n".join(f"{i}: {lines[i - 1]}" for i in range(first, last + 1))
+        return {"path": clean, "ref": ref or config.BASE_BRANCH, "lines": f"{first}-{last} из {len(lines)}",
+                "note": "номера «N: » в начале строк — не часть файла, в old_str их не копируй", "content": redact(chunk[:limit])}
+    out = {"path": clean, "ref": ref or config.BASE_BRANCH, "size": len(text), "lines": len(lines), "truncated": len(text) > limit,
+           "content": redact(text[:limit])}
+    if out["truncated"]:
+        out["hint"] = f"файл большой ({len(lines)} строк): остальное читай кусками через start/end"
+    return out
 
 
 async def read_raw(path: str, ref: str | None = None) -> tuple[str | None, str | None]:
@@ -227,6 +245,7 @@ def summarize_checks(runs: list[dict]) -> dict:
     """Health = share of finished, non-skipped checks that passed; pending checks count against it."""
     passed = failed = pending = 0
     failing: list[str] = []
+    failing_ids: list[int] = []
     for run in runs:
         if run.get("status") != "completed":
             pending += 1
@@ -239,9 +258,12 @@ def summarize_checks(runs: list[dict]) -> dict:
         else:
             failed += 1
             failing.append(str(run.get("name")))
+            if run.get("id"):
+                failing_ids.append(int(run["id"]))
     total = passed + failed + pending
     health = 100 if total == 0 else round(100 * passed / total)
-    return {"total": total, "passed": passed, "failed": failed, "pending": pending, "health_pct": health, "failing": failing[:8]}
+    return {"total": total, "passed": passed, "failed": failed, "pending": pending, "health_pct": health, "failing": failing[:8],
+            "failing_ids": failing_ids[:4]}
 
 
 async def ci(sha: str) -> dict:
@@ -251,6 +273,38 @@ async def ci(sha: str) -> dict:
     if err:
         return {"error": f"GitHub {err}"}
     return summarize_checks((data or {}).get("check_runs") or [])
+
+
+async def job_log(job_id: int, max_bytes: int = 3_000_000) -> str | None:
+    """Raw log of one GitHub Actions job (check-run id == job id). Needs actions:read; returns None when unavailable."""
+    repo, err = _repo()
+    if err:
+        return None
+    try:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=25)) as session:
+            async with session.get(f"{_API}/repos/{repo}/actions/jobs/{int(job_id)}/logs", headers=ops._gh_headers()) as resp:
+                if resp.status >= 300:
+                    return None
+                return (await resp.content.read(max_bytes)).decode("utf-8", "ignore")
+    except Exception:
+        return None
+
+
+async def ci_details(sha: str) -> dict:
+    """CI summary plus, for failed checks, the few log lines that explain the failure."""
+    out = await ci(sha)
+    if out.get("error") or not out.get("failed"):
+        return out
+    reasons = []
+    for job_id in out.get("failing_ids", [])[:2]:
+        log = await job_log(job_id)
+        if log:
+            reasons.append(redact(checks.failure_excerpt(log)))
+    if reasons:
+        out["failure_log"] = "\n---\n".join(r for r in reasons if r)[:4000]
+    else:
+        out["failure_log"] = "(лог упавшей проверки недоступен — перечитай свой код: синтаксис, импорты, существующие тесты)"
+    return out
 
 
 async def compare(base: str, head: str, max_chars: int = 28_000) -> dict:
@@ -341,3 +395,83 @@ async def preview_url(branch: str) -> str | None:
                     break
     _preview_cache[branch] = (time.monotonic(), url)
     return url
+
+
+_zip_cache: dict = {"at": 0.0, "files": {}}
+_TEXT_PREFIXES = ("bot/", "site/", "panel/", "minecraft-plugin/", "docs/", "scripts/", "supabase/", "packages/", "modules/")
+_SKIP_PARTS = ("node_modules/", "/.next/", "package-lock.json", "/build/", "/dist/")
+_TEXT_EXT = (".py", ".ts", ".tsx", ".js", ".mjs", ".json", ".java", ".kt", ".sql", ".md", ".yml", ".yaml", ".css", ".txt", ".gradle", ".toml", ".html")
+
+
+def parse_zip(raw: bytes) -> dict[str, str]:
+    """GitHub zipball bytes -> {path: text} for source-like text files only (binary, huge and generated files are skipped)."""
+    files: dict[str, str] = {}
+    try:
+        with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+            for info in archive.infolist():
+                name = info.filename.split("/", 1)[1] if "/" in info.filename else ""
+                if (info.is_dir() or not name.startswith(_TEXT_PREFIXES) or not name.endswith(_TEXT_EXT) or info.file_size > 250_000
+                        or any(part in name for part in _SKIP_PARTS)):
+                    continue
+                try:
+                    files[name] = archive.read(info).decode("utf-8")
+                except (UnicodeDecodeError, KeyError):
+                    continue
+    except zipfile.BadZipFile:
+        return {}
+    return files
+
+
+async def _repo_files() -> dict[str, str]:
+    """Whole base branch as {path: text}, from one zip download cached for 10 minutes (≈2 MB): grep without GitHub's flaky code search."""
+    if time.monotonic() - _zip_cache["at"] < 600 and _zip_cache["files"]:
+        return _zip_cache["files"]
+    repo, err = _repo()
+    if err:
+        return _zip_cache["files"]
+    try:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=45)) as session:
+            async with session.get(f"{_API}/repos/{repo}/zipball/{config.BASE_BRANCH}", headers=ops._gh_headers()) as resp:
+                if resp.status >= 300 or (resp.content_length or 0) > 30_000_000:
+                    return _zip_cache["files"]
+                raw = await resp.content.read(30_000_000)
+    except Exception:
+        return _zip_cache["files"]
+    files = parse_zip(raw)
+    if not files:
+        return _zip_cache["files"]
+    _zip_cache["at"], _zip_cache["files"] = time.monotonic(), files
+    return files
+
+
+def grep_files(files: dict[str, str], pattern: str, prefix: str = "", max_hits: int = 25) -> dict:
+    """Case-insensitive regex (or plain text when the regex is invalid) over file texts; at most 4 hits per file."""
+    pattern = (pattern or "").strip()[:120]
+    if not pattern:
+        return {"error": "empty query"}
+    try:
+        rx = re.compile(pattern, re.I)
+    except re.error:
+        rx = re.compile(re.escape(pattern), re.I)
+    hits, scanned = [], 0
+    for path in sorted(files):
+        if prefix and not path.startswith(prefix):
+            continue
+        scanned += 1
+        per_file = 0
+        for number, line in enumerate(files[path].split("\n"), 1):
+            if rx.search(line):
+                hits.append({"path": path, "line": number, "text": redact(line.strip()[:200])})
+                per_file += 1
+                if per_file >= 4 or len(hits) >= max_hits:
+                    break
+        if len(hits) >= max_hits:
+            break
+    return {"hits": hits, "files_scanned": scanned, **({"hint": "ничего не найдено: попробуй другое слово или часть имени"} if not hits else {})}
+
+
+async def grep(pattern: str, prefix: str = "") -> dict:
+    files = await _repo_files()
+    if not files:
+        return await search(pattern)  # zip unavailable: fall back to GitHub code search
+    return grep_files(files, pattern, prefix.strip().lstrip("/"))
