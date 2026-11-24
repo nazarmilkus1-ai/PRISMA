@@ -55,7 +55,7 @@ class MinecraftAuthServiceTest {
 
     @Test
     void validPassword_валидныйПароль_возвращаетTrue() {
-        String password = "validPassword123";
+        String password = "validpassword123";
         assertTrue(authService.validPassword(password));
     }
 
