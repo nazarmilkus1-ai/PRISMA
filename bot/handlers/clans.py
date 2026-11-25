@@ -233,6 +233,10 @@ async def _show_history(message: types.Message, tg_id: int):
 
 
 async def _show_achievements(message: types.Message, tg_id: int):
+    if tg_id and not Validation.validate_telegram_id(tg_id):
+        import logging
+        logging.warning(f"Invalid telegram_id in _show_achievements: {tg_id}")
+        return
     result = await bot_get_clan_achievements(tg_id)
     if result.error:
         await message.answer(f"❌ {_error(result, 'Не удалось получить достижения клана.')}", parse_mode="HTML")
