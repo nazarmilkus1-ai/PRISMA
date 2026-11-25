@@ -1,6 +1,6 @@
 from aiogram import Router, types, F
 from utils.validation import Validation
-from db.rpc import bot_ban_review_keep, bot_ban_review_list, bot_check_admin_permission, bot_lift_punishment
+from db.rpc import bot_ban_review_keep, bot_ban_review_list, bot_check_admin_permission, bot_lift_punishment, bot_get_community_chat_id
 
 router = Router(name="ban_review")
 
@@ -18,7 +18,6 @@ async def on_decision(call: types.CallbackQuery):
         # Подтвердить разбан
         await bot_lift_punishment(tg_id, "BAN", call.from_user.id)
         # Получаем ID чата из RPC и unbanned в чате сообщества
-        from db.rpc import bot_get_community_chat_id
         chat = await bot_get_community_chat_id()
         chat_id = chat.data if not chat.error and isinstance(chat.data, int) else None
         if chat_id is not None:
