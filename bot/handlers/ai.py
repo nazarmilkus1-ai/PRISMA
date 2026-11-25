@@ -61,6 +61,9 @@ async def _answer_by_code(message: types.Message, question: str, private: bool) 
 
 async def _answer(message: types.Message, question: str, private: bool) -> bool:
     """Главная точка входа для ответа."""
+    # Пустой вопрос — приветствие
+    if not question or not question.strip():
+        question = "Привет"
     if await _ask_ai(message, question, private):
         return True
     return await _answer_by_code(message, question, private)
