@@ -1,5 +1,6 @@
 from aiogram import F, Router, types
 from aiogram.filters import Command
+from aiogram.methods import UnbanChatMember
 
 from db.rpc import bot_ban_review_keep, bot_ban_review_list, bot_check_admin_permission, bot_lift_punishment, bot_get_community_chat_id
 from services import ban_review
@@ -48,7 +49,6 @@ async def on_decision(call: types.CallbackQuery):
         await call.bot.unban_chat_member(chat_id, tg_id, only_if_banned=True)
         # Also unban from community if chat_id is valid
         if chat_id is not None:
-            from aiogram.methods import UnbanChatMember
             await call.bot(UnbanChatMember(chat_id=chat_id, user_id=tg_id))
     elif action == "keep":
         # Keep the ban - use bot_ban_review_keep
