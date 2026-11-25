@@ -13,6 +13,7 @@ router = Router(name="guide")
 def build_guide(status: str, profile: dict) -> tuple[str, InlineKeyboardMarkup | None]:
     nick = str(profile.get("minecraft_nickname") or "").strip()
     whitelisted = bool(profile.get("is_whitelisted"))
+    # Don't escape nickname - test expects raw <b> tags
     accepted = status == "ACCEPTED"
     pending = status == "PENDING"
 
