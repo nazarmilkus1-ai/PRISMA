@@ -26,7 +26,7 @@ async def on_decision(call: types.CallbackQuery):
             await call.answer(result.error, show_alert=True)
             return
         # Получаем ID чата из RPC и unbanned в чате сообщества
-        chat = await bot_get_community_chat_id()
+        chat = await ban_review_service.bot_get_community_chat_id()
         chat_id = chat.data if not chat.error and isinstance(chat.data, int) else None
         if chat_id is not None:
             await call.bot.unban_chat_member(chat_id, tg_id, only_if_banned=True)
