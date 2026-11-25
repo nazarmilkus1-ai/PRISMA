@@ -44,7 +44,10 @@ async def _status_for_intent(tg_id: int, kind: str | None) -> str:
     if not valid:
         Validation.log_warning("_status_for_intent", tg_id, "_status_for_intent", error)
         return ""
-    return str(await bot_get_user_status(tg_id) or "")
+    status = await bot_get_user_status(tg_id)
+    if not status or status == "PENDING":
+        return ""
+    return str(status)
 
 
 async def _fallback_menu(message: types.Message, text: str):
