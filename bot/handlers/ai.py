@@ -40,4 +40,5 @@ __all__ = [
     "is_configured",
     "navigator",
     "ai_memory",
+    "_answer",
 ]
