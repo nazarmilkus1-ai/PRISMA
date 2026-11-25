@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from handlers import ban_review as handler  # noqa: E402
 from services import ban_review  # noqa: E402
-from db import rpc  # noqa: E402
+import db  # noqa: E402
 
 OK = SimpleNamespace(error=None, data={"success": True})
 ROW = {"tg_id": 555, "nickname": "<Steve>", "reason": "grief"}
