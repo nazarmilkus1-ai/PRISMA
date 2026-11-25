@@ -22,6 +22,7 @@ from db.rpc import bot_get_pending_count, bot_get_user_status, bot_submit_applic
 from fsm.states import ApplicationForm
 from keyboards.inline import agreement_keyboard, platform_keyboard, preview_keyboard, discovery_source_keyboard, APPLICATION_DISCOVERY_SOURCES
 from utils.helpers import bedrock_gamertag, bedrock_server_nick, validate_birth_date, validate_minecraft_nick, validate_text
+from utils.validation import Validation
 
 from services.community_membership import clear_onboarding_restriction
 
