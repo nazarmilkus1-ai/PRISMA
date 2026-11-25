@@ -22,7 +22,7 @@ def build_guide(status: str, profile: dict) -> tuple[str, InlineKeyboardMarkup |
         "✅ Открыть бота",
         f"{app_mark} Подать заявку" + (" — на рассмотрении" if pending else ""),
         f"{'✅' if accepted and whitelisted else '⬜'} Получить доступ (whitelist)",
-        f"{'✅' if nick else '⬜'} Minecraft-ник" + (f": <code>{escape(nick)}</code>" if nick else ""),
+        f"{'✅' if nick else '⬜'} Minecraft-ник" + (f": <code>{nick}</code>" if nick else ""),
         f"{'⬜' if accepted else '🔒'} Зайти на сервер",
     ]
 
