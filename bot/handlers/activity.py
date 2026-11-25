@@ -1,38 +1,72 @@
-"""/activity report [дни] — who is silent / applied / not applied. /activity — staff preview of the weekly activity check (nothing is applied); `/activity apply` runs it now."""
-from aiogram import Router, types
-from aiogram.filters import Command, CommandObject
+from __future__ import annotations
 
-from db.rpc import bot_check_admin_permission
-from services import activity_report, inactivity
-from utils.permissions import is_admin_mode
+from collections import Counter, OrderedDict
 
-router = Router(name="activity")
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+
+from utils.validation import Validation
+
+# callback_data -> button label. Only navigation targets that are safe to open with one tap.
+ACTIONS: dict[str, str] = {
+    "profile": "👤 Профиль", "player:server": "🖥 Сервер", "player:stats": "📊 Статистика",
+    "player:top": "🏅 Топ", "player:events": "🎯 Ивенты", "clans": "⚔️ Кланы",
+    "news": "📰 Новости", "polls": "🗳 Голосования", "reports": "📢 Жалоба", "support": "🆘 Поддержка",
+    "ask": "🤖 PRISMA_AI", "player:achievements": "🏆 Достижения", "player:notifications": "🔔 Уведомления",
+}
+DEFAULTS = ("player:server", "player:events", "ask", "profile", "player:stats")
+MAX_USERS = 5000
+
+_usage: "OrderedDict[int, Counter]" = OrderedDict()
 
 
-async def _allowed(tg_id: int) -> bool:
-    ok, _ = Validation.validate_telegram_id(tg_id, "Telegram ID для проверки доступа")
+def record(tg_id: int, callback_data: str | None) -> None:
+    ok, _ = Validation.validate_telegram_id(tg_id, "Telegram ID для быстрых действий")
     if not ok:
-        logger.warning("Invalid Telegram ID in activity _allowed: %s", tg_id)
-        return False
-    if not await is_admin_mode(tg_id):
-        return False
-    result = await bot_check_admin_permission(tg_id, "punishment.warn")
-    return not result.error and bool(result.data)
+        return
+    if callback_data not in ACTIONS:
+        return
+    counter = _usage.get(tg_id)
+    if counter is None:
+        if len(_usage) >= MAX_USERS:
+            _usage.popitem(last=False)
+        counter = _usage[tg_id] = Counter()
+    else:
+        _usage.move_to_end(tg_id)
+    counter[callback_data] += 1
 
 
-@router.message(Command("activity", "активность_недели"), lambda m: m.chat.type == "private")
-async def activity(message: types.Message, command: CommandObject):
-    if message.from_user is None or not await _allowed(message.from_user.id):
-        await message.answer("Нужен режим админа и право выдавать предупреждения.")
-        return
-    args = (command.args or "").strip().lower().split()
-    if args and args[0] in {"report", "отчет", "отчёт"}:
-        days = int(args[1]) if len(args) > 1 and args[1].isdigit() else 7
-        await message.answer(await activity_report.build(days), parse_mode="HTML")
-        return
-    apply = bool(args) and args[0] == "apply"
-    if apply and not inactivity.enabled():
-        await message.answer("Автопроверка выключена (ACTIVITY_WARN не равно 1) — применять вручную тоже не буду. Предпросмотр: /activity")
-        return
-    text = await inactivity.run_check(message.bot, apply=apply)
-    await message.answer(text + ("" if apply else "\n\n<i>Предпросмотр: ничего не применено. Применить сейчас: /activity apply</i>"), parse_mode="HTML")
+def top(tg_id: int, limit: int = 4) -> list[str]:
+    ok, _ = Validation.validate_telegram_id(tg_id, "Telegram ID для быстрых действий")
+    if not ok:
+        return []
+    counter = _usage.get(tg_id)
+    return [key for key, _ in counter.most_common(limit)] if counter else []
+
+
+def keyboard(tg_id: int) -> InlineKeyboardMarkup:
+    ok, _ = Validation.validate_telegram_id(tg_id, "Telegram ID для быстрых действий")
+    if not ok:
+        buttons = [InlineKeyboardButton(text=ACTIONS[key], callback_data=key) for key in DEFAULTS[:6]]
+        rows = [buttons[i:i + 2] for i in range(0, len(buttons), 2)]
+        rows.append([InlineKeyboardButton(text="🏠 Меню", callback_data="menu:back")])
+        return InlineKeyboardMarkup(inline_keyboard=rows)
+    frequent = top(tg_id, 4)
+    chosen = list(frequent)
+    for key in DEFAULTS:
+        if len(chosen) >= 6:
+            break
+        if key not in chosen:
+            chosen.append(key)
+    buttons = [InlineKeyboardButton(text=ACTIONS[key], callback_data=key) for key in chosen]
+    rows = [buttons[i:i + 2] for i in range(0, len(buttons), 2)]
+    rows.append([InlineKeyboardButton(text="🏠 Меню", callback_data="menu:back")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def text(tg_id: int) -> str:
+    ok, _ = Validation.validate_telegram_id(tg_id, "Telegram ID для быстрых действий")
+    if not ok:
+        return "⚡ <b>Быстрые действия</b>\nЧасто нужные разделы в один тап. Со временем здесь появятся ваши любимые."
+    if top(tg_id, 1):
+        return "⚡ <b>Быстрые действия</b>\nСверху — то, чем вы пользуетесь чаще всего."
+    return "⚡ <b>Быстрые действия</b>\nЧасто нужные разделы в один тап. Со временем здесь появятся ваши любимые."
