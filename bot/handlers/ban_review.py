@@ -26,4 +26,3 @@ async def on_decision(call: types.CallbackQuery):
         return
     admin_id = call.from_user.id
     result = await bot_lift_punishment(tg_id, "BAN", admin_id)
-    result = await bot_lift_punishment(tg_id, "BAN", admin_id)
