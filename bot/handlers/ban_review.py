@@ -2,6 +2,7 @@ from aiogram import Router, types, F
 from utils.validation import Validation
 
 router = Router(name="ban_review")
+CB_PREFIX = "ban_review"
 
 
 @router.callback_query(F.data.startswith(f"{ban_review.CB_PREFIX}:"))
