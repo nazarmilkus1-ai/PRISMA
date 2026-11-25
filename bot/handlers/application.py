@@ -365,6 +365,12 @@ async def edit_field(callback: types.CallbackQuery, state: FSMContext):
 async def confirm_application(callback: types.CallbackQuery, state: FSMContext):
     await callback.answer()
     data = await state.get_data()
+    tg_id = data["tg_id"]
+    valid, error = Validation.validate_telegram_id(tg_id)
+    if not valid:
+        logger.warning("Invalid Telegram ID in confirm_application: %s", error)
+        await callback.answer("❌ Неверный идентификатор пользователя.", show_alert=True)
+        return
     birth_date = datetime.strptime(data["birth_date"], "%d.%m.%Y").date().isoformat()
     result = await bot_submit_application(
         data["tg_id"],
