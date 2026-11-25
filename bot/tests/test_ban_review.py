@@ -57,7 +57,7 @@ class DecisionTests(unittest.TestCase):
     def test_keep_does_not_lift_or_invite(self):
         call = make_call("banrev:keep:555")
         with mock.patch.object(handler, "bot_ban_review_keep", mock.AsyncMock(return_value=OK)) as keep, \
-                mock.patch.object(handler, "bot_lift_punishment", mock.AsyncMock()) as lift:
+                mock.patch.object(db.rpc, "bot_lift_punishment", mock.AsyncMock()) as lift:
             asyncio.run(handler.on_decision(call))
         keep.assert_awaited_once_with(555, 1)
         lift.assert_not_awaited()
