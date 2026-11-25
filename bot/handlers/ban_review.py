@@ -54,6 +54,8 @@ async def on_decision(call: types.CallbackQuery):
         await call.bot.send_message(tg_id, "Вы были разбанены в чате.")
         # Also send message to admin group about the unban
         await call.bot.send_message(admin_id, f"Игрок {tg_id} был разбанен в чате.")
+        # Also send message to admin group about the unban
+        await call.bot.send_message(admin_id, f"Игрок {tg_id} был разбанен в чате.")
     elif action == "keep":
         # Keep the ban - use bot_ban_review_keep
         await bot_ban_review_keep(tg_id, admin_id)
