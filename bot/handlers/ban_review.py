@@ -44,6 +44,8 @@ async def on_decision(call: types.CallbackQuery):
         if chat_id is None:
             await call.answer("❌ Не удалось получить ID чата.", show_alert=True)
             return
+        # Unban the player in the community chat
+        await call.bot.unban_chat_member(chat_id, tg_id, only_if_banned=True)
     elif action == "keep":
         # Keep the ban - use bot_ban_review_keep
         await bot_ban_review_keep(tg_id, admin_id)
