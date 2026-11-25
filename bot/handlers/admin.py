@@ -313,6 +313,11 @@ async def players(message: types.Message):
         await message.answer("👥 Игроки не найдены.")
         return
     for row in rows:
+        tg_id = row.get('telegram_id')
+        if tg_id and not Validation.validate_telegram_id(tg_id):
+            import logging
+            logging.warning(f"Invalid telegram_id in admin panel: {tg_id}")
+            continue
         await message.answer(
             f"👤 <b>{escape(str(row.get('minecraft_nickname') or row.get('telegram_username') or 'Игрок'))}</b>\n"
             f"Telegram: <code>{row.get('telegram_id')}</code>\n"
