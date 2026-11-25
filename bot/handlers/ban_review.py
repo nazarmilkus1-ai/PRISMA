@@ -33,7 +33,7 @@ async def on_decision(call: types.CallbackQuery):
     # Continue with unban_chat_member and other logic
     if action == "ok":
         status = await ban_review.invite_back(call.bot, tg_id)
-        await call.message.edit_text("✅ " + status)
+        await call.message.edit_text("✅ Администратор подтвердил: " + status)
     else:
-        await ban_review.bot_ban_review_keep(tg_id, admin_id)
+        await bot_ban_review_keep(tg_id, admin_id)
         await call.message.edit_text("⛔ Бан оставлен.")
