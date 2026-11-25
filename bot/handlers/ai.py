@@ -40,6 +40,7 @@ async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
         chat_context = ambient.transcript(message.chat.id, message.from_user.id)
     
     # Запускаем участника (ИИ) через локальную функцию run_member
+    asker_name = getattr(message.from_user, "first_name", None) or "Пользователь"
     text, _ = await run_member(
         tg_id=message.from_user.id,
         question=question,
@@ -47,7 +48,7 @@ async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
         history=[],
         private=private,
         chat_context=chat_context,
-        asker=message.from_user.first_name or "Пользователь",
+        asker=asker_name,
         adult=0
     )
     
