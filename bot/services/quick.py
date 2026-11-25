@@ -21,8 +21,9 @@ _usage: "OrderedDict[int, Counter]" = OrderedDict()
 
 
 def record(tg_id: int, callback_data: str | None) -> None:
-    ok, _ = Validation.validate_telegram_id(tg_id, "Telegram ID для быстрых действий")
+    ok, error = Validation.validate_telegram_id(tg_id, "Telegram ID для быстрых действий")
     if not ok:
+        Validation.log_warning("Quick record", tg_id, "record", error)
         return
     if callback_data not in ACTIONS:
         return
@@ -37,16 +38,18 @@ def record(tg_id: int, callback_data: str | None) -> None:
 
 
 def top(tg_id: int, limit: int = 4) -> list[str]:
-    ok, _ = Validation.validate_telegram_id(tg_id, "Telegram ID для быстрых действий")
+    ok, error = Validation.validate_telegram_id(tg_id, "Telegram ID для быстрых действий")
     if not ok:
+        Validation.log_warning("Quick top", tg_id, "top", error)
         return []
     counter = _usage.get(tg_id)
     return [key for key, _ in counter.most_common(limit)] if counter else []
 
 
 def keyboard(tg_id: int) -> InlineKeyboardMarkup:
-    ok, _ = Validation.validate_telegram_id(tg_id, "Telegram ID для быстрых действий")
+    ok, error = Validation.validate_telegram_id(tg_id, "Telegram ID для быстрых действий")
     if not ok:
+        Validation.log_warning("Quick keyboard", tg_id, "keyboard", error)
         buttons = [InlineKeyboardButton(text=ACTIONS[key], callback_data=key) for key in DEFAULTS[:6]]
         rows = [buttons[i:i + 2] for i in range(0, len(buttons), 2)]
         rows.append([InlineKeyboardButton(text="🏠 Меню", callback_data="menu:back")])
@@ -65,8 +68,9 @@ def keyboard(tg_id: int) -> InlineKeyboardMarkup:
 
 
 def text(tg_id: int) -> str:
-    ok, _ = Validation.validate_telegram_id(tg_id, "Telegram ID для быстрых действий")
+    ok, error = Validation.validate_telegram_id(tg_id, "Telegram ID для быстрых действий")
     if not ok:
+        Validation.log_warning("Quick text", tg_id, "text", error)
         return "⚡ <b>Быстрые действия</b>\nЧасто нужные разделы в один тап. Со временем здесь появятся ваши любимые."
     if top(tg_id, 1):
         return "⚡ <b>Быстрые действия</b>\nСверху — то, чем вы пользуетесь чаще всего."
