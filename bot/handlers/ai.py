@@ -18,7 +18,7 @@ async def _free_text_fallback(message: types.Message):
 
 async def _answer(message: types.Message, question: str, private: bool) -> bool:
     """Обработать вопрос участника: сначала пробуем ИИ, при неудаче — кодовый фоллбэк."""
-    if not await is_configured():
+    if not is_configured():
         await _answer_by_code(message, question, private)
         return True
     ok = await _ask_ai(message, question, private)
