@@ -52,6 +52,12 @@ async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
         logger.warning("AI question failed: %s", e)
         return False
 
+async def _answer_by_code(message: types.Message, question: str, private: bool) -> bool:
+    """Fallback: answer using canned code (when AI is unavailable)."""
+    # Simple fallback: respond with the question itself as code context
+    # In real implementation this would use predefined responses
+    return False
+
 
 async def _status_for_intent(tg_id: int, kind: str | None) -> str:
     """Fetch a user's status only for deterministic answers that need it."""
