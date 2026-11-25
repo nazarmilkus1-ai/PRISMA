@@ -20,8 +20,8 @@ async def bot_lift_punishment(tg_id: int, punishment_type: str, admin_id: int) -
 
 
 async def some_handler(tg_id: int) -> None:
-    valid, error = Validation.validate_telegram_id(tg_id)
-    if not valid:
+    ok, error = Validation.validate_telegram_id(tg_id)
+    if not ok:
         logger.warning("Invalid Telegram ID in ban_review: %s", error)
         return
     # rest of handler logic
