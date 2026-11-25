@@ -5,11 +5,16 @@ from aiogram.filters import Command, CommandObject
 from db.rpc import bot_check_admin_permission
 from services import activity_report, inactivity
 from utils.permissions import is_admin_mode
+from utils.validation import Validation
 
 router = Router(name="activity")
 
 
 async def _allowed(tg_id: int) -> bool:
+    valid, error = Validation.validate_telegram_id(tg_id, "Telegram ID для проверки доступа")
+    if not valid:
+        Validation.log_warning("_allowed", tg_id, "_allowed", error)
+        return False
     if not await is_admin_mode(tg_id):
         return False
     result = await bot_check_admin_permission(tg_id, "punishment.warn")
