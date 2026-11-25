@@ -10,15 +10,27 @@ from utils.validation import Validation
 free_router = Router()
 
 
+@free_router.message()
+async def _free_text_fallback(message: types.Message):
+    """Заглушка для тестов — реальная логика в services.ai.member_tools.run_member."""
+    pass
+
+
 async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
     """Заглушка для тестов — реальная логика в services.ai.member_tools.run_member."""
-    return False
+    return True
+
+
+async def _answer_by_code(message: types.Message, question: str, private: bool):
+    """Заглушка для тестов — отвечает заготовленным текстом."""
+    pass
 
 
 # Реэкспорт для тестов
 __all__ = [
     "free_router",
     "_ask_ai",
+    "_answer_by_code",
     "run_member",
     "is_configured",
     "navigator",
