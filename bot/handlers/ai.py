@@ -34,8 +34,8 @@ async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
     # Получаем статус пользователя
     status = await _status_for_intent(message.from_user.id, "guide")
     
-    # Запускаем участника (ИИ)
-    text, _ = await member_tools.run_member(
+    # Запускаем участника (ИИ) через локальную функцию run_member
+    text, _ = await run_member(
         tg_id=message.from_user.id,
         question=question,
         status=status,
