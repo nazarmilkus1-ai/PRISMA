@@ -30,6 +30,20 @@ async def on_decision(call: types.CallbackQuery):
         chat_id = chat.data if not chat.error and isinstance(chat.data, int) else None
         if chat_id is not None:
             await call.bot.unban_chat_member(chat_id, tg_id, only_if_banned=True)
+            # Создаём пригласительную ссылку и отправляем игроку
+            try:
+                created = await call.bot.create_chat_invite_link(
+                    chat_id, name="return after ban", member_limit=1, expire_date=int(time.time()) + 7 * 24 * 3600
+                )
+                link = created.invite_link
+            except Exception:
+                link = None
+            text = "✅ Срок бана закончился, администратор подтвердил ваше возвращение в PRISMA."
+            text += f"\nВот ссылка для входа в чат (действует 7 дней, один вход):\n{link}" if link else "\nЗайдите обратно в чат сообщества."
+            try:
+                await call.bot.send_message(tg_id, text, disable_web_page_preview=True)
+            except Exception:
+                pass
         await call.message.edit_text("Вы подтвердили разбан")
     elif action == "keep":
         # Оставить как есть - вызвать сервис удержания
