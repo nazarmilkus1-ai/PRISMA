@@ -45,7 +45,7 @@ class DecisionTests(unittest.TestCase):
     def test_confirm_lifts_ban_unbans_in_chat_and_invites(self):
         call = make_call("banrev:ok:555")
         with mock.patch.object(handler, "bot_lift_punishment", mock.AsyncMock(return_value=OK)) as lift, \
-                mock.patch.object(ban_review, "bot_get_community_chat_id", mock.AsyncMock(return_value=SimpleNamespace(error=None, data=-100777))):
+                mock.patch.object(db.rpc, "bot_get_community_chat_id", mock.AsyncMock(return_value=SimpleNamespace(error=None, data=-100777))):
             asyncio.run(handler.on_decision(call))
         self.assertEqual(lift.await_args.args, (555, "BAN", 1))
         call.bot.unban_chat_member.assert_awaited_once_with(-100777, 555, only_if_banned=True)
