@@ -3,6 +3,7 @@ from html import escape
 from aiogram import Router, types
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
+from utils.validation import Validation
 
 from db.rpc import (
     bot_accept_clan_invite,
