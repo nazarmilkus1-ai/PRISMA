@@ -25,6 +25,10 @@ async def on_decision(call: types.CallbackQuery):
         await call.answer("❌ Неверный Telegram ID", show_alert=True)
         return
     admin_id = call.from_user.id
+    if action == "keep":
+        await bot_ban_review_keep(tg_id, admin_id)
+        await call.message.edit_text("⛔ Бан оставлен.")
+        return
     result = await bot_lift_punishment(tg_id, "BAN", admin_id)
     if result.error:
         Validation.log_warning("bot_lift_punishment_error", tg_id, "on_decision", result.error)
@@ -34,6 +38,3 @@ async def on_decision(call: types.CallbackQuery):
     if action == "ok":
         status = await ban_review.invite_back(call.bot, tg_id)
         await call.message.edit_text("✅ Администратор подтвердил: " + status)
-    else:
-        await bot_ban_review_keep(tg_id, admin_id)
-        await call.message.edit_text("⛔ Бан оставлен.")
