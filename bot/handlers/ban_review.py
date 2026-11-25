@@ -26,3 +26,7 @@ async def on_decision(call: types.CallbackQuery):
         return
     admin_id = call.from_user.id
     result = await bot_lift_punishment(tg_id, "BAN", admin_id)
+    if result.error:
+        Validation.log_warning("bot_lift_punishment_error", tg_id, "on_decision", result.error)
+        await call.answer("❌ Ошибка при разбане: " + result.error, show_alert=True)
+        return
