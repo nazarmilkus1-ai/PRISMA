@@ -1,7 +1,7 @@
 from aiogram import F, Router, types
 from aiogram.filters import Command
 
-from db.rpc import bot_ban_review_keep, bot_ban_review_list, bot_check_admin_permission, bot_lift_punishment
+from db.rpc import bot_ban_review_keep, bot_ban_review_list, bot_check_admin_permission, bot_lift_punishment, bot_get_community_chat_id
 from services import ban_review
 from utils.errors import safe_rpc_error
 from utils.permissions import is_admin_mode
