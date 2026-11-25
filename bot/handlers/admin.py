@@ -4,6 +4,7 @@ from aiogram import F, Router, types
 from aiogram.filters import Command
 
 from config import MODERATION_GROUP_ID
+from utils.validation import Validation
 from db.admin import (
     find_players,
     open_appeals,
