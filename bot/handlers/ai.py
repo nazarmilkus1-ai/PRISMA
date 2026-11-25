@@ -18,6 +18,12 @@ ai_memory = AI_Memory()
 
 is_configured = True
 
+free_router = None
+
+async def _answer_by_code(message: types.Message, question: str, private: bool) -> bool:
+    """Ответить кодом."""
+    return False
+
 async def _status_for_intent(tg_id: int, kind: str | None) -> str:
     """Получить статус намерения пользователя."""
     valid, error = Validation.validate_telegram_id(tg_id)
