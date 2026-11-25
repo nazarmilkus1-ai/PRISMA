@@ -67,6 +67,10 @@ def _duration(minutes):
 
 
 async def _center_text(tg_id: int):
+    ok, error = Validation.validate_telegram_id(tg_id, "_center_text")
+    if not ok:
+        logger.warning("Invalid Telegram ID in _center_text: %s", error)
+        return None
     user, err = await _user(tg_id)
     if err or not user:
         return None
