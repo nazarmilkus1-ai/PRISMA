@@ -31,10 +31,35 @@ async def on_decision(call: types.CallbackQuery):
         Validation.log_warning("on_decision", admin_id, "on_decision", error2)
         await call.answer("❌ Неверный идентификатор администратора.", show_alert=True)
         return
-    result = await bot_lift_punishment(tg_id, "BAN", admin_id)
-    if result and result.error:
-        await call.answer("❌ Ошибка при снятии бана.", show_alert=True)
+    action, tg_id = parsed
+    valid, error = Validation.validate_telegram_id(tg_id, "Telegram ID для проверки доступа")
+    if not valid:
+        Validation.log_warning("on_decision", tg_id, "on_decision", error)
+        await call.answer("❌ Неверный идентификатор пользователя.", show_alert=True)
         return
+    admin_id = call.from_user.id
+    valid2, error2 = Validation.validate_telegram_id(admin_id, "ID администратора")
+    if not valid2:
+        Validation.log_warning("on_decision", admin_id, "on_decision", error2)
+        await call.answer("❌ Неверный идентификатор администратора.", show_alert=True)
+        return
+
+    if action == "ok":
+        # Lift the ban
+        result = await bot_lift_punishment(tg_id, "BAN", admin_id)
+        if result and result.error:
+            await call.answer("❌ Ошибка при снятии бана.", show_alert=True)
+            return
+    elif action == "keep":
+        # Keep the ban - use bot_ban_review_keep
+        await bot_ban_review_keep(tg_id, admin_id)
+        await call.answer("Бан оставлен.", show_alert=True)
+        await call.message.edit_text("Бан оставлен.")
+        return
+    else:
+        await call.answer("❌ Неизвестное действие.", show_alert=True)
+        return
+
     chat = await bot_get_community_chat_id()
     chat_id = chat.data if not chat.error and isinstance(chat.data, int) else None
     if chat_id is None:
