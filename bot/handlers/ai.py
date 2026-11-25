@@ -1,3 +1,5 @@
+import types
+
 async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
     """Задать вопрос ИИ."""
     valid, error = Validation.validate_telegram_id(message.from_user.id)
