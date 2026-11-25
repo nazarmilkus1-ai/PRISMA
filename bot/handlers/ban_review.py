@@ -37,6 +37,9 @@ async def on_decision(call: types.CallbackQuery):
         return
     chat = await bot_get_community_chat_id()
     chat_id = chat.data if not chat.error and isinstance(chat.data, int) else None
+    if chat_id is None:
+        await call.answer("❌ Не удалось получить ID чата.", show_alert=True)
+        return
     link = None
     try:
         await call.bot.unban_chat_member(chat_id, tg_id, only_if_banned=True)
