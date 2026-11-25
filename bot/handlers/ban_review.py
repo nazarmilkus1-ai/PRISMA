@@ -1,6 +1,7 @@
 from aiogram import Router, types, F
 from utils.validation import Validation
-from db.rpc import bot_ban_review_keep, bot_ban_review_list, bot_check_admin_permission, bot_lift_punishment, bot_get_community_chat_id
+from db.rpc import bot_ban_review_keep, bot_ban_review_list, bot_check_admin_permission, bot_lift_punishment
+from services.ban_review import bot_get_community_chat_id
 
 router = Router(name="ban_review")
 
