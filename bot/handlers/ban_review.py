@@ -35,7 +35,7 @@ async def on_decision(call: types.CallbackQuery):
     if action == "ok":
         # Lift the ban
         result = await bot_lift_punishment(tg_id, "BAN", admin_id)
-        if result and result.error:
+        if result and result.error is not None:
             await call.answer("❌ Ошибка при снятии бана.", show_alert=True)
             return
     elif action == "keep":
