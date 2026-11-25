@@ -37,6 +37,22 @@ free_router = Router(name="ai_free")
 logger = logging.getLogger(__name__)
 
 
+async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
+    """Ask AI a question and return whether it was successful."""
+    from services.ai.client import chat, is_configured, model_for
+    
+    if not is_configured():
+        return False
+    
+    try:
+        model = model_for()
+        response = await chat(model, question, private=private)
+        return response is not None and response != ""
+    except Exception as e:
+        logger.warning("AI question failed: %s", e)
+        return False
+
+
 async def _status_for_intent(tg_id: int, kind: str | None) -> str:
     """Fetch a user's status only for deterministic answers that need it."""
     valid, error = Validation.validate_telegram_id(tg_id)
