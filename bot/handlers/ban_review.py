@@ -32,7 +32,7 @@ async def on_decision(call: types.CallbackQuery):
         await call.answer("❌ Неверный идентификатор администратора.", show_alert=True)
         return
     result = await bot_lift_punishment(tg_id, "BAN", admin_id)
-    if result.error:
+    if result and result.error:
         await call.answer("❌ Ошибка при снятии бана.", show_alert=True)
         return
     chat = await bot_get_community_chat_id()
