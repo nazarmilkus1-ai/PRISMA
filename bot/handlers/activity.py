@@ -10,9 +10,9 @@ router = Router(name="activity")
 
 
 async def _allowed(tg_id: int) -> bool:
-    valid, error = Validation.validate_telegram_id(tg_id)
-    if not valid:
-        logger.warning("Invalid Telegram ID in activity _allowed: %s", error)
+    ok, _ = Validation.validate_telegram_id(tg_id, "Telegram ID для проверки доступа")
+    if not ok:
+        logger.warning("Invalid Telegram ID in activity _allowed: %s", tg_id)
         return False
     if not await is_admin_mode(tg_id):
         return False
