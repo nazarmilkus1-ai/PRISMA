@@ -26,13 +26,18 @@ async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
         await message.answer("❌ Неверный идентификатор пользователя.")
         return False
     
-    # Пустой вопрос — приветствие
+    # Пустой вопрос — приветствие, но всё равно прогоняем через ИИ
     if not question or not question.strip():
-        await message.answer("Привет")
-        return True
+        question = "Привет"
     
     # Получаем статус пользователя
     status = await _status_for_intent(message.from_user.id, "guide")
+    
+    # Получаем контекст чата для группового чата
+    chat_context = ""
+    if not private and message.chat.id < 0:
+        from services.ai import ambient
+        chat_context = ambient.transcript(message.chat.id, message.from_user.id)
     
     # Запускаем участника (ИИ) через локальную функцию run_member
     text, _ = await run_member(
@@ -41,7 +46,7 @@ async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
         status=status,
         history=[],
         private=private,
-        chat_context="",
+        chat_context=chat_context,
         asker=message.from_user.first_name or "Пользователь",
         adult=0
     )
