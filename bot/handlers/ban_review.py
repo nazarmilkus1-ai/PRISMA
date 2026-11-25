@@ -40,8 +40,6 @@ async def on_decision(call: types.CallbackQuery):
             await call.answer("❌ Ошибка при снятии бана.", show_alert=True)
             return
         # After lifting ban, proceed to unban in community chat
-        # After lifting ban, proceed to unban in community chat
-        # After lifting ban, proceed to unban in community chat
         chat = await bot_get_community_chat_id()
         if chat.error:
             await call.answer("❌ Не удалось получить ID чата.", show_alert=True)
