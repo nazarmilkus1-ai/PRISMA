@@ -39,7 +39,7 @@ async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
     can_mute = False
     if not private:
         # Проверяем права на мут через navigator
-        can_mute = await navigator.allowed(message.from_user.id, "mute")
+        can_mute = navigator.allowed(message.from_user.id, "mute")
     
     ctx = Context(
         tg_id=message.from_user.id,
