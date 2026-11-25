@@ -52,6 +52,12 @@ async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
         logger.warning("AI question failed: %s", e)
         return False
 
+async def _answer(message: types.Message, question: str, private: bool = True) -> None:
+    """Answer a user question using AI or fallback code."""
+    if await _ask_ai(message, question, private):
+        return
+    await _answer_by_code(message, question, private)
+
 async def _answer_by_code(message: types.Message, question: str, private: bool) -> bool:
     """Fallback: answer using canned code (when AI is unavailable)."""
     # Simple fallback: respond with the question itself as code context
