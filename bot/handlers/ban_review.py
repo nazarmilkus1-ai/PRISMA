@@ -44,6 +44,8 @@ async def on_decision(call: types.CallbackQuery):
         if chat.error:
             await call.answer("❌ Не удалось получить ID чата.", show_alert=True)
             return
+            await call.answer("❌ Не удалось получить ID чата.", show_alert=True)
+            return
         chat_id = chat.data if isinstance(chat.data, int) else None
         if chat_id is None:
             await call.answer("❌ Не удалось получить ID чата.", show_alert=True)
