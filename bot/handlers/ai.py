@@ -16,6 +16,11 @@ async def _free_text_fallback(message: types.Message):
     pass
 
 
+async def _answer(message: types.Message, question: str, private: bool) -> bool:
+    """Заглушка для тестов — реальная логика в services.ai.member_tools.run_member."""
+    return True
+
+
 async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
     """Заглушка для тестов — реальная логика в services.ai.member_tools.run_member."""
     return True
