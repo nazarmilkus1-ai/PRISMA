@@ -41,7 +41,10 @@ async def on_decision(call: types.CallbackQuery):
             return
         # After lifting ban, proceed to unban in community chat
         chat = await bot_get_community_chat_id()
-        chat_id = chat.data if not chat.error and isinstance(chat.data, int) else None
+        if chat.error:
+            await call.answer("❌ Не удалось получить ID чата.", show_alert=True)
+            return
+        chat_id = chat.data if isinstance(chat.data, int) else None
         if chat_id is None:
             await call.answer("❌ Не удалось получить ID чата.", show_alert=True)
             return
