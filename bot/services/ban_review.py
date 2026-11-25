@@ -28,8 +28,8 @@ CB_PREFIX = "banrev"
 
 
 def card_text(row: dict) -> str:
-    who = html.escape(str(row.get("nickname") or row.get("tg_id")))
-    reason = html.escape(str(row.get("reason") or "—"))
+    who = str(row.get("nickname") or row.get("tg_id"))
+    reason = str(row.get("reason") or "—")
     return (
         f"⏳ <b>Срок бана закончился</b>: {who} (<code>{row.get('tg_id')}</code>)\n"
         f"Причина бана: {reason}\n"
