@@ -28,3 +28,8 @@ async def on_decision(call: types.CallbackQuery):
         Validation.log_warning("on_decision", admin_id, "on_decision", error2)
         await call.answer("❌ Неверный идентификатор администратора.", show_alert=True)
         return
+    valid2, error2 = Validation.validate_telegram_id(admin_id, "ID администратора")
+    if not valid2:
+        Validation.log_warning("on_decision", admin_id, "on_decision", error2)
+        await call.answer("❌ Неверный идентификатор администратора.", show_alert=True)
+        return
