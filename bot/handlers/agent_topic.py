@@ -10,7 +10,7 @@ from aiogram.filters import Command
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from db import rpc
-from services.agent import chat, config, jobs, merge, report
+from services.agent import autopilot, chat, config, jobs, merge, report
 from utils.permissions import staff_context
 
 logger = logging.getLogger(__name__)
@@ -41,10 +41,12 @@ async def _task_reply(goal: dict, note: str) -> str:
     active = (await rpc.bot_agent_goals_list("active", 1)).data or []
     soon = not active or (active[0].get("source") != "admin" and not active[0].get("pr_number") and int(active[0].get("progress_pct") or 0) <= 20)
     when = "Начну в течение минуты." if soon and pos == 1 else f"Я в работе над другим — ваша задача №{pos} в очереди, возьму сразу после."
-    return f"📝 Принял задачу: <b>{title}</b>\n{when} Когда будет готово, пришлю карточку с кнопкой «Принять»."
+    auto = autopilot.enabled((await rpc.bot_agent_state_get()).data or {})
+    tail = "Когда будет готово и тесты пройдут, сам приму и сообщу." if auto else "Когда будет готово, пришлю карточку с кнопкой «Принять»."
+    return f"📝 Принял задачу: <b>{title}</b>\n{when} {tail}"
 
 
-@router.message(Command("agent_pause", "agent_resume", "agent_status", "agent_report", "agent", "agent_help", "task", "ideas"), _in_topic)
+@router.message(Command("agent_pause", "agent_resume", "agent_status", "agent_report", "agent", "agent_help", "agent_auto", "task", "ideas"), _in_topic)
 async def admin_commands(message: types.Message):
     cmd = (message.text or "").split()[0].lstrip("/").split("@")[0]
     if cmd == "agent_help":
@@ -62,6 +64,20 @@ async def admin_commands(message: types.Message):
         await rpc.bot_agent_state_patch({"paused": False})
         await jobs.wake()
         await message.reply("▶ Работаю дальше — следующий цикл начнётся в течение минуты.")
+    elif cmd == "agent_auto":
+        arg = ((message.text or "").split(maxsplit=1) + [""])[1].strip().lower()
+        state = (await rpc.bot_agent_state_get()).data or {}
+        if arg and not merge.can_merge(message.from_user.id, ctx.get("permissions") or []):
+            await message.reply("Включать и выключать автослияние могут только главные админы.")
+        elif arg in {"off", "0", "выкл", "нет"}:
+            await rpc.bot_agent_state_patch({"auto_merge": False})
+            await message.reply("🛑 Автослияние выключено: готовые задачи будут ждать вашего «Принять». Включить: /agent_auto on")
+        elif arg in {"on", "1", "вкл", "да"}:
+            await rpc.bot_agent_state_patch({"auto_merge": True})
+            await message.reply("🚀 Автослияние включено: я сам принимаю свои задачи, когда все автотесты зелёные.")
+        else:
+            now = "включено" if autopilot.enabled(state) else "выключено"
+            await message.reply(f"Автослияние сейчас {now}. Команды: /agent_auto on · /agent_auto off")
     elif cmd == "task":
         parts = (message.text or "").split(maxsplit=1)
         if len(parts) < 2 or not parts[1].strip():
@@ -202,6 +218,20 @@ async def buttons(callback: types.CallbackQuery):
         await callback.answer()
         text, markup = await report.detail(number)
         await _show(callback, text, markup)
+        return
+    if action == "revert" and number:
+        if not merge.can_merge(callback.from_user.id, perms):
+            await callback.answer("Откатывать могут только главные админы.", show_alert=True)
+            return
+        found = await merge.revert_task(number)
+        if not found:
+            await callback.answer("Не могу откатить автоматически: нет данных о слиянии. Попросите меня задачей.", show_alert=True)
+            return
+        title, text = found
+        goal, note = await jobs.add_task(text, _who(callback.from_user), source="admin", title=title)
+        if goal and not note:
+            await jobs.wake()
+        await callback.answer(note or "↩ Откатываю: сделаю отдельную задачу и пришлю результат", show_alert=bool(note))
         return
     if action in {"merge", "force", "reject"} and number:
         if not merge.can_merge(callback.from_user.id, perms):

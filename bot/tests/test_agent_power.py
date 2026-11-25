@@ -331,10 +331,10 @@ class ChooseWorkTests(unittest.IsolatedAsyncioTestCase):
         (goal, hint, idea), save = await self._choose(done=[red])
         self.assertEqual(goal["id"], 3)
         self.assertIn("ValueError: boom", hint)
-        self.assertIn("попытка 1 из 3", hint)
+        self.assertIn("попытка 1 из 4", hint)
         self.assertFalse(idea)
-        (goal, _, _), _ = await self._choose(state={"reworks": {"11": 3}}, done=[red])
-        self.assertIsNone(goal)  # three attempts used: leave it to the humans
+        (goal, _, _), _ = await self._choose(state={"reworks": {"11": 4}, "auto_merge": False}, done=[red])
+        self.assertIsNone(goal)  # all attempts used and autopilot is off: leave it to the humans
 
     async def test_pending_checks_are_not_reworked(self):
         waiting = {"id": 3, "pr_number": 11, "head_sha": "abc", "review": {"ci": {"failed": 0, "pending": 2}}}
@@ -350,11 +350,13 @@ class ChooseWorkTests(unittest.IsolatedAsyncioTestCase):
 
 
 class NotifyReadyTests(unittest.IsolatedAsyncioTestCase):
-    GOAL = {"id": 1, "pr_number": 20, "health_pct": 100, "review": {"plain": "Теперь лучше", "verdict": "OK"}, "title": "T", "expected": "e", "branch": "agent/t"}
+    GOAL = {"id": 1, "pr_number": 20, "health_pct": 100, "review": {"plain": "Теперь лучше", "verdict": "OK", "ci": {"total": 2, "failed": 0, "pending": 0}},
+            "title": "T", "expected": "e", "branch": "agent/t"}
 
     async def _run(self, state, goals):
         patch_state = AsyncMock(return_value=RPCResult(data={}))
         post = AsyncMock(return_value=SimpleNamespace(message_id=1))
+        state = {"auto_merge": False, **state}  # manual mode: every ready task is announced with Accept / Reject
         with patch.object(brain.rpc, "bot_agent_state_get", AsyncMock(return_value=RPCResult(data=state))), patch.object(brain.rpc, "bot_agent_state_patch", patch_state), \
                 patch.object(brain.report, "waiting_goals", AsyncMock(return_value=goals)), patch.object(brain.report, "post", post), \
                 patch.object(brain.report, "detail", AsyncMock(return_value=("card", None))):

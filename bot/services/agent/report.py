@@ -134,7 +134,7 @@ def _status_line(g: dict) -> str:
     meta = (g.get("review") or {}).get("ci") or {}
     if meta.get("failed") and not meta.get("pending"):
         return "🔴 Тесты не прошли — принять нельзя, я пытаюсь починить"
-    if health is None:
+    if health is None or meta.get("total") == 0:
         return "⏳ Тесты ещё не запускались"
     if health < 100:
         return f"⏳ Тесты идут или не все прошли ({health}%)"
@@ -167,6 +167,11 @@ def plain_summary(g: dict) -> str:
     return strip_tech(str(review.get("plain") or g.get("expected") or g.get("title") or ""))[:90]
 
 
+def _merged_today(state: dict) -> int:
+    entry = state.get("auto_merges") or {}
+    return int(entry.get("n", 0)) if entry.get("day") == time.strftime("%Y-%m-%d") else 0
+
+
 async def build() -> tuple[str, InlineKeyboardMarkup]:
     state = (await rpc.bot_agent_state_get()).data or {}
     active = (await rpc.bot_agent_goals_list("active", 1)).data or []
@@ -187,8 +192,20 @@ async def build() -> tuple[str, InlineKeyboardMarkup]:
     if queue:
         parts.append("📝 <b>Ваши задачи — следующие</b>\n" + "\n".join(f"• {short(g.get('title'), 80)}" for g in queue[:3]))
     if waiting:
-        lines = [f"№{i} · {_summary(g)}" for i, g in enumerate(waiting, 1)]
-        parts.append("✅ <b>Готово — ждёт вас</b>\n" + "\n".join(lines) + "\n<i>Нажмите номер, чтобы посмотреть</i>")
+        numbered = [(i, g) for i, g in enumerate(waiting, 1)]
+        if config.auto_merge_on(state):
+            mine = [f"№{i} · {_summary(g)}" for i, g in numbered if not (g.get("review") or {}).get("manual")]
+            yours = [f"№{i} · {_summary(g)}" for i, g in numbered if (g.get("review") or {}).get("manual")]
+            if mine:
+                parts.append("🚀 <b>Готово — сольётся само</b>\n" + "\n".join(mine) + "\n<i>Когда тесты зелёные — принимаю сам</i>")
+            if yours:
+                parts.append("🔔 <b>Нужно ваше решение</b>\n" + "\n".join(yours) + "\n<i>Это правки моего кода или базы — без вас не сливаю</i>")
+        else:
+            lines = [f"№{i} · {_summary(g)}" for i, g in numbered]
+            parts.append("✅ <b>Готово — ждёт вас</b>\n" + "\n".join(lines) + "\n<i>Нажмите номер, чтобы посмотреть</i>")
+    merged_today = _merged_today(state)
+    if merged_today:
+        parts.append(f"🚀 Слито сегодня: {merged_today}")
     nxt = state.get("next_step")
     if nxt and not paused:
         parts.append(f"🔜 {short(nxt, 100)}")
@@ -213,15 +230,18 @@ async def ideas_view() -> tuple[str, InlineKeyboardMarkup]:
 
 
 HELP = ("🤖 <b>Как пользоваться агентом</b>\n"
-        "Я — ИИ-разработчик PRISMA. Работаю сам: каждые ~10 минут беру задачу, пишу код и проверяю его автотестами. "
-        "Само в бота и на сайт ничего не попадает — только после вашего «Принять».\n\n"
-        "📋 <b>Очередь</b> — готовые задачи. Нажмите №, прочитайте, что изменится, и выберите ✅ Принять или ❌ Отклонить.\n"
+        "Я — ИИ-разработчик PRISMA. Работаю сам, без перерывов: беру задачу, пишу код и проверяю его автотестами. "
+        "Когда все проверки зелёные и ревьюер не против — сам принимаю и сливаю задачу (не чаще раза в 15 минут, чтобы бот не перезапускался каждую минуту). "
+        "Если задача сломалась или конфликтует с новым кодом — обновляю её или переделываю заново.\n\n"
+        "🔒 <b>Без вас не сливаю только две вещи</b>: правки моего собственного кода и изменения базы данных. Их карточка приходит с пометкой «Нужно ваше решение».\n\n"
+        "📋 <b>Очередь</b> — что готово и ждёт слияния. Нажмите №, чтобы прочитать; ✅ Принять или ❌ Отклонить можно и самому.\n"
+        "↩ <b>Откатить</b> — кнопка под сообщением «слито»: я отдельной задачей верну прежний код.\n"
         "💡 <b>Идеи</b> — что я придумал по ходу работы. «▶» — сделаю это следующим, «✖» — уберу.\n"
         "⏸ <b>Пауза</b> — остановить работу, «▶ Продолжить» вернёт её.\n\n"
         "✍️ <b>Дать задачу</b>: <code>/task что сделать</code> — я начну в течение минуты. Или просто ответьте на моё сообщение / "
         "упомяните меня: можно спросить «что сейчас делаешь?».\n"
         "Сообщения админов для меня приоритет, сообщения остальных — предложения.\n\n"
-        "Команды: /agent — панель, /task, /ideas, /agent_pause, /agent_resume, /agent_report")
+        "Команды: /agent — панель, /task, /ideas, /agent_auto on|off — автослияние, /agent_pause, /agent_resume, /agent_report")
 
 
 async def detail(pr_number: int, header: str = "") -> tuple[str, InlineKeyboardMarkup]:

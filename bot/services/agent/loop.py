@@ -6,9 +6,19 @@ import logging
 
 from db import rpc
 
-from . import brain, config, memory, report
+from . import autopilot, brain, config, memory, report
 
 logger = logging.getLogger(__name__)
+
+
+async def _cycle_seconds() -> int:
+    """Back-to-back cycles while the agent has work (autonomous mode: always), the slow timer otherwise or on pause."""
+    try:
+        state = (await rpc.bot_agent_state_get()).data or {}
+        goals = (await rpc.bot_agent_goals_list(None, 50)).data or []
+        return autopilot.cycle_seconds(state, goals)
+    except Exception:
+        return config.CYCLE_SECONDS
 
 
 async def run_worker(bot, stop: asyncio.Event) -> None:
@@ -18,7 +28,7 @@ async def run_worker(bot, stop: asyncio.Event) -> None:
     await asyncio.sleep(45)
     while not stop.is_set():
         try:
-            if (await rpc.bot_agent_claim("cycle", config.CYCLE_SECONDS)).data is True:
+            if (await rpc.bot_agent_claim("cycle", await _cycle_seconds())).data is True:
                 result = await brain.run_cycle(bot)
                 logger.info("agent cycle: %s", result.get("summary"))
             if (await rpc.bot_agent_claim("report", config.REPORT_SECONDS)).data is True:

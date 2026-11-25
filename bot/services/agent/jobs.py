@@ -10,7 +10,8 @@ from . import config
 _WORDS = re.compile(r"[\w]{4,}", re.U)
 
 MAX_QUEUED = 10
-_QUEUE_STATUS = "paused"  # admin tasks wait here (source = 'admin') until the agent picks them up
+_QUEUE_STATUS = "paused"  # queued tasks wait here until the agent picks them up
+QUEUE_SOURCES = ("admin", "redo")  # people's tasks first-class; «redo» = the agent rebuilding a PR that could not be saved
 
 
 def make_title(text: str) -> str:
@@ -31,11 +32,11 @@ async def wake() -> None:
 
 async def queued() -> list[dict]:
     goals = (await rpc.bot_agent_goals_list(_QUEUE_STATUS, 30)).data or []
-    return sorted((g for g in goals if g.get("source") == "admin"), key=lambda g: g["id"])
+    return sorted((g for g in goals if g.get("source") in QUEUE_SOURCES), key=lambda g: (g.get("source") != "admin", g["id"]))
 
 
-async def add_task(text: str, who: str) -> tuple[dict | None, str]:
-    """Queue a task from an admin. Returns (goal, note); goal is None when nothing was queued (note says why)."""
+async def add_task(text: str, who: str, source: str = "admin", title: str | None = None) -> tuple[dict | None, str]:
+    """Queue a task. Returns (goal, note); goal is None when nothing was queued (note says why)."""
     text = " ".join((text or "").split())[:1400]
     if len(text) < 6:
         return None, "Опишите задачу подробнее (хотя бы несколько слов)."
@@ -47,11 +48,13 @@ async def add_task(text: str, who: str) -> tuple[dict | None, str]:
         theirs = _words(f"{g.get('title')} {g.get('expected')}")
         if wanted and theirs and len(wanted & theirs) / min(len(wanted), len(theirs)) >= 0.7:
             return g, "Похожая задача уже в очереди."
-    res = await rpc.bot_agent_goal_save(None, {"title": make_title(text), "why": f"Просьба админа {who}"[:300], "expected": text,
-                                               "source": "admin", "status": _QUEUE_STATUS})
+    why = f"Просьба админа {who}" if source == "admin" else f"Автоматическая переделка ({who})"
+    res = await rpc.bot_agent_goal_save(None, {"title": (title or make_title(text))[:200], "why": why[:300], "expected": text,
+                                               "source": source, "status": _QUEUE_STATUS})
     if res.error or not isinstance(res.data, dict):
         return None, "Не получилось записать задачу, попробуйте ещё раз."
-    await rpc.bot_agent_journal_add("event", f"Админ {who} поставил задачу: {make_title(text)}", {"goal": res.data.get("id")})
+    await rpc.bot_agent_journal_add("event", (f"Админ {who} поставил задачу: " if source == "admin" else "Задача на переделку: ") + (title or make_title(text)),
+                                    {"goal": res.data.get("id")})
     return res.data, ""
 
 
