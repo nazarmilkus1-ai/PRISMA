@@ -1,5 +1,6 @@
 from aiogram import Router
 from utils.validation import Validation
+from db.rpc import bot_get_user_status
 
 router = Router(name="ai")
 
