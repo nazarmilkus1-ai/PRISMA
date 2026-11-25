@@ -16,7 +16,10 @@ async def on_decision(call: types.CallbackQuery):
 
     if action == "ok":
         # Подтвердить разбан
-        await bot_lift_punishment(tg_id, "BAN", call.from_user.id)
+        result = await bot_lift_punishment(tg_id, "BAN", call.from_user.id)
+        if result.error:
+            await call.answer(result.error, show_alert=True)
+            return
         # Получаем ID чата из RPC и unbanned в чате сообщества
         chat = await bot_get_community_chat_id()
         chat_id = chat.data if not chat.error and isinstance(chat.data, int) else None
@@ -25,7 +28,10 @@ async def on_decision(call: types.CallbackQuery):
         await call.message.edit_text("Вы подтвердили разбан")
     elif action == "keep":
         # Оставить как есть - вызвать сервис удержания
-        await bot_ban_review_keep(tg_id, call.from_user.id)
+        result = await bot_ban_review_keep(tg_id, call.from_user.id)
+        if result.error:
+            await call.answer(result.error, show_alert=True)
+            return
         await call.message.edit_text("Вы оставили бан в силе")
     else:
         await call.answer("Неизвестное действие", show_alert=True)
