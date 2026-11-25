@@ -7,10 +7,14 @@ from services.ai.member_tools import run_member
 
 router = Router(name="ai")
 
-ai_memory = type("AI_Memory", (), {
-    "hydrate": asyncio.coroutine(lambda self: None)(),
-    "persist": asyncio.coroutine(lambda self: None)(),
-})()
+class AI_Memory:
+    async def hydrate(self, *args):
+        pass
+    
+    async def persist(self, *args):
+        pass
+
+ai_memory = AI_Memory()
 
 navigator_obj = navigator
 def is_configured() -> bool:
