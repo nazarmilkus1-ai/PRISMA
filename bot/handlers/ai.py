@@ -30,6 +30,7 @@ from services.ai.live import live_card, live_intent
 from utils.mdhtml import strip_markdown, to_telegram_html
 from utils.permissions import get_application_status, has_any_staff_permission, is_admin_mode, require_admin_mode
 from utils.rules import rules_text
+from utils.validation import Validation
 
 router = Router(name="ai")
 # Free-text questions in private chat; registered last so every dialog with its own state wins.
