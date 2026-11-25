@@ -1,3 +1,4 @@
+from aiogram import Router
 from utils.validation import Validation
 
 router = Router(name="ai")
