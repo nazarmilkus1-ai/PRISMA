@@ -114,7 +114,7 @@ class TestValidateMinecraftNick:
         assert err is None
 
     def test_bedrock_nick_with_underscore(self):
-        ok, err = Validation.validate_minecraft_nick("Player_123", "bedrock")
+        ok, err = Validation.validate_minecraft_nick("Player_122", "bedrock")
         assert ok is True
         assert err is None
 
