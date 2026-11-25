@@ -28,8 +28,9 @@ async def on_decision(call: types.CallbackQuery):
         Validation.log_warning("on_decision", admin_id, "on_decision", error2)
         await call.answer("❌ Неверный идентификатор администратора.", show_alert=True)
         return
-    valid2, error2 = Validation.validate_telegram_id(admin_id, "ID администратора")
-    if not valid2:
-        Validation.log_warning("on_decision", admin_id, "on_decision", error2)
-        await call.answer("❌ Неверный идентификатор администратора.", show_alert=True)
+    result = await bot_lift_punishment(tg_id, "BAN", admin_id)
+    if result.error:
+        await call.answer("❌ Ошибка при снятии бана.", show_alert=True)
         return
+    await call.answer("✅ Бан снят.", show_alert=True)
+    await call.message.edit_text("Бан успешно снят.")
