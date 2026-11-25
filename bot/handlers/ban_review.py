@@ -55,9 +55,6 @@ async def on_decision(call: types.CallbackQuery):
         await call.answer("Бан оставлен.", show_alert=True)
         await call.message.edit_text("Бан оставлен.")
         return
-    elif action == "keep":
-        # Keep the ban - use bot_ban_review_keep
-        await bot_ban_review_keep(tg_id, admin_id)
         await call.answer("Бан оставлен.", show_alert=True)
         await call.message.edit_text("Бан оставлен.")
         return
