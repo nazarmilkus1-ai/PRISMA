@@ -21,6 +21,7 @@ async def _answer(message: types.Message, question: str, private: bool) -> bool:
     if not is_configured():
         await _answer_by_code(message, question, private)
         return True
+    question = (question or "").strip() or "Привет"
     ok = await _ask_ai(message, question, private)
     if not ok:
         await _answer_by_code(message, question, private)
