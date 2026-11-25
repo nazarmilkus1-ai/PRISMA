@@ -62,14 +62,14 @@ async def cmd_link_tg(message: types.Message, command: CommandObject):
 
 @router.message(Command("removetg"))
 async def cmd_remove_tg(message: types.Message):
-    if not await is_approved(message.from_user.id):
-        await message.answer(DENIED_MESSAGE)
-        return
     tg_id = message.from_user.id
     ok, _ = Validation.validate_telegram_id(tg_id)
     if not ok:
         logger.warning("Invalid Telegram ID in cmd_remove_tg: %s", tg_id)
         await message.answer("❌ Неверный идентификатор пользователя.")
+        return
+    if not await is_approved(message.from_user.id):
+        await message.answer(DENIED_MESSAGE)
         return
     result = await bot_telegram_alias_remove(message.from_user.id)
     if result.error:
