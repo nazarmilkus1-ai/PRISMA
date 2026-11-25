@@ -13,6 +13,10 @@ async def on_decision(call: types.CallbackQuery):
     data = call.data.split(":")
     action = data[1]
     tg_id = int(data[2])
+    valid, error = Validation.validate_telegram_id(tg_id, "Telegram ID из callback_data")
+    if not valid:
+        await call.answer(error, show_alert=True)
+        return
 
     if action == "ok":
         # Подтвердить разбан
