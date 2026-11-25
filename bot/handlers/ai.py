@@ -1,4 +1,4 @@
-from bot.utils.validation import Validation
+from utils.validation import Validation
 
 async def _status_for_intent(tg_id: int, kind: str | None) -> str:
     """Fetch a user's status only for deterministic answers that need it."""
