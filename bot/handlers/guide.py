@@ -11,7 +11,7 @@ router = Router(name="guide")
 
 
 def build_guide(status: str, profile: dict) -> tuple[str, InlineKeyboardMarkup | None]:
-    nick = str(profile.get("minecraft_nickname") or "").strip().replace("<", "<").replace(">", ">")
+    nick = str(profile.get("minecraft_nickname") or "").strip()
     whitelisted = bool(profile.get("is_whitelisted"))
     accepted = status == "ACCEPTED"
     pending = status == "PENDING"
