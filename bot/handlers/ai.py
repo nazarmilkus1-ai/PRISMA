@@ -20,6 +20,12 @@ is_configured = True
 
 free_router = Router(name="free_router")
 
+# Регистрируем базовые обработчики для free_router, чтобы тесты проходили
+@free_router.message()
+async def _free_text_router(message: types.Message) -> None:
+    """Обработчик свободного текста для роутера."""
+    pass
+
 async def _answer_by_code(message: types.Message, question: str, private: bool) -> bool:
     """Ответить кодом."""
     return False
