@@ -15,20 +15,3 @@ class AI_Memory:
         pass
 
 ai_memory = AI_Memory()
-
-navigator_obj = navigator
-def is_configured() -> bool:
-    return True
-
-free_router = Router(name="ai_free")
-
-
-async def _status_for_intent(tg_id: int, kind: str | None) -> str:
-    """Fetch a user's status only for deterministic answers that need it."""
-    valid, error = Validation.validate_telegram_id(tg_id, "_status_for_intent")
-    if not valid:
-        Validation.log_warning("_status_for_intent", tg_id, "_status_for_intent", error)
-        return ""
-    if kind not in {"guide", "apply"}:
-        return ""
-    return str(await bot_get_user_status(tg_id) or "")
