@@ -171,6 +171,11 @@ async def admin_appeals(callback: types.CallbackQuery):
         await callback.message.answer("⚖️ Открытых апелляций нет.")
         return
     for row in rows:
+        tg_id = row.get('telegram_id')
+        if tg_id and not Validation.validate_telegram_id(tg_id):
+            import logging
+            logging.warning(f"Invalid telegram_id in admin panel: {tg_id}")
+            continue
         await callback.message.answer(
             f"⚖️ <b>Апелляция</b> <code>{row['id']}</code>\n"
             f"Игрок: <code>{row.get('telegram_id')}</code>\n"
