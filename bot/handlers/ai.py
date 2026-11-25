@@ -1,5 +1,5 @@
 from aiogram import types
-from aiogram import Router
+from aiogram import Router, F
 from db.rpc import bot_get_profile, bot_get_user_status
 from services.ai import navigator, member_tools, memory as ai_memory
 from utils.validation import Validation
@@ -25,8 +25,29 @@ async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
         Validation.log_warning("_ask_ai", message.from_user.id, "ai", error)
         await message.answer("❌ Неверный идентификатор пользователя.")
         return False
-    # Логика ответа от ИИ
-    await message.answer("✅ Вопрос обработан.")
+    
+    # Пустой вопрос — приветствие
+    if not question or not question.strip():
+        await message.answer("Привет")
+        return True
+    
+    # Получаем статус пользователя
+    status = await _status_for_intent(message.from_user.id, "guide")
+    
+    # Запускаем участника (ИИ)
+    text, _ = await member_tools.run_member(
+        tg_id=message.from_user.id,
+        question=question,
+        status=status,
+        history=[],
+        private=private,
+        chat_context="",
+        asker=message.from_user.first_name or "Пользователь",
+        adult=0
+    )
+    
+    if text:
+        await message.answer(text)
     return True
 
 async def _answer_by_code(message: types.Message, question: str, private: bool) -> bool:
@@ -38,6 +59,11 @@ async def _answer(message: types.Message, question: str, private: bool) -> bool:
     if await _ask_ai(message, question, private):
         return True
     return await _answer_by_code(message, question, private)
+
+# Регистрируем хендлер для свободного текста
+@free_router.message(F.text)
+async def _free_text_handler(message: types.Message):
+    await _answer(message, message.text or "", message.chat.type == "private")
 
 async def run_member(tg_id: int, question: str, status: str, history: list, private: bool, chat_context: str = "", asker: str = "", adult: int = 0):
     """Запуск участника."""
