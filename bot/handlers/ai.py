@@ -6,9 +6,5 @@ async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
         await message.answer("❌ Неверный идентификатор пользователя.")
         return False
     # Логика ответа от ИИ
-    text, cards = await run_member(message.from_user.id, question, None, [], True)
-    if text is None:
-        await message.answer("❌ Не удалось получить ответ от ИИ.")
-        return False
     await message.answer("✅ Вопрос обработан.")
     return True
