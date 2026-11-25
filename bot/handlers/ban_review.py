@@ -1,4 +1,4 @@
-from aiogram import Router
+from aiogram import Router, types
 from utils.validation import Validation
 
 router = Router(name="ban_review")
