@@ -3,6 +3,7 @@ from aiogram.filters import Command
 
 from services import quick
 from utils.permissions import get_application_status, is_admin_mode
+from utils.validation import Validation
 
 router = Router(name="quick")
 
@@ -22,12 +23,22 @@ class QuickUsageMiddleware(BaseMiddleware):
 
 
 async def _show(message: types.Message, tg_id: int):
+    valid, error = Validation.validate_telegram_id(tg_id)
+    if not valid:
+        logger.warning("Invalid Telegram ID in _show: %s", error)
+        await message.answer("❌ Неверный идентификатор пользователя.")
+        return
     await message.answer(quick.text(tg_id), parse_mode="HTML", reply_markup=quick.keyboard(tg_id))
 
 
 @router.message(Command("quick", "fast", "q"))
 async def quick_command(message: types.Message):
     tg_id = message.from_user.id
+    valid, error = Validation.validate_telegram_id(tg_id)
+    if not valid:
+        logger.warning("Invalid Telegram ID in quick_command: %s", error)
+        await message.answer("❌ Неверный идентификатор пользователя.")
+        return
     if await is_admin_mode(tg_id):
         from handlers.admin_panel import send_dashboard
         await send_dashboard(message)
@@ -40,6 +51,12 @@ async def quick_command(message: types.Message):
 
 @router.callback_query(F.data == "quick")
 async def quick_callback(callback: types.CallbackQuery):
+    tg_id = callback.from_user.id
+    valid, error = Validation.validate_telegram_id(tg_id)
+    if not valid:
+        logger.warning("Invalid Telegram ID in quick_callback: %s", error)
+        await callback.answer("❌ Неверный идентификатор пользователя.", show_alert=True)
+        return
     await callback.answer()
-    await callback.message.answer(quick.text(callback.from_user.id), parse_mode="HTML",
-                                  reply_markup=quick.keyboard(callback.from_user.id))
+    await callback.message.answer(quick.text(tg_id), parse_mode="HTML",
+                                  reply_markup=quick.keyboard(tg_id))
