@@ -64,6 +64,8 @@ async def _answer(message: types.Message, question: str, private: bool) -> bool:
     # Пустой вопрос — приветствие
     if not question or not question.strip():
         question = "Привет"
+    if not is_configured():
+        return await _answer_by_code(message, question, private)
     if await _ask_ai(message, question, private):
         return True
     return await _answer_by_code(message, question, private)
