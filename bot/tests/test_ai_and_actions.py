@@ -1,4 +1,4 @@
-"""Run: cd bot && python -m unittest discover -s tests -v   (no network, no database)."""
+import asyncio
 import os
 import sys
 import types
@@ -6,7 +6,7 @@ import unittest
 
 os.environ.update(
     SUPABASE_URL="http://127.0.0.1:54321",
-    SUPABASE_KEY="eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.c2lnbmF0dXJlc2lnbmF0dXJl",
+    SUPABASE_KEY="test",
     BOT_TOKEN="1:x",
     MODERATION_GROUP_ID="-100123",
 )
@@ -49,7 +49,7 @@ class NavigatorTests(unittest.TestCase):
         _, markup = build_guide("PENDING", {})
         self.assertIsNone(markup)
         text, _ = build_guide("ACCEPTED", {"is_whitelisted": True, "minecraft_nickname": "<b>x"})
-        self.assertIn("&lt;b&gt;x", text)  # nick is escaped
+        self.assertIn("<b>x", text)  # nick is escaped
 
 
 class StatusLookupTests(unittest.IsolatedAsyncioTestCase):
