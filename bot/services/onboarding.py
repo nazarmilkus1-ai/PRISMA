@@ -146,7 +146,16 @@ async def deliver_onboarding_digest(bot: Bot, *, force: bool = False) -> tuple[s
 
     rows = result.data if isinstance(result.data, list) else []
     rows = [row for row in rows if isinstance(row, dict) and row.get("telegram_id")]
-    messages = _format_digest_pages(rows)
+    # Валидация Telegram ID перед отправкой
+    valid_rows = []
+    for row in rows:
+        tg_id = row.get("telegram_id")
+        ok, _ = Validation.validate_telegram_id(tg_id)
+        if ok:
+            valid_rows.append(row)
+        else:
+            logger.warning("onboarding: invalid Telegram ID skipped: %s", tg_id)
+    messages = _format_digest_pages(valid_rows)
     if not messages:
         return "empty", 0
 
