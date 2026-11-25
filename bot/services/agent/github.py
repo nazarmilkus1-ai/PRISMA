@@ -354,8 +354,20 @@ async def pr_info(number: int) -> dict:
     return {
         "number": pr.get("number"), "state": pr.get("state"), "merged": bool(pr.get("merged")), "title": pr.get("title"),
         "head_ref": (pr.get("head") or {}).get("ref"), "head_sha": (pr.get("head") or {}).get("sha"),
-        "url": pr.get("html_url"), "paths": paths, "mergeable": pr.get("mergeable"),
+        "url": pr.get("html_url"), "paths": paths, "mergeable": pr.get("mergeable"), "mergeable_state": pr.get("mergeable_state"),
     }
+
+
+async def update_branch(number: int, head_sha: str) -> str | None:
+    """Merge the base branch into the PR branch (what the «Update branch» button does). None = accepted; 'HTTP 422' = real conflict."""
+    _, err = await _send("PUT", f"/pulls/{int(number)}/update-branch", {"expected_head_sha": head_sha})
+    return err
+
+
+async def commit_parent(sha: str) -> str | None:
+    data, err = await _get(f"/commits/{sha}")
+    parents = (data or {}).get("parents") if not err and isinstance(data, dict) else None
+    return (parents or [{}])[0].get("sha") if parents else None
 
 
 async def close_pr(number: int) -> str | None:
@@ -363,12 +375,17 @@ async def close_pr(number: int) -> str | None:
     return err
 
 
-async def merge(number: int, title: str) -> tuple[bool, str]:
-    """Squash-merge into the base branch. Only ever called from the admin's merge button."""
+async def merge_pr(number: int, title: str) -> dict:
+    """Squash-merge into the base branch: {ok, message, sha}. Callers are the merge gate (button) and the autopilot, both behind evaluate()."""
     data, err = await _send("PUT", f"/pulls/{int(number)}/merge", {"merge_method": "squash", "commit_title": title[:200]})
     if err:
-        return False, err
-    return bool((data or {}).get("merged")), str((data or {}).get("message") or "")
+        return {"ok": False, "message": err, "sha": None}
+    return {"ok": bool((data or {}).get("merged")), "message": str((data or {}).get("message") or ""), "sha": (data or {}).get("sha")}
+
+
+async def merge(number: int, title: str) -> tuple[bool, str]:
+    out = await merge_pr(number, title)
+    return out["ok"], out["message"]
 
 
 _tree_cache: dict = {"at": 0.0, "text": ""}

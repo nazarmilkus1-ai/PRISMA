@@ -29,12 +29,18 @@ THREAD_ID = _int("AGENT_THREAD_ID", 1469)
 ENABLED = _env("AGENT_ENABLED", "1").lower() not in {"0", "false", "off", "no"}
 CYCLE_SECONDS = max(120, _int("AGENT_CYCLE_SECONDS", 600))
 REPORT_SECONDS = max(600, _int("AGENT_REPORT_SECONDS", 3600))
-MAX_STEPS = _int("AGENT_MAX_STEPS", 24)
-MAX_CALLS_PER_DAY = _int("AGENT_MAX_CALLS_PER_DAY", 2500)
-MAX_COMMITS_PER_DAY = _int("AGENT_MAX_COMMITS_PER_DAY", 150)  # every edit is one small commit: 40 was used up by the morning
+MAX_STEPS = _int("AGENT_MAX_STEPS", 32)
+MAX_CALLS_PER_DAY = _int("AGENT_MAX_CALLS_PER_DAY", 12000)
+MAX_COMMITS_PER_DAY = _int("AGENT_MAX_COMMITS_PER_DAY", 600)  # every edit is one small commit
 MAX_SAYS_PER_CYCLE = 3
+# Autonomous mode: the agent merges its own PRs once every automatic check is green and the reviewer does not say BLOCK.
+# PRs touching the agent's own code or database migrations are never merged by it; those wait for a human.
+AUTO_MERGE = _env("AGENT_AUTO_MERGE", "1").lower() not in {"0", "false", "off", "no"}
+MAX_AUTO_MERGES_PER_DAY = _int("AGENT_MAX_AUTO_MERGES_PER_DAY", 60)  # runaway guard, not a working limit
+# While there is work (an active goal, a task, a PR to merge) cycles follow each other quickly instead of every 10 minutes.
+BUSY_CYCLE_SECONDS = max(60, _int("AGENT_BUSY_CYCLE_SECONDS", 150))
 # More finished changes than this waiting for a human: the agent stops opening new PRs but keeps working (fixes + ideas).
-MAX_WAITING = _int("AGENT_MAX_WAITING", 6)
+MAX_WAITING = _int("AGENT_MAX_WAITING", 20)
 MAX_FILES_PER_COMMIT = 8
 MAX_FILE_CHARS = 80_000
 TOOL_RESULT_CHARS = 7000
@@ -59,3 +65,9 @@ WEB_ALLOWLIST = (
     "supabase.com", "developer.mozilla.org", "docs.github.com", "docs.render.com", "vercel.com",
     "typescriptlang.org", "wiki.vg", "minecraft.wiki", "docs.advntr.dev", "geysermc.org",
 )
+
+
+def auto_merge_on(state: dict) -> bool:
+    """Autonomous mode switch: the admin's /agent_auto choice (stored in state) wins over the AGENT_AUTO_MERGE default."""
+    value = state.get("auto_merge")
+    return AUTO_MERGE if value is None else bool(value)

@@ -73,7 +73,7 @@ SCHEMAS = [
                     "Отмечай сразу, как шаг сделан.",
        {"n": {"type": "integer"}}),
     _s("goal_update", "Обновить цель: ожидаемый результат, план (tasks — список коротких строк), статус (active/done/dropped/paused). "
-                      "progress_pct нужен только если плана нет — иначе прогресс считается по шагам. done = работа закончена, PR ждёт кнопку «Принять».",
+                      "progress_pct нужен только если плана нет — иначе прогресс считается по шагам. done = работа закончена, PR сольётся сам, когда автопроверки зелёные.",
        {"progress_pct": {"type": "integer"}, "expected": _STR, "status": _STR, "tasks": {"type": "array", "items": _STR}}),
     _s("memory_save", "Записать в долгую память факт, урок, решение, идею или предпочтение людей.",
        {"kind": {"type": "string", "enum": ["fact", "lesson", "user", "decision", "idea"]}, "body": _STR,
