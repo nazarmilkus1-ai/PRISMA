@@ -7,10 +7,12 @@ import org.bukkit.plugin.java.JavaPlugin;
 import team.prisma.plugin.http.RpcNames;
 import team.prisma.plugin.http.SupabaseClient;
 
+import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public final class MinecraftAuthService {
@@ -58,6 +60,7 @@ public final class MinecraftAuthService {
             if (!player.isOnline() || isAuthenticated(uuid)) return;
             String error = stringField(result, "error");
             if (error != null) {
+                log.log(Level.WARNING, "[MinecraftAuthService] begin: ошибка статуса для {0}: {1}", new Object[]{uuid, error});
                 player.sendMessage("§cНе удалось проверить состояние PRISMA Auth: §7" + error);
                 return;
             }
@@ -70,6 +73,7 @@ public final class MinecraftAuthService {
         })).exceptionally(error -> {
             runMain(() -> {
                 if (player.isOnline() && !isAuthenticated(uuid)) {
+                    log.log(Level.WARNING, "[MinecraftAuthService] begin: исключение при проверке статуса для {0}: {1}", new Object[]{uuid, error.getMessage()});
                     player.sendMessage("§cPRISMA Auth сейчас не отвечает. Повторите команду /login или /register.");
                 }
             });
@@ -92,11 +96,17 @@ public final class MinecraftAuthService {
 
     public java.util.concurrent.CompletableFuture<JsonObject> status(Player player) {
         JsonObject body = identity(player);
+        if (body == null) {
+            JsonObject errorResult = new com.google.gson.JsonObject();
+            errorResult.addProperty("error", "INVALID_IDENTITY");
+            return java.util.concurrent.CompletableFuture.completedFuture(errorResult);
+        }
         return supabase.postRpcAsync(RpcNames.MC_AUTH_STATUS, body);
     }
 
     public void register(Player player, String password, String repeat) {
-        if (isAuthenticated(player.getUniqueId())) {
+        UUID uuid = player.getUniqueId();
+        if (isAuthenticated(uuid)) {
             player.sendMessage("§eВы уже авторизованы.");
             return;
         }
@@ -105,9 +115,17 @@ public final class MinecraftAuthService {
             return;
         }
 
+        String nickname = player.getName();
+        if (!AuthValidation.isValidPlayerName(nickname)) {
+            AuthValidation.logInvalidInput(log, "register", "nickname", nickname);
+            player.sendMessage("§cНекорректное имя игрока. Обратитесь к администрации.");
+            return;
+        }
+
         status(player).thenAccept(result -> runMain(() -> {
             String error = stringField(result, "error");
             if (error != null) {
+                log.log(Level.WARNING, "[MinecraftAuthService] register: ошибка статуса для {0}: {1}", new Object[]{uuid, error});
                 tellAuthError(player, error);
                 return;
             }
@@ -117,6 +135,7 @@ public final class MinecraftAuthService {
             }
             String userId = stringField(result, "user_id");
             if (userId == null) {
+                log.log(Level.WARNING, "[MinecraftAuthService] register: user_id отсутствует для {0}", uuid);
                 player.sendMessage("§cPRISMA не вернул ID аккаунта.");
                 return;
             }
@@ -128,23 +147,32 @@ public final class MinecraftAuthService {
             supabase.postRpcAsync(RpcNames.MC_AUTH_SET_PASSWORD, body).thenAccept(setResult -> runMain(() -> {
                 String setError = stringField(setResult, "error");
                 if (setError != null) {
+                    log.log(Level.WARNING, "[MinecraftAuthService] register: ошибка установки пароля для {0}: {1}", new Object[]{uuid, setError});
                     tellAuthError(player, setError);
                     return;
                 }
-                authenticated.add(player.getUniqueId());
+                authenticated.add(uuid);
+                log.info(() -> String.format("[MinecraftAuthService] register: игрок %s успешно зарегистрирован", uuid));
                 player.sendMessage("§aПароль PRISMA Auth установлен. Вы авторизованы.");
             })).exceptionally(error2 -> {
-                runMain(() -> player.sendMessage("§cОшибка связи с PRISMA Auth."));
+                runMain(() -> {
+                    log.log(Level.WARNING, "[MinecraftAuthService] register: исключение при установке пароля для {0}: {1}", new Object[]{uuid, error2.getMessage()});
+                    player.sendMessage("§cОшибка связи с PRISMA Auth.");
+                });
                 return null;
             });
         })).exceptionally(error -> {
-            runMain(() -> player.sendMessage("§cОшибка проверки PRISMA Auth."));
+            runMain(() -> {
+                log.log(Level.WARNING, "[MinecraftAuthService] register: исключение при проверке статуса для {0}: {1}", new Object[]{uuid, error.getMessage()});
+                player.sendMessage("§cОшибка проверки PRISMA Auth.");
+            });
             return null;
         });
     }
 
     public void login(Player player, String password) {
-        if (isAuthenticated(player.getUniqueId())) {
+        UUID uuid = player.getUniqueId();
+        if (isAuthenticated(uuid)) {
             player.sendMessage("§eВы уже авторизованы.");
             return;
         }
@@ -153,19 +181,33 @@ public final class MinecraftAuthService {
             return;
         }
 
+        String nickname = player.getName();
+        if (!AuthValidation.isValidPlayerName(nickname)) {
+            AuthValidation.logInvalidInput(log, "login", "nickname", nickname);
+            player.sendMessage("§cНекорректное имя игрока. Обратитесь к администрации.");
+            return;
+        }
+
         JsonObject body = identity(player);
+        if (body == null) {
+            player.sendMessage("§cНекорректные данные игрока. Обратитесь к администрации.");
+            return;
+        }
         body.addProperty("p_password", password);
 
         supabase.postRpcAsync(RpcNames.MC_AUTH_LOGIN, body).thenAccept(result -> runMain(() -> {
             String error = stringField(result, "error");
             if (error != null) {
+                log.log(Level.WARNING, "[MinecraftAuthService] login: ошибка входа для {0}: {1}", new Object[]{uuid, error});
                 tellAuthError(player, error);
                 return;
             }
-            authenticated.add(player.getUniqueId());
+            authenticated.add(uuid);
+            log.info(() -> String.format("[MinecraftAuthService] login: игрок %s успешно вошёл", uuid));
             player.sendMessage("§aАвторизация PRISMA успешна. Добро пожаловать.");
         })).exceptionally(error -> {
             runMain(() -> {
+                log.log(Level.WARNING, "[MinecraftAuthService] login: исключение при входе для {0}: {1}", new Object[]{uuid, error.getMessage()});
                 if (player.isOnline()) player.sendMessage("§cОшибка связи с PRISMA Auth.");
             });
             return null;
@@ -173,7 +215,8 @@ public final class MinecraftAuthService {
     }
 
     public void changePassword(Player player, String currentPassword, String newPassword) {
-        if (!isAuthenticated(player.getUniqueId())) {
+        UUID uuid = player.getUniqueId();
+        if (!isAuthenticated(uuid)) {
             player.sendMessage("§cСначала войдите через /login.");
             return;
         }
@@ -181,14 +224,23 @@ public final class MinecraftAuthService {
             player.sendMessage("§cПароли должны быть длиной 8–72 байта.");
             return;
         }
+
+        String nickname = player.getName();
+        if (!AuthValidation.isValidPlayerName(nickname)) {
+            AuthValidation.logInvalidInput(log, "changePassword", "nickname", nickname);
+            player.sendMessage("§cНекорректное имя игрока. Обратитесь к администрации.");
+            return;
+        }
         status(player).thenAccept(statusResult -> runMain(() -> {
             String error = stringField(statusResult, "error");
             if (error != null) {
+                log.log(Level.WARNING, "[MinecraftAuthService] changePassword: ошибка статуса для {0}: {1}", new Object[]{uuid, error});
                 tellAuthError(player, error);
                 return;
             }
             String userId = stringField(statusResult, "user_id");
             if (userId == null) {
+                log.log(Level.WARNING, "[MinecraftAuthService] changePassword: user_id отсутствует для {0}", uuid);
                 player.sendMessage("§cPRISMA не вернул ID аккаунта.");
                 return;
             }
@@ -201,16 +253,24 @@ public final class MinecraftAuthService {
             supabase.postRpcAsync(RpcNames.MC_AUTH_CHANGE_PASSWORD, body).thenAccept(result -> runMain(() -> {
                 String changeError = stringField(result, "error");
                 if (changeError != null) {
+                    log.log(Level.WARNING, "[MinecraftAuthService] changePassword: ошибка смены пароля для {0}: {1}", new Object[]{uuid, changeError});
                     tellAuthError(player, changeError);
                     return;
                 }
+                log.info(() -> String.format("[MinecraftAuthService] changePassword: игрок %s сменил пароль", uuid));
                 player.sendMessage("§aПароль PRISMA Auth изменён.");
             })).exceptionally(error2 -> {
-                runMain(() -> player.sendMessage("§cОшибка связи с PRISMA Auth."));
+                runMain(() -> {
+                    log.log(Level.WARNING, "[MinecraftAuthService] changePassword: исключение при смене пароля для {0}: {1}", new Object[]{uuid, error2.getMessage()});
+                    player.sendMessage("§cОшибка связи с PRISMA Auth.");
+                });
                 return null;
             });
         })).exceptionally(error -> {
-            runMain(() -> player.sendMessage("§cОшибка проверки PRISMA Auth."));
+            runMain(() -> {
+                log.log(Level.WARNING, "[MinecraftAuthService] changePassword: исключение при проверке статуса для {0}: {1}", new Object[]{uuid, error.getMessage()});
+                player.sendMessage("§cОшибка проверки PRISMA Auth.");
+            });
             return null;
         });
     }
@@ -235,9 +295,21 @@ public final class MinecraftAuthService {
     }
 
     private JsonObject identity(Player player) {
+        String nickname = player.getName();
+        String uuidStr = player.getUniqueId().toString();
+
+        if (!AuthValidation.isValidPlayerName(nickname)) {
+            AuthValidation.logInvalidInput(log, "identity", "nickname", nickname);
+            return null;
+        }
+        if (AuthValidation.parseUuidOrNull(uuidStr) == null) {
+            AuthValidation.logInvalidInput(log, "identity", "minecraft_uuid", uuidStr);
+            return null;
+        }
+
         JsonObject body = new JsonObject();
-        body.addProperty("p_nickname", player.getName());
-        body.addProperty("p_minecraft_uuid", player.getUniqueId().toString());
+        body.addProperty("p_nickname", nickname);
+        body.addProperty("p_minecraft_uuid", uuidStr);
         return body;
     }
 

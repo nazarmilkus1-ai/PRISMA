@@ -21,11 +21,24 @@ dependencies {
     // Targets Paper/Minecraft 26.3 and its required Java 25 runtime.
     compileOnly("io.papermc.paper:paper-api:26.3.build.195-stable")
     implementation("com.google.code.gson:gson:2.11.0")
+
+    // Test dependencies
+    testImplementation("org.junit.jupiter:junit-jupiter:5.11.0")
+    testImplementation("org.mockito:mockito-core:5.18.0")
+    testImplementation("org.mockito:mockito-junit-jupiter:5.18.0")
+    // JUnit Platform launcher for test execution
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.11.0")
+    // Paper API needed for test compilation (Player, JavaPlugin, etc.)
+    testImplementation("io.papermc.paper:paper-api:26.3.build.195-stable")
 }
 
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
     options.release.set(25)
+}
+
+tasks.named<Test>("test") {
+    useJUnitPlatform()
 }
 
 tasks.shadowJar {
