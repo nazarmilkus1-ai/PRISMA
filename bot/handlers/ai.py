@@ -32,8 +32,7 @@ async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
     from services.ai.member_tools import Context
     
     # Получаем статус заявки пользователя
-    status_result = await bot_get_user_status(message.from_user.id)
-    status = status_result.data if not status_result.error else "NO_USER"
+    status = await bot_get_user_status(message.from_user.id)
     
     # Определяем chat_id для группового чата
     chat_id = message.chat.id if not private else 0
