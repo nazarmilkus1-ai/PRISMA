@@ -25,4 +25,3 @@ async def on_decision(call: types.CallbackQuery):
         await call.answer("❌ Неверный Telegram ID", show_alert=True)
         return
     admin_id = call.from_user.id
-    result = await bot_lift_punishment(tg_id, "BAN", admin_id)
