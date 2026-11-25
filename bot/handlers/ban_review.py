@@ -30,3 +30,4 @@ async def on_decision(call: types.CallbackQuery):
         Validation.log_warning("bot_lift_punishment_error", tg_id, "on_decision", result.error)
         await call.answer("❌ Ошибка при разбане: " + result.error, show_alert=True)
         return
+    # Continue with unban_chat_member and other logic
