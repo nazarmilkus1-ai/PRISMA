@@ -41,6 +41,10 @@ async def admin_applications(callback: types.CallbackQuery):
     if not await require_callback_perm(callback, "application.view"):
         return
     await callback.answer()
+    ok, _ = Validation.validate_telegram_id(callback.from_user.id, "Telegram ID для просмотра заявок")
+    if not ok:
+        logger.warning("Invalid Telegram ID in admin_applications: %s", callback.from_user.id)
+        return
     rows, err = await pending_applications(callback.from_user.id)
     if err:
         await callback.message.answer("❌ Не удалось загрузить заявки.")
