@@ -7,6 +7,8 @@ from html import escape
 from aiogram import BaseMiddleware, Router, types
 from aiogram.filters import Command, CommandObject
 
+from utils.validation import Validation
+
 from db.rpc import (
     bot_add_minecraft_account,
     bot_list_minecraft_accounts,
