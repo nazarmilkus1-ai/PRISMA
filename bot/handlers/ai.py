@@ -1,4 +1,4 @@
-import types
+from aiogram import types
 
 async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
     """Задать вопрос ИИ."""
