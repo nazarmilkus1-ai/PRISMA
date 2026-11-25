@@ -1,83 +1,68 @@
 import unittest
-from utils.validation import TgIdValidation
+from utils.validation import Validation
 
 
 class TgIdValidationTest(unittest.TestCase):
-    """Tests for TgIdValidation class."""
+    """Тесты валидации Telegram ID."""
 
     def test_valid_id(self):
-        """Test valid Telegram ID (positive integer)."""
-        result = TgIdValidation.validate(123456)
-        self.assertTrue(result.is_valid)
+        """Валидный ID должен проходить проверку."""
+        ok, _ = Validation.validate_telegram_id(123456789)
+        self.assertTrue(ok)
 
     def test_zero_id(self):
-        """Test zero Telegram ID."""
-        result = TgIdValidation.validate(0)
-        self.assertFalse(result.is_valid)
+        """ID равный нулю должен быть невалидным."""
+        ok, _ = Validation.validate_telegram_id(0)
+        self.assertFalse(ok)
 
     def test_negative_id(self):
-        """Test negative Telegram ID."""
-        result = TgIdValidation.validate(-1)
-        self.assertFalse(result.is_valid)
+        """Отрицательный ID должен быть невалидным."""
+        ok, _ = Validation.validate_telegram_id(-1)
+        self.assertFalse(ok)
 
     def test_none_id(self):
-        """Test None Telegram ID."""
-        result = TgIdValidation.validate(None)
-        self.assertFalse(result.is_valid)
+        """None ID должен быть невалидным."""
+        ok, _ = Validation.validate_telegram_id(None)
+        self.assertFalse(ok)
 
     def test_float_id(self):
-        """Test float Telegram ID."""
-        result = TgIdValidation.validate(123.456)
-        self.assertFalse(result.is_valid)
+        """Float ID должен быть невалидным."""
+        ok, _ = Validation.validate_telegram_id(123.456)
+        self.assertFalse(ok)
 
     def test_string_id(self):
-        """Test string Telegram ID."""
-        result = TgIdValidation.validate("123456")
-        self.assertFalse(result.is_valid)
+        """Строковый ID должен быть невалидным."""
+        ok, _ = Validation.validate_telegram_id("123456789")
+        self.assertFalse(ok)
 
     def test_large_id(self):
-        """Test large Telegram ID (2^53-1)."""
-        result = TgIdValidation.validate(9007199254740991)
-        self.assertTrue(result.is_valid)
+        """ID больше 2^53-1 должен быть невалидным."""
+        ok, _ = Validation.validate_telegram_id(9007199254740992)
+        self.assertFalse(ok)
 
-    def test_too_large_id(self):
-        """Test too large Telegram ID (2^53)."""
-        result = TgIdValidation.validate(9007199254740992)
-        self.assertFalse(result.is_valid)
+    def test_validate_method(self):
+        """Метод validate должен работать корректно."""
+        self.assertIsInstance(Validation.validate_telegram_id(123456789), tuple)
 
-    def test_validate_optional_valid(self):
-        """Test validate_optional with valid ID."""
-        result = TgIdValidation.validate_optional(123456)
-        self.assertTrue(result.is_valid)
-
-    def test_validate_optional_invalid(self):
-        """Test validate_optional with invalid ID."""
-        result = TgIdValidation.validate_optional(None)
-        self.assertFalse(result.is_valid)
-
-    def test_validate_optional_zero(self):
-        """Test validate_optional with zero."""
-        result = TgIdValidation.validate_optional(0)
-        self.assertFalse(result.is_valid)
+    def test_validate_optional_method(self):
+        """Метод validate_optional должен работать корректно."""
+        ok, _ = Validation.validate_telegram_id(None, optional=True)
+        self.assertTrue(ok)
 
     def test_is_valid_method(self):
-        """Test is_valid method."""
-        validator = TgIdValidation(123456)
-        self.assertTrue(validator.is_valid)
+        """Метод is_valid должен работать корректно."""
+        self.assertTrue(Validation.is_valid_telegram_id(123456789))
 
     def test_is_valid_false(self):
-        """Test is_valid method with invalid ID."""
-        validator = TgIdValidation(0)
-        self.assertFalse(validator.is_valid)
+        """is_valid должен возвращать False для невалидного ID."""
+        self.assertFalse(Validation.is_valid_telegram_id(0))
 
     def test_boundary_id(self):
-        """Test boundary ID values."""
-        # Test that boundary values work correctly
-        result = TgIdValidation.validate(1)
-        self.assertTrue(result.is_valid)
-        result = TgIdValidation.validate(-1)
-        self.assertFalse(result.is_valid)
+        """Граничное значение 2^53-1 должно быть валидным."""
+        ok, _ = Validation.validate_telegram_id(9007199254740991)
+        self.assertTrue(ok)
 
-
-if __name__ == "__main__":
-    unittest.main()
+    def test_boundary_id_plus_one(self):
+        """Значение выше границы должно быть невалидным."""
+        ok, _ = Validation.validate_telegram_id(9007199254740992)
+        self.assertFalse(ok)
