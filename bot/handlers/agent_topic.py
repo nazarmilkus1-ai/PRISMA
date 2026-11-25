@@ -61,7 +61,7 @@ async def admin_commands(message: types.Message):
         await rpc.bot_agent_state_patch({"paused": True})
         await message.reply("⏸ Пауза. Вернуть работу: /agent_resume или кнопка «▶ Продолжить».")
     elif cmd == "agent_resume":
-        await rpc.bot_agent_state_patch({"paused": False})
+        await rpc.bot_agent_state_patch({"paused": False, "ai_wait_until": None})  # also asks the AI again if it was waiting for its daily limit
         await jobs.wake()
         await message.reply("▶ Работаю дальше — следующий цикл начнётся в течение минуты.")
     elif cmd == "agent_auto":
