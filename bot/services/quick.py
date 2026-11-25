@@ -21,8 +21,9 @@ _usage: "OrderedDict[int, Counter]" = OrderedDict()
 
 
 def record(tg_id: int, callback_data: str | None) -> None:
-    ok, _ = Validation.validate_telegram_id(tg_id, "Telegram ID для быстрых действий")
+    ok, error = Validation.validate_telegram_id(tg_id, "Telegram ID для быстрых действий")
     if not ok:
+        Validation.log_warning("Quick record", tg_id, "record", error)
         return
     if callback_data not in ACTIONS:
         return
