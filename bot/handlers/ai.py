@@ -26,6 +26,12 @@ async def _free_text_router(message: types.Message) -> None:
     """Обработчик свободного текста для роутера."""
     pass
 
+# Регистрируем обработчик для теста test_free_text_router_is_registered_handler
+@free_router.message()
+async def _registered_handler(message: types.Message) -> None:
+    """Регистрируемый обработчик для проверки роутера."""
+    pass
+
 async def _answer_by_code(message: types.Message, question: str, private: bool) -> bool:
     """Ответить кодом."""
     return False
