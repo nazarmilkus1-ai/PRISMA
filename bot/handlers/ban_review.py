@@ -17,11 +17,15 @@ async def on_decision(call: types.CallbackQuery):
     if action == "ok":
         # Подтвердить разбан
         await bot_lift_punishment(tg_id, "BAN", call.from_user.id)
-        await call.bot.unban_chat_member(call.message.chat.id, tg_id, only_if_banned=True)
+        # Получаем ID чата из RPC и unbanned в чате сообщества
+        from db.rpc import bot_get_community_chat_id
+        chat = await bot_get_community_chat_id()
+        chat_id = chat.data if not chat.error and isinstance(chat.data, int) else None
+        if chat_id is not None:
+            await call.bot.unban_chat_member(chat_id, tg_id, only_if_banned=True)
         await call.message.edit_text("Вы подтвердили разбан")
     elif action == "keep":
         # Оставить как есть - вызвать сервис удержания
-        from services.ban_review import bot_ban_review_keep
         await bot_ban_review_keep(tg_id, call.from_user.id)
         await call.message.edit_text("Вы оставили бан в силе")
     else:
