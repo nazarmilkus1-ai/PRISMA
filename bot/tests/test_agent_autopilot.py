@@ -394,6 +394,96 @@ class ReportAutonomyTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("не запускались", line)
 
 
+class QuotaTests(unittest.IsolatedAsyncioTestCase):
+    DAILY = ("HTTP 429: {'message': 'Daily free-tier limit reached for am/x: 1000 requests per quota day. "
+             "Your allowance refills at 2099-01-01T21:00:00.000Z.', 'type': 'rate_limit_error'}")
+
+    def setUp(self):
+        brain._quota_until.clear()
+
+    def tearDown(self):
+        brain._quota_until.clear()
+
+    def test_quota_error_is_recognised_and_capped(self):
+        until = brain.quota_hit(brain.client.AIError(self.DAILY))
+        self.assertGreater(until, time.time() + 5 * 3600)
+        self.assertLessEqual(until, time.time() + 6 * 3600 + 5)  # a far refill date never parks the agent for days
+        self.assertIsNone(brain.quota_hit(brain.client.AIError("HTTP 429: slow down")))
+        self.assertIsNone(brain.quota_hit(brain.client.AIError("AI rate limit: budget exhausted, try again shortly")))
+        self.assertGreater(brain.quota_hit(brain.client.AIError("Daily free-tier limit, no date")), time.time())
+
+    async def test_exhausted_model_is_skipped_and_the_next_one_answers(self):
+        calls = []
+
+        async def chat(messages, **kw):
+            calls.append(kw["model"])
+            if kw["model"] == "m1":
+                raise brain.client.AIError(self.DAILY)
+            return {"content": "ok"}
+
+        with patch.object(brain.client, "agent_models", lambda: ["m1", "m2"]), patch.object(brain.client, "chat", chat), \
+                patch.object(brain.tools, "bump", AsyncMock()), patch.object(brain.client, "clear_pause") as clear:
+            self.assertEqual((await brain._ask([]))["content"], "ok")
+            self.assertEqual((await brain._ask([]))["content"], "ok")
+        self.assertEqual(calls, ["m1", "m2", "m2"])  # m1 is asked once and then left alone until its allowance is back
+        clear.assert_called_with("agent")
+        self.assertEqual(brain.ai_ready_at(), 0.0)
+
+    async def test_all_models_exhausted_fails_fast_without_calls(self):
+        chat = AsyncMock()
+        with patch.object(brain.client, "agent_models", lambda: ["m1"]), patch.object(brain.client, "chat", chat):
+            brain._quota_until["m1"] = time.time() + 1000
+            with self.assertRaises(brain.client.AIError):
+                await brain._ask([])
+            self.assertGreater(brain.ai_ready_at(), time.time())
+        chat.assert_not_awaited()
+
+    async def _cycle(self, state, ask_error=None):
+        from services.agent import memory
+        maintain = AsyncMock()
+        posts = AsyncMock()
+        patch_state = AsyncMock()
+        with patch.object(brain.rpc, "bot_agent_state_get", AsyncMock(return_value=RPCResult(data=state))), \
+                patch.object(brain.client, "is_configured", lambda role="user": True), patch.object(brain, "_budget_ok", AsyncMock(return_value=True)), \
+                patch.object(brain.rpc, "bot_agent_goals_list", _goals_by_status()), patch.object(brain.rpc, "bot_agent_inbox_take", AsyncMock(return_value=RPCResult(data=[]))), \
+                patch.object(brain.report, "live", AsyncMock()), patch.object(brain.report, "post", posts), patch.object(brain, "_live_done", AsyncMock()), \
+                patch.object(brain.rpc, "bot_agent_journal_add", AsyncMock()), patch.object(brain.rpc, "bot_agent_state_patch", patch_state), \
+                patch.object(memory, "build_context", AsyncMock(return_value="ctx")), patch.object(brain.github, "tree_overview", AsyncMock(return_value="tree")), \
+                patch.object(brain, "_maintain", maintain), patch.object(brain, "_ask", AsyncMock(side_effect=ask_error)):
+            out = await brain.run_cycle(bot=None)
+        return out, maintain, posts, patch_state
+
+    async def test_ai_outage_still_runs_merging_and_waits_ten_minutes(self):
+        out, maintain, posts, patch_state = await self._cycle({}, ask_error=brain.client.AIError("down"))
+        self.assertFalse(out["ok"])
+        maintain.assert_awaited_once()
+        sent = patch_state.await_args.args[0]
+        self.assertFalse(sent["ai_quota"])
+        self.assertGreater(sent["ai_wait_until"], time.time() + 500)
+        posts.assert_not_awaited()
+
+    async def test_daily_quota_is_announced_once_and_cycles_then_skip_the_ai(self):
+        def exhausted(*args, **kw):
+            brain._quota_until["m1"] = time.time() + 7200  # what _ask records when the provider says the daily allowance is gone
+            raise brain.client.AIError("HTTP 429 Daily free-tier limit")
+
+        with patch.object(brain.client, "agent_models", lambda: ["m1"]):
+            out, maintain, posts, patch_state = await self._cycle({}, ask_error=exhausted)
+        sent = patch_state.await_args.args[0]
+        self.assertTrue(sent["ai_quota"])
+        posts.assert_awaited_once()
+        self.assertIn("лимит ИИ", posts.await_args.args[1])
+        waiting = {"ai_wait_until": time.time() + 3600}
+        out, maintain, posts, _ = await self._cycle(waiting)
+        self.assertTrue(out["ok"])
+        maintain.assert_awaited_once()  # merges and conflict fixes go on while the AI sleeps
+        posts.assert_not_awaited()
+
+    async def test_paused_agent_does_not_merge(self):
+        out, maintain, _, _ = await self._cycle({"paused": True})
+        maintain.assert_not_awaited()
+
+
 class HandlerTests(unittest.IsolatedAsyncioTestCase):
     def _message(self, text, user_id=1):
         reply = AsyncMock()

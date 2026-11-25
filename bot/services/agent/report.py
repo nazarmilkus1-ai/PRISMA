@@ -189,6 +189,9 @@ async def build() -> tuple[str, InlineKeyboardMarkup]:
         parts.append("🎯 <b>Сейчас</b>\n💡 Ищу идеи и дорабатываю готовое, пока вы разбираете очередь")
     else:
         parts.append("🎯 <b>Сейчас</b>\nВыбираю следующую задачу")
+    wait = float(state.get("ai_wait_until") or 0)
+    if wait > time.time() and state.get("ai_quota"):
+        parts.append(f"💤 Дневной лимит ИИ закончился — код пишу после ≈{hhmm(datetime.fromtimestamp(wait, KYIV))}. Слияния и починка PR идут как обычно.")
     if queue:
         parts.append("📝 <b>Ваши задачи — следующие</b>\n" + "\n".join(f"• {short(g.get('title'), 80)}" for g in queue[:3]))
     if waiting:

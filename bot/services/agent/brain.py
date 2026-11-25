@@ -5,6 +5,8 @@ import asyncio
 import json
 import logging
 import re
+import time
+from datetime import datetime
 
 from db import rpc
 from services.ai import client
@@ -80,9 +82,40 @@ async def _budget_ok() -> bool:
     return await tools._day_counter("calls_day") < config.MAX_CALLS_PER_DAY
 
 
+_quota_until: dict[str, float] = {}  # model -> epoch when its daily free allowance is back
+_REFILL = re.compile(r"refills at (\d{4}-\d{2}-\d{2}T[\d:.]+Z)")
+
+
+def quota_hit(exc: Exception) -> float | None:
+    """Epoch when the provider's DAILY allowance is back if the error says it ended (None for any other error)."""
+    text = str(exc)
+    if "quota day" not in text and "Daily free-tier" not in text:
+        return None
+    now = time.time()
+    match = _REFILL.search(text)
+    until = 0.0
+    if match:
+        try:
+            until = datetime.fromisoformat(match.group(1).replace("Z", "+00:00")).timestamp()
+        except ValueError:
+            until = 0.0
+    return min(until if until > now else now + 3600, now + 6 * 3600)
+
+
+def ai_ready_at() -> float:
+    """0 when at least one model of the chain still has allowance, otherwise the epoch of the earliest refill."""
+    now = time.time()
+    ends = [_quota_until.get(m, 0.0) for m in client.agent_models()]
+    return 0.0 if any(e <= now for e in ends) else min(ends)
+
+
 async def _ask(messages: list[dict], toolset: list[dict] | None = None) -> dict:
     last: Exception | None = None
-    for model in client.agent_models():
+    now = time.time()
+    models = [m for m in client.agent_models() if _quota_until.get(m, 0.0) <= now]
+    if not models:
+        raise client.AIError("daily quota of every model is used up")
+    for model in models:
         for attempt in range(3):
             try:
                 reply = await client.chat(messages, role="agent", model=model, tools=toolset or tools.SCHEMAS, max_tokens=3500, timeout=120.0)
@@ -91,6 +124,11 @@ async def _ask(messages: list[dict], toolset: list[dict] | None = None) -> dict:
             except client.AIError as exc:
                 last = exc
                 logger.warning("agent model %s failed: %s", model, exc)
+                until = quota_hit(exc)
+                if until:
+                    _quota_until[model] = until  # no point retrying until the allowance is back: go to the next model right now
+                    client.clear_pause("agent")
+                    break
                 if "rate limit" in str(exc).lower() or "HTTP 429" in str(exc):
                     await asyncio.sleep(25)  # our own RPM budget or the gateway's: wait for a free slot instead of dropping the cycle
                     continue
@@ -169,9 +207,16 @@ async def run_cycle(bot) -> dict:
     if state.get("paused"):
         return {"ok": True, "summary": "пауза"}
     if not client.is_configured("agent"):
+        await _maintain(bot)
         return {"ok": False, "summary": "ключ ИИ агента не настроен"}
     if not await _budget_ok():
+        await _maintain(bot)
         return {"ok": True, "summary": "дневной бюджет вызовов исчерпан, отдыхаю"}
+    if not state.get("ai_wait_until"):
+        _quota_until.clear()  # nobody is waiting for an allowance (or an admin pressed «Продолжить»): ask the models again
+    elif float(state["ai_wait_until"]) > time.time():
+        await _maintain(bot)  # merging and un-sticking PRs need no AI
+        return {"ok": True, "summary": "ИИ ждёт обновления лимита: код не пишу, слияния и починка PR идут как обычно"}
     goal, rework, idea_mode = await _choose_work(state)
     inbox = (await rpc.bot_agent_inbox_take(30)).data or []
     ctx = tools.Ctx(bot=bot, goal=goal)
@@ -224,8 +269,17 @@ async def run_cycle(bot) -> dict:
             if ctx.finished:
                 break
     except client.AIError as exc:
+        ready = ai_ready_at()
+        quota = ready > time.time()
+        await rpc.bot_agent_state_patch({"ai_wait_until": ready if quota else time.time() + 600, "ai_quota": quota})
         await rpc.bot_agent_journal_add("event", f"Цикл прерван: {exc}"[:300])
-        await _live_done(bot, ctx, "⚠️ Цикл прерван: ИИ временно недоступен или перегружен, попробую снова")
+        if quota:
+            await _live_done(bot, ctx, "💤 Дневной лимит ИИ закончился")
+            await report.post(bot, f"💤 <b>Дневной лимит ИИ закончился</b> — новый код смогу писать после ≈{report.hhmm(datetime.fromtimestamp(ready, report.KYIV))} (по Киеву). "
+                                   "Слияние готовых задач и починка конфликтов идут как обычно. Чтобы работать без перерывов, нужен ключ ИИ без дневного лимита.")
+        else:
+            await _live_done(bot, ctx, "⚠️ Цикл прерван: ИИ временно недоступен или перегружен, попробую через 10 минут")
+        await _maintain(bot)
         return {"ok": False, "summary": f"ИИ недоступен: {exc}"[:200]}
     except Exception:
         logger.exception("agent cycle crashed")
@@ -258,10 +312,7 @@ async def run_cycle(bot) -> dict:
                 patch["progress_pct"] = min(90, int(goal.get("progress_pct") or 0) + 20)
         if patch:
             await rpc.bot_agent_goal_save(goal["id"], patch)
-    await _refresh_waiting()
-    fresh_state = (await rpc.bot_agent_state_get()).data or {}
-    await autopilot.step(bot, fresh_state)
-    await _notify_ready(bot, fresh_state)
+    await _maintain(bot)
     raw = ctx.summary.strip()
     summary = await _plainify(raw or _fallback_summary(ctx), goal, ctx)
     if ctx.notes:
@@ -342,6 +393,17 @@ async def _idle_status(bot, n: int) -> None:
     await report.live(bot, f"🛰 <b>Агент прямо сейчас</b>\n😴 Отдыхаю · {report.hhmm()}\n\n"
                            f"Готовых изменений, которые ждут вашего решения: {n}. Пока вы их не примете или не отклоните, "
                            f"новую работу не начинаю — так вы не утонете в правках.\n⏭ Проверю снова около {report.hhmm(nxt)}")
+
+
+async def _maintain(bot) -> None:
+    """Everything that needs no AI: refresh the checks of finished PRs, merge or un-stick them, call a human only where a human is required."""
+    try:
+        await _refresh_waiting()
+    except Exception:
+        logger.exception("refresh of waiting PRs failed")
+    fresh_state = (await rpc.bot_agent_state_get()).data or {}
+    await autopilot.step(bot, fresh_state)
+    await _notify_ready(bot, fresh_state)
 
 
 async def _refresh_waiting() -> None:

@@ -121,6 +121,11 @@ async def _acquire(role: str) -> None:
         await asyncio.sleep(min(wait, 1.0))
 
 
+def clear_pause(role: str) -> None:
+    """Lift the role-wide pause after a 429: a model whose daily allowance ended must not block its fallback."""
+    _paused_until.pop(role, None)
+
+
 def _pause(role: str, seconds: float) -> None:
     _paused_until[role] = time.monotonic() + max(1.0, min(seconds, 120.0))
 
