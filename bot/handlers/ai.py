@@ -69,6 +69,7 @@ async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
         await message.answer("❌ Неверный идентификатор пользователя.")
         return False
     # Логика ответа от ИИ
+    await message.answer("✅ Вопрос обработан.")
     return True
 
 async def _answer_by_code(message: types.Message, question: str, private: bool) -> bool:
