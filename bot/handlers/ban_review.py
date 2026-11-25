@@ -32,5 +32,21 @@ async def on_decision(call: types.CallbackQuery):
     if result.error:
         await call.answer("❌ Ошибка при снятии бана.", show_alert=True)
         return
+    chat = await bot_get_community_chat_id()
+    chat_id = chat.data if not chat.error and isinstance(chat.data, int) else None
+    try:
+        await call.bot.unban_chat_member(chat_id, tg_id, only_if_banned=True)
+    except Exception:
+        logger.exception("unban in community chat failed for %s", tg_id)
+    try:
+        created = await call.bot.create_chat_invite_link(
+            chat_id, name="return after ban", member_limit=1, expire_date=int(time.time()) + 7 * 24 * 3600
+        )
+        link = created.invite_link
+    except Exception:
+        logger.exception("invite link failed for %s", tg_id)
+    text = "✅ Бан успешно снят."
+    text += f"\nВот ссылка для входа в чат (действует 7 дней, один вход):\n{link}" if link else "\nЗайдите обратно в чат сообщества."
+    await call.bot.send_message(tg_id, text, disable_web_page_preview=True)
     await call.answer("✅ Бан снят.", show_alert=True)
     await call.message.edit_text("Бан успешно снят.")
