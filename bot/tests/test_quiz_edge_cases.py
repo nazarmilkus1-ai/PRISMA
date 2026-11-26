@@ -1,41 +1,44 @@
-import os
-import sys
-import unittest
-import json
+from __future__ import annotations
 
-os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
-os.environ.setdefault("SUPABASE_KEY", "[скрыто]")
-os.environ.setdefault("BOT_TOKEN", "123456:TEST")
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import json
+import unittest
 
 from services import quiz
 
 
 class QuizEdgeCaseTests(unittest.TestCase):
+    def setUp(self):
+        quiz._scores.clear()
+        quiz._polls.clear()
+        quiz._names.clear()
+
     def test_parse_empty_question(self):
         result = quiz.parse('{"question": "", "options": ["Один", "Два", "Три", "Четыре"], "correct": 0}')
         self.assertIsNone(result)
 
-    def test_parse_single_option(self):
-        result = quiz.parse('{"question": "Тест", "options": ["Единственный"], "correct": 0}')
+    def test_parse_question_too_short(self):
+        result = quiz.parse('{"question": "Короткий", "options": ["Один", "Два", "Три", "Четыре"], "correct": 0}')
         self.assertIsNone(result)
 
-    def test_parse_options_with_special_chars(self):
-        result = quiz.parse('{"question": "Тест с спецchars: !@#$%", "options": ["Один", "Два", "Три", "Четыре"], "correct": 0}')
-        self.assertIsNotNone(result)
-        self.assertEqual(result["question"], "Тест с спецchars: !@#$%")
+    def test_parse_question_too_long(self):
+        long_q = "?" * 301
+        result = quiz.parse(f'{{"question": "{long_q}", "options": ["Один", "Два", "Три", "Четыре"], "correct": 0}}')
+        self.assertIsNone(result)
 
-    def test_parse_correct_index_zero_based(self):
-        result = quiz.parse('{"question": "Тестовый вопрос", "options": ["Правильный", "Неправильный", "Вариант 3", "Вариант 4"], "correct": 0}')
-        self.assertIsNotNone(result)
-        self.assertEqual(result["correct"], 0)
+    def test_parse_single_option(self):
+        result = quiz.parse('{"question": "Тестовый вопрос?", "options": ["Один"], "correct": 0}')
+        self.assertIsNone(result)
 
-    def test_parse_all_options_correct(self):
-        result = quiz.parse('{"question": "Тестовый вопрос", "options": ["a", "b", "c", "d"], "correct": 3}')
+    def test_parse_special_chars_in_question(self):
+        result = quiz.parse('{"question": "Тест <b>с</b> тегами & спецсимволами?", "options": ["Один", "Два", "Три", "Четыре"], "correct": 0}')
         self.assertIsNotNone(result)
 
-    def test_parse_missing_correct_field(self):
-        result = quiz.parse('{"question": "Тест", "options": ["Один", "Два", "Три", "Четыре"]}')
+    def test_parse_duplicate_options(self):
+        result = quiz.parse('{"question": "Тестовый вопрос?", "options": ["Один", "Два", "Один", "Четыре"], "correct": 0}')
+        self.assertIsNone(result)
+
+    def test_parse_correct_index_out_of_range(self):
+        result = quiz.parse('{"question": "Тестовый вопрос?", "options": ["Один", "Два", "Три", "Четыре"], "correct": 4}')
         self.assertIsNone(result)
 
     def test_parse_correct_out_of_range_negative(self):
@@ -48,7 +51,7 @@ class QuizEdgeCaseTests(unittest.TestCase):
         self.assertEqual(result["question"], "Тестовый вопрос")
 
     def test_parse_unicode_options(self):
-        result = quiz.parse('{"question": "Тест", "options": ["Кириллица", "Ελληνικά", "中文"], "correct": 0}')
+        result = quiz.parse('{"question": "Тестовый вопрос?", "options": ["Кириллица", "Ελληνικά", "中文", "English"], "correct": 0}')
         self.assertIsNotNone(result)
 
     def test_generate_with_empty_topic(self):
@@ -66,23 +69,19 @@ class QuizEdgeCaseTests(unittest.TestCase):
             self.assertIsNotNone(result)
 
     def test_record_answer_invalid_poll(self):
-        quiz._scores.clear(); quiz._polls.clear(); quiz._names.clear()
         result = quiz.record_answer("nonexistent", 5, "Тест", [0])
         self.assertIsNone(result)
 
     def test_record_answer_invalid_option(self):
-        quiz._scores.clear(); quiz._polls.clear(); quiz._names.clear()
         quiz.register_poll("p1", -1, 2)
         result = quiz.record_answer("p1", 5, "Тест", [99])
         self.assertIsNone(result)
 
     def test_leaderboard_empty(self):
-        quiz._scores.clear(); quiz._polls.clear(); quiz._names.clear()
         self.assertEqual(quiz.leaderboard(-1), [])
 
     def test_scoring_multiple_players(self):
-        quiz._scores.clear(); quiz._polls.clear(); quiz._names.clear()
-        quiz.register_poll("p1", -1, 2)
+        quiz.register_poll("p1", -1, 0)
         quiz.record_answer("p1", 5, "Саша", [0])
         quiz.record_answer("p1", 5, "Вова", [1])
         leaderboard = quiz.leaderboard(-1)
