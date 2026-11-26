@@ -122,6 +122,9 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
     else:
         # Wrong answers still add user to scores dict so leaderboard shows them
         _scores[poll["chat"]][user_id] += 0
+    # Remove user from answered set if they got it wrong, so they can answer again
+    if not right:
+        poll["answered"].discard(user_id)
     return right
 
 
