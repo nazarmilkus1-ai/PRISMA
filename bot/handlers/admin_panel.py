@@ -38,7 +38,13 @@ async def _home(tg_id: int) -> tuple[str, types.InlineKeyboardMarkup]:
 
 
 async def send_dashboard(message: types.Message, edit: bool = False) -> None:
-    text, markup = await _home(message.chat.id if edit else message.from_user.id)
+    tg_id = message.chat.id if edit else message.from_user.id
+    ok, error = Validation.validate_telegram_id(tg_id, "Telegram ID для админ-панели")
+    if not ok:
+        Validation.log_warning("send_dashboard", tg_id, "send_dashboard", error)
+        await message.answer("❌ Неверный идентификатор пользователя.")
+        return
+    text, markup = await _home(tg_id)
     if edit:
         try:
             await message.edit_text(text, parse_mode="HTML", reply_markup=markup)
