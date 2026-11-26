@@ -26,7 +26,7 @@ class QuizEdgeCaseTests(unittest.TestCase):
         self.assertEqual(result["question"], "Тест с спецchars: !@#$")
 
     def test_parse_correct_index_zero_based(self):
-        result = quiz.parse('{"question": "Тест", "options": ["Правильный", "Неправильный"], "correct": 0}')
+        result = quiz.parse('{"question": "Тест", "options": ["Правильный", "Неправильный", "Вариант 3", "Вариант 4"], "correct": 0}')
         self.assertIsNotNone(result)
         self.assertEqual(result["correct"], 0)
 
