@@ -72,6 +72,8 @@ async def generate(topic: str = "minecraft", adult: int = 0, seen: list[str] | N
                 role="user", max_tokens=800, timeout=40, temperature=0.9)
         except AIError:
             continue
+        except AIError:
+            continue
         quiz = parse(str(message.get("content") or ""))
         if quiz:
             return quiz
