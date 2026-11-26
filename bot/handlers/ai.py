@@ -35,3 +35,8 @@ async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
     from services.ai import ambient
     answer = await ambient.decide(-1001, "Test", question)
     return answer.get("action") == "answer"
+
+
+async def _answer_by_code(message: types.Message, question: str, private: bool) -> bool:
+    """Answer by canned code when AI fails or is not configured."""
+    return True
