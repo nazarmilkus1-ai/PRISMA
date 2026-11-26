@@ -210,15 +210,15 @@ async def run_cycle(bot) -> dict:
     if state.get("paused"):
         return {"ok": True, "summary": "пауза"}
     if not client.is_configured("agent"):
-        await _maintain(bot)
+        await maintain(bot)
         return {"ok": False, "summary": "ключ ИИ агента не настроен"}
     if not await _budget_ok():
-        await _maintain(bot)
+        await maintain(bot)
         return {"ok": True, "summary": "дневной бюджет вызовов исчерпан, отдыхаю"}
     if not state.get("ai_wait_until"):
         _quota_until.clear()  # nobody is waiting for an allowance (or an admin pressed «Продолжить»): ask the models again
     elif float(state["ai_wait_until"]) > time.time():
-        await _maintain(bot)  # merging and un-sticking PRs need no AI
+        await maintain(bot)  # merging and un-sticking PRs need no AI
         return {"ok": True, "summary": "ИИ ждёт обновления лимита: код не пишу, слияния и починка PR идут как обычно"}
     goal, rework, idea_mode = await _choose_work(state)
     inbox = (await rpc.bot_agent_inbox_take(30)).data or []
@@ -282,7 +282,7 @@ async def run_cycle(bot) -> dict:
                                    "Слияние готовых задач и починка конфликтов идут как обычно. Чтобы работать без перерывов, нужен ключ ИИ без дневного лимита.")
         else:
             await _live_done(bot, ctx, "⚠️ Цикл прерван: ИИ временно недоступен или перегружен, попробую через 10 минут")
-        await _maintain(bot)
+        await maintain(bot)
         return {"ok": False, "summary": f"ИИ недоступен: {exc}"[:200]}
     except Exception:
         logger.exception("agent cycle crashed")
@@ -315,7 +315,7 @@ async def run_cycle(bot) -> dict:
                 patch["progress_pct"] = min(90, int(goal.get("progress_pct") or 0) + 20)
         if patch:
             await rpc.bot_agent_goal_save(goal["id"], patch)
-    await _maintain(bot)
+    await maintain(bot)
     raw = ctx.summary.strip()
     summary = await _plainify(raw or _fallback_summary(ctx), goal, ctx)
     if ctx.notes:
@@ -398,15 +398,19 @@ async def _idle_status(bot, n: int) -> None:
                            f"новую работу не начинаю — так вы не утонете в правках.\n⏭ Проверю снова около {report.hhmm(nxt)}")
 
 
-async def _maintain(bot) -> None:
+_maintain_lock = asyncio.Lock()  # the work cycle and the background loop must not merge the same PR twice
+
+
+async def maintain(bot) -> None:
     """Everything that needs no AI: refresh the checks of finished PRs, merge or un-stick them, call a human only where a human is required."""
-    try:
-        await _refresh_waiting()
-    except Exception:
-        logger.exception("refresh of waiting PRs failed")
-    fresh_state = (await rpc.bot_agent_state_get()).data or {}
-    await autopilot.step(bot, fresh_state)
-    await _notify_ready(bot, fresh_state)
+    async with _maintain_lock:
+        try:
+            await _refresh_waiting()
+        except Exception:
+            logger.exception("refresh of waiting PRs failed")
+        fresh_state = (await rpc.bot_agent_state_get()).data or {}
+        await autopilot.step(bot, fresh_state)
+        await _notify_ready(bot, fresh_state)
 
 
 async def _refresh_waiting() -> None:
