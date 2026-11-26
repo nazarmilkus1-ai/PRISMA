@@ -33,7 +33,7 @@ def allowed(chat_id: int, now: float | None = None) -> str | None:
     return None
 
 def parse(raw: str) -> dict | None:
-    match = re.search(r"\{.*\}", raw or "", re.S)
+    match = re.search(r"\\{.*\\}", raw or "", re.S)
     if not match:
         return None
     try:
