@@ -41,6 +41,9 @@ def precheck(files: list[dict]) -> str | None:
     return "\n".join(problems[:5]) or None
 
 
+REDACTED = "[скрыто]"  # what services.ai.diagnostics.redact puts in place of a secret in the text the model reads
+
+
 def shrink_problem(old: dict[str, str | None], files: list[dict]) -> str | None:
     """Refuse a commit that makes an existing file much shorter or deletes it: a model that saw only the start of a file and sends it back loses the rest.
 
@@ -50,6 +53,10 @@ def shrink_problem(old: dict[str, str | None], files: list[dict]) -> str | None:
     for f in files:
         path, before = str(f.get("path") or ""), old.get(str(f.get("path") or ""))
         if before is None:
+            continue
+        if REDACTED in str(f.get("content") or "") and REDACTED not in before:
+            problems.append(f"{path}: в файле появился маркер «{REDACTED}» — это замаскированный секрет из repo_read, а не настоящий текст. "
+                            "Не присылай файл целиком: правь точечно через edit, он работает с настоящим текстом.")
             continue
         was = before.count("\n") + 1
         if f.get("delete"):
