@@ -122,6 +122,7 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
     else:
         # Wrong answer: ensure user is tracked in scores so they appear on leaderboard
         _scores[poll["chat"]].setdefault(user_id, 0)
+        # Also ensure the name is stored for this user on this chat
         _names[(poll["chat"], user_id)] = name[:32]
     return right
 
