@@ -2,7 +2,8 @@ from aiogram import F, Router, types
 from aiogram.filters import Command
 from aiogram.methods import UnbanChatMember
 
-from db.rpc import bot_ban_review_keep, bot_ban_review_list, bot_check_admin_permission, bot_lift_punishment, bot_get_community_chat_id
+from db import rpc as db_rpc
+from db.rpc import bot_ban_review_keep, bot_ban_review_list, bot_check_admin_permission, bot_lift_punishment
 from services import ban_review
 from utils.errors import safe_rpc_error
 from utils.permissions import is_admin_mode
