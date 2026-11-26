@@ -103,7 +103,9 @@ def recent(chat_id: int) -> list[str]:
 
 
 def register_poll(poll_id: str, chat_id: int, correct: int, options: list[str] | None = None) -> None:
-    _polls[poll_id] = {"chat": chat_id, "correct": correct, "options": options or [], "answered": set()}
+    if options is None:
+        options = [f"option_{i}" for i in range(correct + 1)]  # default dummy options
+    _polls[poll_id] = {"chat": chat_id, "correct": correct, "options": options, "answered": set()}
     if len(_polls) > MAX_TRACKED:
         for key in list(_polls)[: MAX_TRACKED // 2]:
             _polls.pop(key, None)
