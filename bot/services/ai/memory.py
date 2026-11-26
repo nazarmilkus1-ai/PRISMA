@@ -224,3 +224,6 @@ async def rate(user_id: int, chat_id: int, answer_id: str, rating: int) -> bool:
     except Exception as exc:
         logger.debug("ai rate failed: %s", exc)
         return True
+
+# Module-level export for package imports (e.g. from services.ai import ai_memory)
+ai_memory = _store
