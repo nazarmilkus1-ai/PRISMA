@@ -5,6 +5,9 @@ async def send_dashboard(message: types.Message, edit: bool = False) -> None:
     if not valid:
         logger.warning("Invalid Telegram ID in send_dashboard: %s", message.from_user.id)
         return
+    if message.from_user is None or not await is_admin_mode(message.from_user.id):
+        await message.answer("Нужен режим админа.")
+        return
 
 async def _home(tg_id: int) -> tuple[str, types.InlineKeyboardMarkup]:
     valid, err = Validation.validate_telegram_id(tg_id, "Telegram ID")
