@@ -92,7 +92,7 @@ class DigestEdgeCaseTests(unittest.TestCase):
         quiz._scores.clear(); quiz._polls.clear(); quiz._names.clear()
         quiz.register_poll("p1", -1, 2)
         quiz.record_answer("p1", 5, "Саша", [0])
-        quiz.record_answer("p1", 5, "Вова", [1])
+        quiz.record_answer("p1", 6, "Вова", [1])
         leaderboard = quiz.leaderboard(-1)
         self.assertEqual(len(leaderboard), 2)
         names = [name for name, _ in leaderboard]
