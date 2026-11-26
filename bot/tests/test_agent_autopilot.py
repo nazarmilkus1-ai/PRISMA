@@ -579,6 +579,14 @@ class ShrinkGuardTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("нельзя удалять", checks.shrink_problem({"bot/a.py": self.BIG}, [{"path": "bot/a.py", "delete": True}]))
         self.assertIsNone(checks.shrink_problem({"bot/a.py": "tiny"}, [{"path": "bot/a.py", "delete": True}]))
 
+    def test_redaction_marker_must_not_be_written_back(self):
+        from services.agent import checks
+        before = 'os.environ.setdefault("SUPABASE_KEY", "eyJhbGciOi")\n' * 3
+        after = 'os.environ.setdefault("SUPABASE_KEY", "[скрыто]")\n' * 3
+        problem = checks.shrink_problem({"bot/tests/t.py": before}, [{"path": "bot/tests/t.py", "content": after}])
+        self.assertIn("замаскированный секрет", problem)
+        self.assertIsNone(checks.shrink_problem({"bot/tests/t.py": after}, [{"path": "bot/tests/t.py", "content": after}]))  # already there: not our change
+
     async def test_commit_is_refused_before_anything_reaches_github(self):
         from services.agent import tools
         ctx = SimpleNamespace(goal={"id": 1, "branch": "agent/x", "title": "t"}, commits=0, notes=[], new_head=False)
