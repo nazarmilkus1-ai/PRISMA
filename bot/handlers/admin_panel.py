@@ -99,7 +99,8 @@ async def _guard(callback: types.CallbackQuery, permission: str | None) -> bool:
 async def _show(callback: types.CallbackQuery, text: str, markup: types.InlineKeyboardMarkup) -> None:
     try:
         await callback.message.edit_text(text, parse_mode="HTML", reply_markup=markup)
-    except Exception:
+    except Exception as exc:
+        logger.error(f"Failed to edit message: {exc}")
         await callback.message.answer(text, parse_mode="HTML", reply_markup=markup)
 
 
