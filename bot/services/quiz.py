@@ -118,7 +118,8 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
     # If so, ignore this answer (duplicate option)
     option_id = option_ids[0]
     # Validate option_id is within valid range for this poll's options
-    if not isinstance(poll["correct"], int) or option_id < 0 or option_id >= len(poll["options"]):
+    options = poll.get("options") or []
+    if not isinstance(poll["correct"], int) or option_id < 0 or option_id >= len(options):
         return None
     # Track that this user answered (but allow different users with same poll)
     poll["answered"].add(user_id)
