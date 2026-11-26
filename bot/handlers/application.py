@@ -30,6 +30,11 @@ router = Router()
 
 @router.message(Command("application"))
 async def application_command(message: types.Message, state: FSMContext):
+    ok, error = Validation.validate_telegram_id(message.from_user.id, "Telegram ID для заявки")
+    if not ok:
+        Validation.log_warning("application_command", message.from_user.id, "application_command", error)
+        await message.answer("❌ Неверный Telegram ID")
+        return
     status = await bot_get_user_status(message.from_user.id)
     if status in ("PENDING", "ACCEPTED"):
         await message.answer("⏳ У вас уже есть активная заявка или доступ к серверу.")
