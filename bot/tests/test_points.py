@@ -55,6 +55,14 @@ class PointsTextTests(unittest.TestCase):
         self.assertEqual(points.fmt(999999999), "999 999 999")
         # Float value (should be converted to int)
         self.assertEqual(points.fmt(1234.56), "1 234")
+        # None input
+        self.assertEqual(points.fmt(None), "0")
+        # Very large number
+        self.assertEqual(points.fmt(999999999999), "999 999 999 999")
+        # Single digit
+        self.assertEqual(points.fmt(5), "5")
+        # Two digits
+        self.assertEqual(points.fmt(99), "99")
 
     def test_history_render(self):
         text = points.render_history({"balance": 90, "items": [
