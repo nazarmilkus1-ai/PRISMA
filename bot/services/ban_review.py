@@ -19,6 +19,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 import config
 from db.rpc import bot_ban_review_claim, bot_get_community_chat_id
+from utils.validation import Validation
 
 logger = logging.getLogger(__name__)
 
