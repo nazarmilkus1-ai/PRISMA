@@ -30,6 +30,8 @@ async def run_member(member_id: int, action: str, **kwargs) -> bool:
     return True
 
 
+free_router = Router(name="ai_free")
+
 async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
     """Ask AI a question and return whether it was successful."""
     from services.ai import ambient
