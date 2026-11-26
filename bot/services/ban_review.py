@@ -69,11 +69,16 @@ async def notify_admins(bot: Bot, rows: list[dict]) -> int:
         return 0
     sent = 0
     for row in rows:
+        tg_id = int(row.get("tg_id", 0))
+        ok, error = Validation.validate_telegram_id(tg_id, "Telegram ID для уведомления админов о бане")
+        if not ok:
+            Validation.log_warning("Ban review notify_admins", tg_id, "notify_admins", error)
+            continue
         try:
-            await bot.send_message(target, card_text(row), parse_mode="HTML", reply_markup=keyboard(int(row["tg_id"])))
+            await bot.send_message(target, card_text(row), parse_mode="HTML", reply_markup=keyboard(tg_id))
             sent += 1
         except Exception:
-            logger.exception("ban review notification failed for %s", row.get("tg_id"))
+            logger.exception("ban review notification failed for %s", tg_id)
     return sent
 
 
