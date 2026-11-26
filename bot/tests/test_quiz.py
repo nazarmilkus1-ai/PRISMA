@@ -53,6 +53,9 @@ class QuizParseTests(unittest.TestCase):
 
 class QuizAllowedTests(unittest.TestCase):
     def test_allowed_first_question(self):
+        # Reset module state before test to ensure clean slate
+        quiz._last.pop(123456, None)
+        quiz._day.pop(123456, None)
         result = quiz.allowed(123456)
         self.assertIsNone(result)
 
