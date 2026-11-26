@@ -119,11 +119,8 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
     options = poll.get("options") or []
     if not isinstance(poll["correct"], int) or option_id < 0 or option_id >= len(options):
         return None
-    # Check if this user already answered this poll
-    if user_id in poll.get("answered", set()):
-        return None
     # Track that this user answered (but allow different users with same poll)
-    poll["answered"].add(user_id)
+    poll.setdefault("answered", set()).add(user_id)
     _names[(poll["chat"], user_id)] = name[:32]
     right = option_id == poll["correct"]
     # Add user to scores regardless of correctness, so they appear on leaderboard
