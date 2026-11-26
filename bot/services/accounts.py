@@ -8,10 +8,14 @@
 from __future__ import annotations
 
 import logging
+import logging
+
 import secrets
 import time
 
 from db.rpc import bot_telegram_alias_resolve
+
+logger = logging.getLogger(__name__)
 
 logger = logging.getLogger(__name__)
 
