@@ -18,9 +18,35 @@ class PointsTextTests(unittest.TestCase):
         self.assertIsNone(points.parse_amount("abc"))
         self.assertIsNone(points.parse_amount("1.5"))
 
+    def test_parse_amount_edge_cases(self):
+        # Empty string
+        self.assertIsNone(points.parse_amount(""))
+        # String with only spaces
+        self.assertIsNone(points.parse_amount("   "))
+        # Float as string
+        self.assertIsNone(points.parse_amount("3.14"))
+        # String with leading/trailing spaces
+        self.assertEqual(points.parse_amount("  50  "), 50)
+        # Zero
+        self.assertEqual(points.parse_amount("0"), 0)
+        # Positive sign only
+        self.assertEqual(points.parse_amount("+0"), 0)
+
     def test_fmt_groups_thousands(self):
         self.assertEqual(points.fmt(1234567), "1 234 567")
         self.assertEqual(points.fmt(None), "0")
+
+    def test_fmt_edge_cases(self):
+        # Negative number
+        self.assertEqual(points.fmt(-1234567), "-1 234 567")
+        # Zero
+        self.assertEqual(points.fmt(0), "0")
+        # Small positive number
+        self.assertEqual(points.fmt(100), "100")
+        # Large number
+        self.assertEqual(points.fmt(999999999), "999 999 999")
+        # Float value (should be converted to int)
+        self.assertEqual(points.fmt(1234.56), "1 234")
 
     def test_history_render(self):
         text = points.render_history({"balance": 90, "items": [
