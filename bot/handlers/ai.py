@@ -39,6 +39,7 @@ logger = logging.getLogger(__name__)
 
 async def _status_for_intent(tg_id: int, kind: str | None) -> str:
     """Fetch a user's status only for deterministic answers that need it."""
+    Validation.validate_telegram_id(tg_id, "_status_for_intent")
     if kind not in {"guide", "apply"}:
         return ""
     return str(await bot_get_user_status(tg_id) or "")
