@@ -1,8 +1,3 @@
-"""Quiz rounds for chats: the model writes one question, Telegram runs it as a native quiz poll.
-
-Scores live in RAM (reset on restart): a light chat game, not an economy. Questions are validated before
-they are posted (4 distinct options, a valid correct index, Telegram length limits).
-"""
 from __future__ import annotations
 
 import json
