@@ -126,10 +126,7 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
     # Always increment or set score based on correctness
     if right:
         _scores[poll["chat"]][user_id] += 1
-    # If wrong answer by new user, keep at 0 but user is now tracked for leaderboard
-    # Remove user from scores if they answered incorrectly and were just added
-    if not right and user_id in _scores[poll["chat"]] and _scores[poll["chat"]][user_id] == 0:
-        del _scores[poll["chat"]][user_id]
+    # Wrong answers don't remove user from scores - they stay tracked for leaderboard
     return right
 
 def leaderboard(chat_id: int, limit: int = 10) -> list[tuple[str, int]]:
