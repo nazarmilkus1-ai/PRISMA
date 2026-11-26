@@ -59,10 +59,12 @@ def parse_amount(raw: str | None) -> int | None:
     if raw is None:
         return None
     raw = raw.strip().replace(" ", "")
-    digit_part = raw.lstrip("+-")
-    if digit_part.isascii() and digit_part.isdigit():
-        return int(raw)
-    return None
+    # Отрицательные числа и числа со знаком + недопустимы
+    if raw.startswith("-") or raw.startswith("+"):
+        return None
+    if not raw or not raw.isascii() or not raw.isdigit():
+        return None
+    return int(raw)
 
 
 def render_history(data: dict) -> str:
