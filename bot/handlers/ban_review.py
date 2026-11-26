@@ -49,7 +49,12 @@ async def on_decision(call: types.CallbackQuery):
             await call.answer("❌ Не удалось получить ID чата.", show_alert=True)
             return
         # Unban the player in the community chat
-        await call.bot.unban_chat_member(chat_id, tg_id, only_if_banned=True)
+        try:
+            await call.bot.unban_chat_member(chat_id, tg_id, only_if_banned=True)
+        except Exception:
+            logger.exception("unban in community chat failed for %s", tg_id)
+            await call.answer("❌ Ошибка при разбане в чате.", show_alert=True)
+            return
         # Notify the player about the unban
         await call.bot.send_message(tg_id, "Вы были разбанены в чате.")
     elif action == "keep":
