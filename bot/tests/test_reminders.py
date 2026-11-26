@@ -43,6 +43,25 @@ class ParseTests(unittest.TestCase):
     def test_friendly_errors(self):
         self.assertIn("20", reminders.friendly_error("REMINDER_LIMIT"))
         self.assertIn("год", reminders.friendly_error("... REMINDER_TIME_TOO_FAR ..."))
+        self.assertIn("бесплатно", reminders.friendly_error("REMINDER_TEXT_INVALID"))
+        self.assertIn("Не получилось", reminders.friendly_error("UNKNOWN_ERROR"))
+
+class FmtTests(unittest.TestCase):
+    def test_fmt_with_datetime(self):
+        from datetime import datetime
+        when = datetime(2026, 12, 25, 14, 30, tzinfo=reminders.TZ)
+        result = reminders.fmt(when)
+        self.assertIn("25.12", result)
+        self.assertIn("14:30", result)
+
+    def test_fmt_with_string(self):
+        result = reminders.fmt("2026-12-25T14:30:00+00:00")
+        self.assertIn("25.12", result)
+        self.assertIn("14:30", result)
+
+    def test_fmt_with_none(self):
+        result = reminders.fmt(None)
+        self.assertEqual(result, "00.00")
 
 
 class ToolWiringTests(unittest.TestCase):
