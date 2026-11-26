@@ -49,7 +49,9 @@ def fmt(value: object) -> str:
         return "0"
 
 
-def parse_amount(raw: str) -> int | None:
+def parse_amount(raw: str | None) -> int | None:
+    if raw is None:
+        return None
     raw = raw.strip().replace(" ", "")
     if raw.lstrip("+-").isdigit():
         return int(raw)
