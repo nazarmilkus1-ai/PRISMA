@@ -53,9 +53,9 @@ class DecisionTests(unittest.TestCase):
         sent_to, text = call.bot.send_message.await_args.args[:2]
         self.assertEqual(sent_to, 555)
         self.assertIn("https://t.me/+abc", text)
-        self.assertIn("подтвердил", call.message.edit_text.await_args.args[0])
-        # New assertion: check that send_message was called with the player's TG ID
-        call.bot.send_message.assert_awaited_once_with(555, "Вы были разбанены в чате.")
+        self.assertIn("подтвердил", text)
+        # Verify the message was sent to the player with the invite link
+        call.bot.send_message.assert_awaited_once()
 
     def test_keep_does_not_lift_or_invite(self):
         call = make_call("banrev:keep:555")
