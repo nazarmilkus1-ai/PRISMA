@@ -202,7 +202,7 @@ async def build() -> tuple[str, InlineKeyboardMarkup]:
             if mine:
                 parts.append("🚀 <b>Готово — сольётся само</b>\n" + "\n".join(mine) + "\n<i>Когда тесты зелёные — принимаю сам</i>")
             if yours:
-                parts.append("🔔 <b>Нужно ваше решение</b>\n" + "\n".join(yours) + "\n<i>Это правки моего кода или базы — без вас не сливаю</i>")
+                parts.append("🔔 <b>Нужно ваше решение</b>\n" + "\n".join(yours) + "\n<i>Это мой код, база, настройки или баны — без вас не сливаю</i>")
         else:
             lines = [f"№{i} · {_summary(g)}" for i, g in numbered]
             parts.append("✅ <b>Готово — ждёт вас</b>\n" + "\n".join(lines) + "\n<i>Нажмите номер, чтобы посмотреть</i>")

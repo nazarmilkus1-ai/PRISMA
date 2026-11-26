@@ -41,6 +41,28 @@ def precheck(files: list[dict]) -> str | None:
     return "\n".join(problems[:5]) or None
 
 
+def shrink_problem(old: dict[str, str | None], files: list[dict]) -> str | None:
+    """Refuse a commit that makes an existing file much shorter or deletes it: a model that saw only the start of a file and sends it back loses the rest.
+
+    `old` maps path -> the text on the base branch (None when the file is new). Short files are exempt."""
+    from . import config
+    problems: list[str] = []
+    for f in files:
+        path, before = str(f.get("path") or ""), old.get(str(f.get("path") or ""))
+        if before is None:
+            continue
+        was = before.count("\n") + 1
+        if f.get("delete"):
+            if was >= 15:
+                problems.append(f"{path}: нельзя удалять существующий файл ({was} строк). Если он правда не нужен, оставь его и напиши идею в память.")
+            continue
+        now = str(f.get("content") or "").count("\n") + 1
+        if was >= config.SHRINK_MIN_LINES and now < was * 0.7:
+            problems.append(f"{path}: после твоей правки файл стал короче с {was} до {now} строк — похоже, потерян кусок кода (ты видел только начало файла?). "
+                            "Не присылай файл целиком: правь точечно через edit (old_str → new_str).")
+    return "\n".join(problems[:5]) or None
+
+
 _TS = re.compile(r"^\d{4}-\d\d-\d\dT[\d:.]+Z ")
 _UNITTEST_FAIL = re.compile(r"^(ERROR|FAIL): ")
 _OTHER_FAIL = re.compile(r"##\[error\]|error TS\d+|Error: |AssertionError|Traceback \(most recent|FAILED|forbidden|failures?:", re.I)

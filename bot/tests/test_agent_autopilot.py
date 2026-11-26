@@ -308,10 +308,13 @@ class ChooseWorkAutonomyTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(goal)
         self.assertIn("ревьюер", redo.await_args.args[1])
 
-    async def test_manual_prs_are_never_reworked_or_rebuilt(self):
-        manual = {**self.RED, "review": {**self.RED["review"], "manual": "self"}}
-        (goal, _, _), _, redo = await self._choose(done=[manual])
-        self.assertIsNone(goal)
+    async def test_red_manual_pr_is_fixed_so_the_human_gets_a_green_card_but_a_destructive_one_is_not_patched(self):
+        own = {**self.RED, "review": {**self.RED["review"], "manual": "self"}}
+        (goal, _, _), _, redo = await self._choose(done=[own])
+        self.assertEqual(goal["id"], 3)  # the agent's own-code PR still has to pass the checks before a person is asked
+        lost = {**self.RED, "review": {**self.RED["review"], "manual": "destructive"}}
+        (goal, _, _), _, redo = await self._choose(done=[lost])
+        self.assertIsNone(goal)  # a PR that lost code is not «fixed» further (autopilot rebuilds it from scratch)
         redo.assert_not_awaited()
 
     async def test_redo_task_is_picked_up_after_admin_tasks(self):
@@ -482,6 +485,109 @@ class QuotaTests(unittest.IsolatedAsyncioTestCase):
     async def test_paused_agent_does_not_merge(self):
         out, maintain, _, _ = await self._cycle({"paused": True})
         maintain.assert_not_awaited()
+
+
+def _stats(*rows):
+    return [{"path": p, "status": st, "add": a, "del": d} for p, st, a, d in rows]
+
+
+class SafetyGuardTests(unittest.IsolatedAsyncioTestCase):
+    def test_destructive_detection(self):
+        lost = _stats(("bot/handlers/ai.py", "modified", 6, 713))  # what a model that saw half a file and sent it back produces
+        self.assertTrue(github.destructive(lost))
+        self.assertTrue(github.destructive(_stats(("bot/handlers/a.py", "modified", 5, 90), ("bot/handlers/b.py", "modified", 40, 60))))  # one file lost its tail
+        self.assertTrue(github.destructive(_stats(("bot/handlers/a.py", "removed", 0, 30))))
+        self.assertTrue(github.destructive(_stats(("bot/tests/test_x.py", "modified", 0, 40))))  # tests deleted to make CI green
+        self.assertFalse(github.destructive(_stats(("bot/handlers/a.py", "modified", 40, 30))))  # an ordinary refactor
+        self.assertFalse(github.destructive(_stats(("bot/handlers/a.py", "modified", 10, 12), ("bot/tests/test_a.py", "modified", 30, 5))))
+        self.assertFalse(github.destructive([]))
+
+    def test_manual_reasons_in_priority_order(self):
+        def reason(*paths, stats=None):
+            return github.manual_reason({"paths": list(paths), "stats": stats or []})
+        self.assertEqual(reason("bot/handlers/menu.py"), "")
+        self.assertEqual(reason("supabase/migrations/1.sql", "bot/services/agent/brain.py"), "migrations")
+        self.assertEqual(reason("bot/services/agent/brain.py"), "self")
+        for sensitive in ("bot/requirements.txt", ".github/workflows/ci.yml", "scripts/verify-release.mjs", "site/package.json", "render.yaml",
+                          "bot/handlers/ban_review.py", "bot/services/ban_review.py", "bot/main.py"):
+            self.assertEqual(reason(sensitive), "sensitive", sensitive)
+        self.assertEqual(reason("bot/handlers/menu.py", stats=_stats(("bot/handlers/menu.py", "modified", 3, 400))), "destructive")
+
+    async def test_pr_info_carries_per_file_stats(self):
+        async def get(path, params=None):
+            if path.endswith("/files"):
+                return [{"filename": "a.py", "status": "modified", "additions": 2, "deletions": 9}], None
+            return {"number": 7, "state": "open", "head": {"ref": "agent/x", "sha": "s"}, "mergeable": True}, None
+
+        with patch.object(github, "_get", get):
+            info = await github.pr_info(7)
+        self.assertEqual(info["stats"], _stats(("a.py", "modified", 2, 9)))
+
+    async def test_agent_never_merges_a_risky_pr_even_if_asked_directly(self):
+        info = _info(paths=["bot/requirements.txt"])
+        with patch.object(github, "pr_info", AsyncMock(return_value=info)), patch.object(github, "ci", AsyncMock(return_value=GREEN)), \
+                patch.object(merge.rpc, "bot_agent_goals_list", AsyncMock(return_value=RPCResult(data=[]))):
+            ok, text, _ = await merge.evaluate(7, owner=False, auto=True)
+            self.assertFalse(ok)
+            self.assertIn("Без человека", text)
+            self.assertTrue((await merge.evaluate(7, owner=True))[0])  # a person pressing the button still can
+
+    async def test_step_rebuilds_a_destructive_pr_instead_of_fixing_or_merging_it(self):
+        m = await StepTests()._step([_goal(7)], {7: _info(7, paths=["bot/handlers/ai.py"], stats=_stats(("bot/handlers/ai.py", "modified", 6, 713)))})
+        m.merge_pr.assert_not_awaited()
+        m.close_pr.assert_awaited_once_with(7)
+        self.assertEqual(m.add_task.await_args.kwargs["source"], "redo")
+        self.assertIn("ПРАВЬ ТОЧЕЧНО", m.add_task.await_args.args[0])
+
+    async def test_a_destructive_admin_task_waits_for_the_admin_instead_of_being_rebuilt(self):
+        m = await StepTests()._step([_goal(7, source="admin")], {7: _info(7, paths=["bot/handlers/ai.py"], stats=_stats(("bot/handlers/ai.py", "modified", 6, 713)))})
+        m.close_pr.assert_not_awaited()
+        m.merge_pr.assert_not_awaited()
+        self.assertEqual(m.save.await_args.args[1]["review"]["manual"], "destructive")
+
+    async def test_step_leaves_sensitive_prs_to_a_person(self):
+        m = await StepTests()._step([_goal(7)], {7: _info(7, paths=["bot/requirements.txt"])})
+        m.merge_pr.assert_not_awaited()
+        m.close_pr.assert_not_awaited()
+        self.assertEqual(m.save.await_args.args[1]["review"]["manual"], "sensitive")
+
+
+class ShrinkGuardTests(unittest.IsolatedAsyncioTestCase):
+    BIG = "\n".join(f"line {i}" for i in range(200))
+
+    def test_truncated_file_is_refused(self):
+        from services.agent import checks
+        half = "\n".join(f"line {i}" for i in range(100))
+        problem = checks.shrink_problem({"bot/a.py": self.BIG}, [{"path": "bot/a.py", "content": half}])
+        self.assertIn("200 до 100", problem)
+        self.assertIn("edit", problem)
+
+    def test_normal_changes_pass(self):
+        from services.agent import checks
+        grown = self.BIG + "\nextra"
+        trimmed = "\n".join(f"line {i}" for i in range(170))  # 15% shorter: a real cleanup
+        small = "\n".join(str(i) for i in range(30))
+        self.assertIsNone(checks.shrink_problem({"a": self.BIG, "b": self.BIG, "c": small, "d": None},
+                                                [{"path": "a", "content": grown}, {"path": "b", "content": trimmed}, {"path": "c", "content": "x"},
+                                                 {"path": "d", "content": "new file"}]))
+
+    def test_deleting_an_existing_file_is_refused(self):
+        from services.agent import checks
+        self.assertIn("нельзя удалять", checks.shrink_problem({"bot/a.py": self.BIG}, [{"path": "bot/a.py", "delete": True}]))
+        self.assertIsNone(checks.shrink_problem({"bot/a.py": "tiny"}, [{"path": "bot/a.py", "delete": True}]))
+
+    async def test_commit_is_refused_before_anything_reaches_github(self):
+        from services.agent import tools
+        ctx = SimpleNamespace(goal={"id": 1, "branch": "agent/x", "title": "t"}, commits=0, notes=[], new_head=False)
+        half = "\n".join(f"x = {i}" for i in range(80))
+        commit = AsyncMock()
+        with patch.object(tools, "_day_counter", AsyncMock(return_value=0)), patch.object(github, "read_raw", AsyncMock(return_value=("\n".join(f"x = {i}" for i in range(300)), None))), \
+                patch.object(github, "commit_files", commit), patch.object(github, "ensure_branch", AsyncMock()):
+            out = await tools._commit(ctx, "msg", [{"path": "bot/handlers/ai.py", "content": half}])
+        self.assertIn("error", out)
+        self.assertIn("не потерять", out["error"])
+        commit.assert_not_awaited()
+        self.assertEqual(ctx.commits, 0)
 
 
 class HandlerTests(unittest.IsolatedAsyncioTestCase):

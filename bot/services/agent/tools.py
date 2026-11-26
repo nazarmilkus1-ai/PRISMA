@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import ipaddress
+import asyncio
 import json
 import logging
 import re
@@ -192,6 +193,10 @@ async def _commit(ctx: Ctx, message: str, files) -> dict:
     problem = checks.precheck(clean)
     if problem:
         return {"error": "коммит НЕ сделан, в файлах найдены ошибки — исправь и повтори:\n" + problem}
+    olds = await asyncio.gather(*(github.read_raw(f["path"], None) for f in clean))
+    problem = checks.shrink_problem({f["path"]: text for f, (text, _) in zip(clean, olds)}, clean)
+    if problem:
+        return {"error": "коммит НЕ сделан, чтобы не потерять рабочий код:\n" + problem}
     branch, err = await _goal_branch(ctx)
     if err:
         return {"error": err}
