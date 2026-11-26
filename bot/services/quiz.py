@@ -114,15 +114,15 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
     if not isinstance(poll["correct"], int) or option_id < 0 or option_id >= len(options):
         return None
     # Track that this user answered using (chat_id, user_id) key
-    answer_key = (poll["chat"], user_id)
+    answer_key = f"{poll['chat']}:{user_id}"
     if answer_key in poll.setdefault("answered", set()):
         return None  # User already answered this poll - ignore duplicate
     poll.setdefault("answered", set()).add(answer_key)
     _names[answer_key] = name[:32]
-    right = option_id == poll["correct"]
-    # Add user to scores if not already tracked
+    # Track user in scores regardless of correctness for leaderboard
     if user_id not in _scores[poll["chat"]]:
         _scores[poll["chat"]][user_id] = 0
+    right = option_id == poll["correct"]
     # Always increment or set score based on correctness
     if right:
         _scores[poll["chat"]][user_id] += 1
