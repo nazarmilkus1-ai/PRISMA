@@ -102,8 +102,8 @@ def recent(chat_id: int) -> list[str]:
     return _recent[chat_id]
 
 
-def register_poll(poll_id: str, chat_id: int, correct: int) -> None:
-    _polls[poll_id] = {"chat": chat_id, "correct": correct, "answered": set()}
+def register_poll(poll_id: str, chat_id: int, correct: int, options: list[str] | None = None) -> None:
+    _polls[poll_id] = {"chat": chat_id, "correct": correct, "options": options or [], "answered": set()}
     if len(_polls) > MAX_TRACKED:
         for key in list(_polls)[: MAX_TRACKED // 2]:
             _polls.pop(key, None)
