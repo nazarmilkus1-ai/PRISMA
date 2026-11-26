@@ -23,7 +23,7 @@ class QuizEdgeCaseTests(unittest.TestCase):
     def test_parse_options_with_special_chars(self):
         result = quiz.parse('{"question": "Тест с спецchars: !@#$%", "options": ["Один", "Два", "Три", "Четыре"], "correct": 0}')
         self.assertIsNotNone(result)
-        self.assertEqual(result["question"], "Тест с спецchars: !@#$")
+        self.assertEqual(result["question"], "Тест с спецchars: !@#$%")
 
     def test_parse_correct_index_zero_based(self):
         result = quiz.parse('{"question": "Тест", "options": ["Правильный", "Неправильный", "Вариант 3", "Вариант 4"], "correct": 0}')
