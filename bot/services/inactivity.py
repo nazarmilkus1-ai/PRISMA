@@ -141,6 +141,7 @@ async def _remind(bot: Bot, report: dict | None, text_for) -> int:
             await bot.send_message(int(row["tg_id"]), text_for(row))
             sent += 1
         except Exception:
+            logger.exception("failed to send inactivity warning for tg_id %s", row.get("tg_id"))
             continue
     return sent
 
