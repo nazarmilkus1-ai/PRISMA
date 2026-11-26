@@ -133,13 +133,13 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
     poll.setdefault("answered", set()).add(answer_key)
     _names[answer_key] = name[:32]
     right = option_id == poll["correct"]
-    # Add user to scores only if they answer correctly
-    # New users start at 0, only increment on correct answers
+    # Add user to scores if not already tracked
     if user_id not in _scores[poll["chat"]]:
         _scores[poll["chat"]][user_id] = 0
+    # Always increment or set score based on correctness
     if right:
         _scores[poll["chat"]][user_id] += 1
-    # If wrong answer by new user, keep at 0 (will be filtered by leaderboard)
+    # If wrong answer by new user, keep at 0 but user is now tracked for leaderboard
     return right
 
 
