@@ -29,9 +29,6 @@ async def run_member(member_id: int, action: str, **kwargs) -> bool:
         return False
     return True
 
-ai_memory = ai_memory_module
-free_router = navigator
-
 
 async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
     """Ask AI a question and return whether it was successful."""

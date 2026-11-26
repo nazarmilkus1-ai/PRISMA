@@ -28,6 +28,10 @@ async def admin_entry(tg_id: int) -> None:
         return
 
 async def _home_old(tg_id: int) -> tuple[str, types.InlineKeyboardMarkup]:
+    valid, error = Validation.validate_telegram_id(tg_id, "Telegram ID для старого домашнего экрана")
+    if not valid:
+        logger.warning("_home_old: invalid tg_id %s", tg_id)
+        return ("❌ Неверный Telegram ID.", home_keyboard(types.InlineKeyboardMarkup(inline_keyboard=[])))
     context = await staff_context(tg_id)
     perms = context.get("permissions") or []
     snap = await admin_dashboard.snapshot(tg_id, perms)

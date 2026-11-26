@@ -17,4 +17,3 @@ async def _check_status(message: types.Message):
         await message.answer("❌ Неверный Telegram ID.")
         return
     status = await bot_get_user_status(tg_id)
-    # ... rest of function
