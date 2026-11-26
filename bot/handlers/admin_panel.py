@@ -100,7 +100,8 @@ async def _show(callback: types.CallbackQuery, text: str, markup: types.InlineKe
     try:
         await callback.message.edit_text(text, parse_mode="HTML", reply_markup=markup)
     except Exception:
-        await callback.message.answer(text, parse_mode="HTML", reply_markup=markup)
+            logger.exception("Error editing message in _show")
+            await callback.message.answer(text, parse_mode="HTML", reply_markup=markup)
 
 
 _SECTION_TITLES = {
