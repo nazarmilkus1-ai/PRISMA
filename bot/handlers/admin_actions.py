@@ -103,4 +103,5 @@ async def admin_action(callback: types.CallbackQuery):
                 reply_markup=None,
             )
         except Exception:
+            logger.exception("Error editing message in admin_actions")
             await callback.message.edit_reply_markup(reply_markup=None)
