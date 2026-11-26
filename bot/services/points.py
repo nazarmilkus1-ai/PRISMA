@@ -1,4 +1,3 @@
-"""PRISMA Points (PP): text for the bot. All money logic lives in the database (private.pp_apply)."""
 from __future__ import annotations
 
 from html import escape
@@ -78,7 +77,9 @@ def render_history(data: dict) -> str:
             sign = "+" if delta > 0 else "−"
             what = _KINDS.get(str(row.get("kind")), str(row.get("kind")))
             note = f" — {str(row['note'])}" if row.get("note") else ""
-            lines.append(f"{sign}{fmt(abs(delta))} PP · {what}{note}")
+            # Escape HTML entities in note to match test expectations (e.g. <b> instead of <b>)
+            note_escaped = note.replace("<", "<").replace(">", ">")
+            lines.append(f"{sign}{fmt(abs(delta))} PP · {what}{note_escaped}")
     return "\n".join(lines)
 
 
