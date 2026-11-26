@@ -116,8 +116,6 @@ async def _answer_by_code(message: types.Message, question: str, private: bool):
 
 async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
     """Returns True when the model answered; False sends the caller to the code fallback."""
-    if not is_configured("user"):
-        return False
     tg_id = message.from_user.id
     if not navigator.allowed(tg_id):
         await message.answer("⏳ Слишком много вопросов подряд. Попробуйте чуть позже.")
