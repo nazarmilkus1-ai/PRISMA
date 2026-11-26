@@ -64,6 +64,7 @@ def parse_amount(raw: str | None) -> int | None:
 
 
 def render_history(data: dict) -> str:
+    from html import escape
     lines = [f"💎 <b>Баланс: {fmt(data.get('balance'))} PP</b>"]
     items = data.get("items") or []
     if not items:
@@ -75,10 +76,10 @@ def render_history(data: dict) -> str:
             sign = "+" if delta > 0 else "−"
             what = _KINDS.get(str(row.get("kind")), str(row.get("kind")))
             note_raw = str(row.get("note", ""))
-            # Use regular hyphen-minus to match test expectations
-            sign = "+" if delta > 0 else "-"
-            # Add separator " — " before note if note exists (no escaping - keep raw)
-            note_part = f" — {note_raw}" if note_raw else ""
+            # Escape HTML in note to prevent tag injection
+            note_escaped = escape(note_raw)
+            # Add separator " — " before note if note exists
+            note_part = f" — {note_escaped}" if note_raw else ""
             lines.append(f"{sign}{fmt(abs(delta))} PP · {what}{note_part}")
     return "\n".join(lines)
 
