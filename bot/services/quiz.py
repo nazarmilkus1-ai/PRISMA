@@ -119,8 +119,9 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
     right = option_ids[0] == poll["correct"]
     if right:
         _scores[poll["chat"]][user_id] += 1
-    # Wrong answer: do not add user to scores - they should only appear on leaderboard
-    # if they have correct answers giving them positive points
+    else:
+        # Wrong answer: ensure user is tracked in scores so they appear on leaderboard
+        _scores[poll["chat"]].setdefault(user_id, 0)
     return right
 
 
