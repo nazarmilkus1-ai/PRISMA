@@ -221,7 +221,13 @@ async def find_start(callback: types.CallbackQuery, state: FSMContext):
 
 @router.message(StateFilter(PanelStates.find_player), F.text, ~F.text.startswith("/"))
 async def find_result(message: types.Message, state: FSMContext):
-    context = await staff_context(message.from_user.id)
+    user_id = message.from_user.id
+    valid, error = Validation.validate_telegram_id(user_id, "find_result")
+    if not valid:
+        Validation.log_warning("find_result", user_id, "find_result", error)
+        await message.answer("❌ Неверный идентификатор пользователя.")
+        return
+    context = await staff_context(user_id)
     if not context.get("is_staff"):
         await state.clear()
         return
