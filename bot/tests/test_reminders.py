@@ -43,6 +43,60 @@ class ParseTests(unittest.TestCase):
     def test_friendly_errors(self):
         self.assertIn("20", reminders.friendly_error("REMINDER_LIMIT"))
         self.assertIn("год", reminders.friendly_error("... REMINDER_TIME_TOO_FAR ..."))
+        self.assertIn("Бесплатно", reminders.friendly_error("REMINDER_TEXT_INVALID"))
+        self.assertIn("Не получилось", reminders.friendly_error("UNKNOWN_ERROR"))
+
+class FmtTests(unittest.TestCase):
+    def test_fmt_with_datetime(self):
+        from datetime import datetime
+        when = datetime(2026, 12, 25, 14, 30, tzinfo=reminders.TZ)
+        result = reminders.fmt(when)
+        self.assertIn("25.12", result)
+        self.assertIn("14:30", result)
+
+    def test_fmt_with_string(self):
+        result = reminders.fmt("2026-12-25T14:30:00+00:00")
+        self.assertIn("25.12", result)
+        self.assertIn("16:30", result)
+
+    def test_fmt_with_none(self):
+        result = reminders.fmt(None)
+        self.assertEqual(result, "00.00")
+
+    def test_fmt_with_past_date(self):
+        from datetime import datetime
+        when = datetime(2020, 1, 1, 0, 0, tzinfo=reminders.TZ)
+        result = reminders.fmt(when)
+        self.assertIn("01.01", result)
+        self.assertIn("00:00", result)
+
+    def test_fmt_with_empty_string(self):
+        result = reminders.fmt("")
+        self.assertEqual(result, "00.00")
+
+    def test_fmt_with_future_date(self):
+        from datetime import datetime
+        when = datetime(2030, 6, 15, 20, 45, tzinfo=reminders.TZ)
+        result = reminders.fmt(when)
+        self.assertIn("15.06", result)
+        self.assertIn("20:45", result)
+
+
+class FriendlyErrorTests(unittest.TestCase):
+    def test_friendly_error_reminder_limit(self):
+        self.assertIn("20", reminders.friendly_error("REMINDER_LIMIT"))
+
+    def test_friendly_error_reminder_time_too_far(self):
+        self.assertIn("год", reminders.friendly_error("REMINDER_TIME_TOO_FAR"))
+
+    def test_friendly_error_reminder_text_invalid(self):
+        # Последнее исправление: в ERRORS для REMINDER_TEXT_INVALID добавлено "Бесплатно"
+        result = reminders.friendly_error("REMINDER_TEXT_INVALID")
+        self.assertIn("300", result)
+        self.assertIn("Бесплатно", result)
+
+    def test_friendly_error_unknown(self):
+        self.assertIn("Не получилось", reminders.friendly_error("UNKNOWN_ERROR"))
 
 
 class ToolWiringTests(unittest.TestCase):
@@ -59,4 +113,4 @@ class ToolBehaviourTests(unittest.IsolatedAsyncioTestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(verbosity=2)

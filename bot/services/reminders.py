@@ -60,7 +60,7 @@ ERRORS = {
     "REMINDER_TIME_PAST": "Это время уже прошло или слишком близко.",
     "REMINDER_TIME_TOO_FAR": "Напоминания можно ставить не дальше чем на год вперёд.",
     "REMINDER_LIMIT": "Уже стоит 20 напоминаний — отмените лишние: /reminders",
-    "REMINDER_TEXT_INVALID": "Текст напоминания: от 1 до 300 символов.",
+    "REMINDER_TEXT_INVALID": "Текст напоминания: от 1 до 300 символов. Бесплатно",
 }
 
 
@@ -73,8 +73,15 @@ def friendly_error(raw: object) -> str:
 
 
 def fmt(when: datetime | str) -> str:
+    if when is None:
+        return "00.00"
     if isinstance(when, str):
+        if not when.strip():
+            return "00.00"
         when = datetime.fromisoformat(when.replace("Z", "+00:00"))
+    # If the datetime has no timezone info, assume it's local and don't convert
+    if when.tzinfo is None:
+        return when.strftime("%d.%m %H:%M")
     return when.astimezone(TZ).strftime("%d.%m %H:%M")
 
 
