@@ -1,3 +1,11 @@
+import asyncio
+import logging
+import os
+import re
+
+from aiogram import types
+from utils.validation import Validation
+
 async def _answer_by_code(message: types.Message, question: str, private: bool):
     tg_id = message.from_user.id
     valid, error = Validation.validate_telegram_id(tg_id, "Telegram ID для AI")
