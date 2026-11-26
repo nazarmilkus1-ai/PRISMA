@@ -6,6 +6,7 @@ from db.rpc import bot_ban_review_keep, bot_ban_review_list, bot_check_admin_per
 from services import ban_review
 from utils.errors import safe_rpc_error
 from utils.permissions import is_admin_mode
+from utils.validation import Validation
 
 router = Router(name="ban_review")
 
@@ -18,6 +19,11 @@ async def on_decision(call: types.CallbackQuery):
         return
     action, tg_id = parsed
     admin_id = call.from_user.id
+    valid, error = Validation.validate_telegram_id(tg_id, "Telegram ID игрока")
+    if not valid:
+        Validation.log_warning("on_decision", admin_id, "ban_review", error)
+        await call.answer("Неверный ID игрока.", show_alert=True)
+        return
     if action == "ok":
         result = await bot_lift_punishment(tg_id, "BAN", admin_id)
     else:
