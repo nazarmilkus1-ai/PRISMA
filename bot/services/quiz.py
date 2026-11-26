@@ -119,7 +119,9 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
     right = option_ids[0] == poll["correct"]
     if right:
         _scores[poll["chat"]][user_id] += 1
-    # Wrong answers do not add to scores (keep leaderboard clean of incorrect guesses)
+    else:
+        # Wrong answers still add user to scores dict so leaderboard shows them
+        _scores[poll["chat"]][user_id] += 0
     return right
 
 
