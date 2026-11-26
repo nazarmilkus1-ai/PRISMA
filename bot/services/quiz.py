@@ -54,6 +54,9 @@ def parse(raw: str) -> dict | None:
         return None
     if not 10 <= len(question) <= 300 or any(not 1 <= len(o) <= 100 for o in options) or len({o.casefold() for o in options}) != len(options):
         return None
+    # Validate question contains actual content (not just ?)
+    if question == "?" or not any(c.isalnum() for c in question):
+        return None
     return {"question": question, "options": options, "correct": correct,
             "explanation": str(data.get("explanation") or "").strip()[:190] or None}
 
