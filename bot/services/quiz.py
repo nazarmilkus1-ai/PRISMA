@@ -20,7 +20,6 @@ _polls: dict[str, dict] = {}
 _last: dict[int, float] = {}
 _day: dict[int, tuple[int, int]] = {}
 
-
 def allowed(chat_id: int, now: float | None = None) -> str | None:
     """None when a new round may start, otherwise the reason (for the chat)."""
     now = time.time() if now is None else now
@@ -33,9 +32,8 @@ def allowed(chat_id: int, now: float | None = None) -> str | None:
     _day[chat_id] = (int(now // 86400), (count if day == int(now // 86400) else 0) + 1)
     return None
 
-
 def parse(raw: str) -> dict | None:
-    match = re.search(r"\{.*\}", raw or "", re.S)
+    match = re.search(r"\\{.*\\}", raw or "", re.S)
     if not match:
         return None
     try:
@@ -63,7 +61,6 @@ def parse(raw: str) -> dict | None:
     return {"question": question, "options": options, "correct": correct,
             "explanation": str(data.get("explanation") or "").strip()[:190] or None}
 
-
 def _system(topic: str, adult: int) -> str:
     base = (
         "Ты придумываешь ОДИН вопрос викторины для Telegram-чата Minecraft-сообщества. Вопрос должен иметь один бесспорно верный ответ "
@@ -78,7 +75,6 @@ def _system(topic: str, adult: int) -> str:
     if adult:
         base += " Тон вопроса дерзкий и с юмором."
     return base
-
 
 async def generate(topic: str = "minecraft", adult: int = 0, seen: list[str] | None = None) -> dict | None:
     if not is_configured("user"):
@@ -96,17 +92,13 @@ async def generate(topic: str = "minecraft", adult: int = 0, seen: list[str] | N
             return quiz
     return None
 
-
 _recent: dict[int, list[str]] = defaultdict(list)
-
 
 def remember_question(chat_id: int, question: str) -> None:
     _recent[chat_id] = (_recent[chat_id] + [question[:80]])[-10:]
 
-
 def recent(chat_id: int) -> list[str]:
     return _recent[chat_id]
-
 
 def register_poll(poll_id: str, chat_id: int, correct: int, options: list[str] | None = None) -> None:
     if options is None:
@@ -115,7 +107,6 @@ def register_poll(poll_id: str, chat_id: int, correct: int, options: list[str] |
     if len(_polls) > MAX_TRACKED:
         for key in list(_polls)[: MAX_TRACKED // 2]:
             _polls.pop(key, None)
-
 
 def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) -> bool | None:
     """True/False for a counted answer, None when the poll is unknown or the user already answered."""
@@ -144,7 +135,6 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
         _scores[poll["chat"]][user_id] += 1
     # If wrong answer by new user, keep at 0 but user is now tracked for leaderboard
     return right
-
 
 def leaderboard(chat_id: int, limit: int = 10) -> list[tuple[str, int]]:
     # Include all users who answered, regardless of score
