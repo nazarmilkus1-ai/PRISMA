@@ -78,6 +78,7 @@ async def primary_for(tg_id: int, now: float | None = None) -> int | None:
     try:
         result = await bot_telegram_alias_resolve(tg_id)
     except Exception:
+        logger.exception("alias resolve failed for tg_id %s", tg_id)
         return None
     if result.error:
         return None
