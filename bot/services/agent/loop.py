@@ -18,6 +18,7 @@ async def _cycle_seconds() -> int:
         goals = (await rpc.bot_agent_goals_list(None, 50)).data or []
         return autopilot.cycle_seconds(state, goals)
     except Exception:
+        logger.exception("agent cycle seconds failed")
         return config.CYCLE_SECONDS
 
 
