@@ -1,3 +1,5 @@
+from utils.validation import Validation
+
 async def _home(tg_id: int) -> tuple[str, types.InlineKeyboardMarkup]:
     valid, err = Validation.validate_telegram_id(tg_id, "Telegram ID")
     if not valid:
