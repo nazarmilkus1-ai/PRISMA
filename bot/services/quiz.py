@@ -117,7 +117,10 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
     poll["answered"].add(user_id)
     _names[(poll["chat"], user_id)] = name[:32]
     right = option_ids[0] == poll["correct"]
-    _scores[poll["chat"]][user_id] += 1 if right else 0
+    if right:
+        _scores[poll["chat"]][user_id] += 1
+    else:
+        _scores[poll["chat"]][user_id] = _scores[poll["chat"]].get(user_id, 0)
     return right
 
 
