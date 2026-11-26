@@ -144,9 +144,10 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
 
 
 def leaderboard(chat_id: int, limit: int = 10) -> list[tuple[str, int]]:
-    # Only include users with score > 0, or if all users have 0, include the first one
-    items = [(_names.get((chat_id, uid), "игрок"), pts) for uid, pts in _scores[chat_id].items() if pts > 0]
+    # Include all users who answered, regardless of score
+    items = [(_names.get((chat_id, uid), "игрок"), pts) for uid, pts in _scores[chat_id].items() if uid in _names]
     if not items:
-        # If all scores are 0, include up to limit players who answered
-        items = [(_names.get((chat_id, uid), "игрок"), pts) for uid, pts in _scores[chat_id].most_common(limit) if uid in _names]
+        return []
+    # Sort by score descending, then by name for stable order
+    items.sort(key=lambda x: (-x[1], x[0]))
     return items[:limit]
