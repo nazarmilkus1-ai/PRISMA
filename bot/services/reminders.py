@@ -77,6 +77,9 @@ def fmt(when: datetime | str) -> str:
         return "00.00"
     if isinstance(when, str):
         when = datetime.fromisoformat(when.replace("Z", "+00:00"))
+    # If the datetime has no timezone info, assume it's local and don't convert
+    if when.tzinfo is None:
+        return when.strftime("%d.%m %H:%M")
     return when.astimezone(TZ).strftime("%d.%m %H:%M")
 
 
