@@ -105,7 +105,7 @@ async def _answer_by_code(message: types.Message, question: str, private: bool):
         me = await message.bot.me()
         markup = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
             text="🤖 Написать PRISMA_AI в личке", url=ambient.invite_url(me.username or "", "general"))]])
-        await message.reply("😕 Сейчас ответить не получилось. Попробуй ещё раз или напиши мне в личку.",
+        await message.reply("😕 Сейчас ответить не получилось. Напишите мне в личку, если проблема сохранится.",
                             reply_markup=markup, allow_sending_without_reply=True)
         return
     if is_configured("user"):
