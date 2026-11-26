@@ -48,15 +48,25 @@ async def on_decision(call: types.CallbackQuery):
         if chat_id is None:
             await call.answer("❌ Не удалось получить ID чата.", show_alert=True)
             return
-        # Unban the player in the community chat
+        # Unban the player in the community chat and send invite link
         try:
             await call.bot.unban_chat_member(chat_id, tg_id, only_if_banned=True)
         except Exception:
             logger.exception("unban in community chat failed for %s", tg_id)
             await call.answer("❌ Ошибка при разбане в чате.", show_alert=True)
             return
-        # Notify the player about the unban
-        await call.bot.send_message(tg_id, "Вы были разбанены в чате.")
+        # Create invite link and notify the player
+        try:
+            created = await call.bot.create_chat_invite_link(
+                chat_id, name="return after ban", member_limit=1, expire_date=int(time.time()) + 7 * 24 * 3600
+            )
+            link = created.invite_link
+        except Exception:
+            logger.exception("invite link failed for %s", tg_id)
+            link = None
+        text = "✅ Срок бана закончился, администратор подтвердил ваше возвращение в PRISMA."
+        text += f"\nВот ссылка для входа в чат (действует 7 дней, один вход):\n{link}" if link else "\nЗайдите обратно в чат сообщества."
+        await call.bot.send_message(tg_id, text, disable_web_page_preview=True)
     elif action == "keep":
         # Keep the ban - use bot_ban_review_keep
         await bot_ban_review_keep(tg_id, admin_id)
