@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 from aiogram import types
 from utils.validation import Validation
 from db.rpc import bot_get_user_status
-from services.ai import navigator
+from services.ai import navigator, ambient, member_tools
 
 
 def is_configured() -> bool:
@@ -22,3 +22,7 @@ async def _status_for_intent(tg_id: int, kind: str | None) -> str:
 
 async def run_member(member_id: int, action: str, **kwargs) -> bool:
     return True
+
+
+ai_memory = navigator
+free_router = navigator
