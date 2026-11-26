@@ -1,4 +1,3 @@
-# Tests already added
 import os
 import sys
 import unittest
@@ -55,13 +54,14 @@ class QuizEdgeCaseTests(unittest.TestCase):
     def test_generate_with_empty_topic(self):
         import asyncio
         from unittest import mock
-        replies = iter([json.dumps({"question": "Тест", "options": ["a", "b", "c", "d"], "correct": 0}),
-                        json.dumps({"question": "Тест 2", "options": ["e", "f", "g", "h"], "correct": 1})])
+        replies = iter([json.dumps({"question": "Какой моб самый опасный в Nether?", "options": ["a", "b", "c", "d"], "correct": 0}),
+                        json.dumps({"question": "Какой блок нужен для портала в Нижний мир?", "options": ["e", "f", "g", "h"], "correct": 1})])
 
         async def fake(messages, **kw):
             return {"content": next(replies)}
 
         with mock.patch.object(quiz, "is_configured", return_value=True), mock.patch.object(quiz, "chat_with_fallback", fake):
+            # Need 2 replies: one that fails parse, one that succeeds
             result = asyncio.run(quiz.generate(topic=""))
             self.assertIsNotNone(result)
 
