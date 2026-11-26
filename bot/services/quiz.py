@@ -61,6 +61,14 @@ def parse(raw: str) -> dict | None:
     return {"question": question, "options": options, "correct": correct,
             "explanation": str(data.get("explanation") or "").strip()[:190] or None}
 
+def _system(topic: str, adult: int) -> str:
+    """Generate system prompt for quiz AI based on topic and adult filter."""
+    base = "Ты — полезный ассистент для Minecraft-сообщества. "
+    if adult:
+        base += "Отвечай с учетом возрастного ограничения. "
+    base += f"Тема: {topic}. Формируй вопрос с 2-4 вариантами ответа, правильный индекс от 0 до 3."
+    return base
+
 async def generate(topic: str = "minecraft", adult: int = 0, seen: list[str] | None = None) -> dict | None:
     if not is_configured("user"):
         return None
@@ -70,8 +78,6 @@ async def generate(topic: str = "minecraft", adult: int = 0, seen: list[str] | N
             message = await chat_with_fallback(
                 [{"role": "system", "content": _system(topic, adult) + avoid}, {"role": "user", "content": "Новый вопрос."}],
                 role="user", max_tokens=800, timeout=40, temperature=0.9)
-        except AIError:
-            continue
         except AIError:
             continue
         quiz = parse(str(message.get("content") or ""))
