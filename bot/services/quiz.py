@@ -127,6 +127,7 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
         # If user already has score, keep existing score (don't overwrite with 0)
         # This ensures both players appear on leaderboard when they give different answers
         # _names already updated above
+    # Always ensure user appears on leaderboard by keeping their name tracked
     return right
 
 
