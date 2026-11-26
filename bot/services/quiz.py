@@ -121,7 +121,7 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
         _scores[poll["chat"]][user_id] += 1
     else:
         # Wrong answer: ensure user is tracked in scores so they appear on leaderboard
-        # Only add user to scores if they actually answered (not just registered)
+        # Always set to 0 if user not already tracked (so they appear on leaderboard even with 0 points)
         if user_id not in _scores[poll["chat"]]:
             _scores[poll["chat"]][user_id] = 0
         # Also ensure the name is stored for this user on this chat
