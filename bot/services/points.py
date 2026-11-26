@@ -53,7 +53,8 @@ def parse_amount(raw: str | None) -> int | None:
     if raw is None:
         return None
     raw = raw.strip().replace(" ", "")
-    if raw.lstrip("+-").isdigit():
+    digit_part = raw.lstrip("+-")
+    if digit_part.isascii() and digit_part.isdigit():
         return int(raw)
     return None
 
