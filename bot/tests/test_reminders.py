@@ -40,6 +40,28 @@ class ParseTests(unittest.TestCase):
         self.assertIsNone(reminders.parse("25:99 текст", NOW))
         self.assertIsNone(reminders.parse("5 лет текст", NOW))
 
+    def test_parse_edge_cases(self):
+        # Empty string
+        self.assertIsNone(reminders.parse("", NOW))
+        # Just text without time
+        self.assertIsNone(reminders.parse("просто текст", NOW))
+        # Very large number of minutes
+        result = reminders.parse("999999m текст", NOW)
+        self.assertIsNotNone(result)
+        # Negative number (should not match pattern)
+        self.assertIsNone(reminders.parse("-5m текст", NOW))
+        # Float number (should not match pattern)
+        self.assertIsNone(reminders.parse("5.5m текст", NOW))
+        # Text with only unit but no number
+        self.assertIsNone(reminders.parse("м текст", NOW))
+        # Very long number
+        result = reminders.parse("1234m текст", NOW)
+        self.assertIsNotNone(result)
+        # Text with "через" and large number
+        when, text = reminders.parse("через 1000 минут напоминание", NOW)
+        self.assertIsNotNone(result)
+        self.assertEqual(text, "напоминание")
+
     def test_friendly_errors(self):
         self.assertIn("20", reminders.friendly_error("REMINDER_LIMIT"))
         self.assertIn("год", reminders.friendly_error("... REMINDER_TIME_TOO_FAR ..."))
