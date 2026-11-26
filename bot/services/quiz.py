@@ -109,6 +109,9 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
     poll = _polls.get(poll_id)
     if not poll or not option_ids:
         return None
+    # Если пользователь уже отвечал на этот опрос — игнорируем повторную отправку
+    if user_id in poll["answered"]:
+        return None
     # Check if this specific option was already chosen by another user
     # If so, ignore this answer (duplicate option)
     option_id = option_ids[0]
