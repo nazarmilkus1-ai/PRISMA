@@ -43,9 +43,9 @@ class QuizEdgeCaseTests(unittest.TestCase):
         self.assertIsNone(result)
 
     def test_parse_json_with_extra_fields(self):
-        result = quiz.parse('{"question": "Тест", "options": ["Один", "Два", "Три", "Четыре"], "correct": 0, "extra": "field"}')
+        result = quiz.parse('{"question": "Тестовый вопрос", "options": ["Один", "Два", "Три", "Четыре"], "correct": 0, "extra": "field"}')
         self.assertIsNotNone(result)
-        self.assertEqual(result["question"], "Тест")
+        self.assertEqual(result["question"], "Тестовый вопрос")
 
     def test_parse_unicode_options(self):
         result = quiz.parse('{"question": "Тест", "options": ["Кириллица", "Ελληνικά", "中文"], "correct": 0}')
