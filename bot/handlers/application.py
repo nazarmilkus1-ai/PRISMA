@@ -211,6 +211,13 @@ async def process_agreement(callback: types.CallbackQuery, state: FSMContext):
         await state.clear()
         await callback.message.edit_text("❌ Вы отказались от обработки данных. Вернуться можно через /start.")
         return
+    tg_id_valid, tg_id_error = Validation.validate_telegram_id(callback.from_user.id, "Telegram ID при согласии")
+    if not tg_id_valid:
+        Validation.log_warning("process_agreement", callback.from_user.id, "process_agreement", tg_id_error)
+        await callback.answer(tg_id_error, show_alert=True)
+        await state.clear()
+        await callback.message.edit_text("❌ Ошибка валидации ID. Попробуйте /start ещё раз.")
+        return
     await state.update_data(
         tg_id=callback.from_user.id,
         username=callback.from_user.username or "",
