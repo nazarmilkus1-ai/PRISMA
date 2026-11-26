@@ -71,6 +71,13 @@ async def home_callback(callback: types.CallbackQuery, state: FSMContext):
 async def _guard(callback: types.CallbackQuery, permission: str | None) -> bool:
     if not await require_admin_mode_callback(callback):
         return False
+    # Валидация Telegram ID
+    tg_id = callback.from_user.id
+    valid, error = Validation.validate_telegram_id(tg_id, "Telegram ID в админ-панели")
+    if not valid:
+        Validation.log_warning("_guard", tg_id, "_guard", error)
+        await callback.answer("❌ Неверный идентификатор пользователя.", show_alert=True)
+        return False
     if permission:
         from db.rpc import bot_check_admin_permission
         result = await bot_check_admin_permission(callback.from_user.id, permission)
