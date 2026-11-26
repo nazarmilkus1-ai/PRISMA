@@ -43,10 +43,10 @@ def parse(raw: str) -> dict | None:
     question = str(data.get("question") or "").strip()
     options = [str(o).strip() for o in (data.get("options") or [])]
     correct = data.get("correct")
-    # Allow 2-4 options, correct index must be valid for the number of options
+    # Require exactly 4 options, correct index must be valid for the number of options
     if not isinstance(correct, int) or isinstance(correct, bool) or correct is None:
         return None
-    if not 2 <= len(options) <= 4:
+    if len(options) != 4:
         return None
     if not 0 <= correct < len(options):
         return None
