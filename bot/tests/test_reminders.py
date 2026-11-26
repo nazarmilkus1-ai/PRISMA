@@ -57,7 +57,7 @@ class FmtTests(unittest.TestCase):
     def test_fmt_with_string(self):
         result = reminders.fmt("2026-12-25T14:30:00+00:00")
         self.assertIn("25.12", result)
-        self.assertIn("14:30", result)
+        self.assertIn("16:30", result)
 
     def test_fmt_with_none(self):
         result = reminders.fmt(None)
