@@ -122,6 +122,8 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
     # Validate option_id is within valid range for this poll's options
     option_id = option_ids[0]
     options = poll.get("options") or []
+    if not options:
+        return None
     if not isinstance(poll["correct"], int) or option_id < 0 or option_id >= len(options):
         return None
     # Track that this user answered using (chat_id, user_id) key
