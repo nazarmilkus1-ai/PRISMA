@@ -28,6 +28,7 @@ class PanelStates(StatesGroup):
 
 
 async def _home(tg_id: int) -> tuple[str, types.InlineKeyboardMarkup]:
+    Validation.validate_telegram_id(tg_id, "_home")
     context = await staff_context(tg_id)
     perms = context.get("permissions") or []
     snap = await admin_dashboard.snapshot(tg_id, perms)
