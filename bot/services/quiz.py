@@ -112,21 +112,18 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
     poll = _polls.get(poll_id)
     if not poll or not option_ids:
         return None
-    # Если пользователь уже отвечал на этот опрос — игнорируем повторную отправку
-    # Но всё ещё считаем баллы, если пользователя ещё нет в очках (для лидераборда)
-    if user_id in poll["answered"]:
-        return None
     # Check if this specific option was already chosen by another user
     # If so, ignore this answer (duplicate option)
     option_id = option_ids[0]
+    # Track that this user answered (but allow different users with same poll)
     poll["answered"].add(user_id)
     _names[(poll["chat"], user_id)] = name[:32]
     right = option_id == poll["correct"]
-    # Add user to scores on first attempt (even if wrong) so they appear on leaderboard
-    # Only increment if correct; wrong answers still give 0 but user is tracked
-    if user_id not in _scores[poll["chat"]]:
-        _scores[poll["chat"]][user_id] = 0
+    # Only add user to scores and increment if answer is correct
+    # Wrong answers give 0 and user is not tracked for leaderboard
     if right:
+        if user_id not in _scores[poll["chat"]]:
+            _scores[poll["chat"]][user_id] = 0
         _scores[poll["chat"]][user_id] += 1
     return right
 
