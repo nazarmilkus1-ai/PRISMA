@@ -121,10 +121,11 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
         return None  # User already answered this poll - ignore duplicate
     poll.setdefault("answered", set()).add(answer_key)
     right = option_id == poll["correct"]
+    # Track all users who answered, regardless of correctness
+    _names[answer_key] = name[:32]
+    if user_id not in _scores[poll["chat"]]:
+        _scores[poll["chat"]][user_id] = 0
     if right:
-        _names[answer_key] = name[:32]
-        if user_id not in _scores[poll["chat"]]:
-            _scores[poll["chat"]][user_id] = 0
         _scores[poll["chat"]][user_id] += 1
     return right
 
