@@ -122,7 +122,7 @@ async def build(chat_id: int, facts: dict | None = None) -> str:
             text = sanitize.clean(str(message.get("content") or ""))
             if text:
                 return strip_markdown(text)
-        except AIError as exc:
+        except Exception as exc:
             logger.info("digest model failed, using the template: %s", exc)
     return template(facts)
 
