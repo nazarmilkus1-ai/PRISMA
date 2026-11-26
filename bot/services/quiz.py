@@ -122,4 +122,4 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
 
 
 def leaderboard(chat_id: int, limit: int = 10) -> list[tuple[str, int]]:
-    return [(_names.get((chat_id, uid), "игрок"), pts) for uid, pts in _scores[chat_id].most_common(limit) if pts > 0]
+    return [(_names.get((chat_id, uid), "игрок"), pts) for uid, pts in _scores[chat_id].most_common(limit)]
