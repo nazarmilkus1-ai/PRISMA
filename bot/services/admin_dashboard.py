@@ -3,8 +3,11 @@ member holds the matching view permission; a failed lookup shows as unknown, nev
 from __future__ import annotations
 
 import asyncio
+import logging
 from datetime import datetime, timezone
 from html import escape
+
+logger = logging.getLogger(__name__)
 
 from db.admin import open_appeals, open_reports, pending_applications
 from db.player import get_online_players, get_server_metrics
