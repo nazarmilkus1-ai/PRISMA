@@ -18,9 +18,71 @@ class PointsTextTests(unittest.TestCase):
         self.assertIsNone(points.parse_amount("abc"))
         self.assertIsNone(points.parse_amount("1.5"))
 
+    def test_parse_amount_edge_cases(self):
+        # Empty string
+        self.assertIsNone(points.parse_amount(""))
+        # String with only spaces
+        self.assertIsNone(points.parse_amount("   "))
+        # Float as string
+        self.assertIsNone(points.parse_amount("3.14"))
+        # String with leading/trailing spaces
+        self.assertEqual(points.parse_amount("  50  "), 50)
+        # Zero
+        self.assertEqual(points.parse_amount("0"), 0)
+        # Positive sign only
+        self.assertEqual(points.parse_amount("+0"), 0)
+        # None input
+        self.assertIsNone(points.parse_amount(None))
+        # Negative float as string
+        self.assertIsNone(points.parse_amount("-3.14"))
+        # String with only minus
+        self.assertIsNone(points.parse_amount("-"))
+        # Unicode digits
+        self.assertIsNone(points.parse_amount("５０"))
+        # None input
+        self.assertIsNone(points.parse_amount(None))
+        # Negative float as string
+        self.assertIsNone(points.parse_amount("-3.14"))
+        # String with only minus
+        self.assertIsNone(points.parse_amount("-"))
+        # Unicode digits
+        self.assertIsNone(points.parse_amount("５０"))
+        # Boolean string
+        self.assertIsNone(points.parse_amount("True"))
+        # Empty with plus
+        self.assertIsNone(points.parse_amount("+"))
+
     def test_fmt_groups_thousands(self):
         self.assertEqual(points.fmt(1234567), "1 234 567")
         self.assertEqual(points.fmt(None), "0")
+
+    def test_fmt_edge_cases(self):
+        # Negative number
+        self.assertEqual(points.fmt(-1234567), "-1 234 567")
+        # Zero
+        self.assertEqual(points.fmt(0), "0")
+        # Small positive number
+        self.assertEqual(points.fmt(100), "100")
+        # Large number
+        self.assertEqual(points.fmt(999999999), "999 999 999")
+        # Float value (should be converted to int)
+        self.assertEqual(points.fmt(1234.56), "1 234")
+        # None input
+        self.assertEqual(points.fmt(None), "0")
+        # Very large number
+        self.assertEqual(points.fmt(999999999999), "999 999 999 999")
+        # Single digit
+        self.assertEqual(points.fmt(5), "5")
+        # Two digits
+        self.assertEqual(points.fmt(99), "99")
+        # None input
+        self.assertEqual(points.fmt(None), "0")
+        # Very large number
+        self.assertEqual(points.fmt(999999999999), "999 999 999 999")
+        # Single digit
+        self.assertEqual(points.fmt(5), "5")
+        # Two digits
+        self.assertEqual(points.fmt(99), "99")
 
     def test_history_render(self):
         text = points.render_history({"balance": 90, "items": [
