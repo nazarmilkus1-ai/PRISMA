@@ -79,7 +79,10 @@ class FriendlyErrorTests(unittest.TestCase):
         self.assertIn("год", reminders.friendly_error("REMINDER_TIME_TOO_FAR"))
 
     def test_friendly_error_reminder_text_invalid(self):
-        self.assertIn("300", reminders.friendly_error("REMINDER_TEXT_INVALID"))
+        # Последнее исправление: в ERRORS для REMINDER_TEXT_INVALID добавлено "Бесплатно"
+        result = reminders.friendly_error("REMINDER_TEXT_INVALID")
+        self.assertIn("300", result)
+        self.assertIn("Бесплатно", result)
 
     def test_friendly_error_unknown(self):
         self.assertIn("Не получилось", reminders.friendly_error("UNKNOWN_ERROR"))
