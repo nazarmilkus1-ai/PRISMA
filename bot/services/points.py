@@ -3,6 +3,10 @@ from __future__ import annotations
 
 from html import escape
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 _ERRORS = {
     "USER_NOT_FOUND": "Профиль не найден. Сначала /start.",
     "TARGET_NOT_FOUND": "Не нашёл такого игрока (укажи @username или ник в игре).",
@@ -37,7 +41,8 @@ def fee_label(row: dict) -> str:
     fee = row.get("entry_fee_pp") if isinstance(row, dict) else None
     try:
         fee = int(fee or 0)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError) as exc:
+        logger.error("Failed to parse fee: %s", exc)
         fee = 0
     return f"{fee:,} PP".replace(",", " ") if fee > 0 else "бесплатно"
 
