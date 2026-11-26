@@ -82,6 +82,10 @@ async def notify_admins(bot: Bot, rows: list[dict]) -> int:
 
 async def invite_back(bot: Bot, tg_id: int) -> str:
     """Unban in the community chat and send the player an invitation. Returns a short status for the admins."""
+    valid, error = Validation.validate_telegram_id(tg_id, "Telegram ID для приглашения обратно")
+    if not valid:
+        logger.warning("Invalid tg_id in invite_back: %s", error)
+        return "неверный Telegram ID"
     chat = await bot_get_community_chat_id()
     chat_id = chat.data if not chat.error and isinstance(chat.data, int) else None
     link = None
