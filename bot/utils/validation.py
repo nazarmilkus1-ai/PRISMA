@@ -70,11 +70,16 @@ class Validation:
 
     @staticmethod
     def validate_telegram_id(tg_id: int, context: str = "Telegram ID") -> tuple[bool, Optional[str]]:
-        """Проверяет, что Telegram ID — положительное число."""
-        if not isinstance(tg_id, int) or tg_id <= 0:
+        """Проверяет, что Telegram ID — положительное число в допустимом диапазоне (до 2^53-1)."""
+        if not isinstance(tg_id, int) or tg_id <= 0 or tg_id > 9007199254740991:
             logger.warning("Validation failed: invalid %s: %s", context, tg_id)
             return False, f"Неверный {context.lower()}."
         return True, None
+
+    @staticmethod
+    def is_valid(tg_id: int) -> bool:
+        """Быстрая проверка: валидный ли Telegram ID (без логирования)."""
+        return isinstance(tg_id, int) and 0 < tg_id <= 9007199254740991
 
     @staticmethod
     def validate_text(value: str, min_length: int = 1, max_length: int = 1000, context: str = "Текст") -> tuple[bool, Optional[str]]:
