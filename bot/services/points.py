@@ -64,6 +64,9 @@ def parse_amount(raw: str | None) -> int | None:
     # Allow negative numbers; reject zero
     if value == 0:
         return None
+    # Range: 1 to 100 000
+    if value < 1 or value > 100_000:
+        return None
     return value
 
 
