@@ -90,9 +90,9 @@ class DigestEdgeCaseTests(unittest.TestCase):
 
     def test_scoring_multiple_players_unique(self):
         quiz._scores.clear(); quiz._polls.clear(); quiz._names.clear()
-        quiz.register_poll("p1", -1, 2)
+        quiz.register_poll("p1", -1, 0)
         quiz.record_answer("p1", 5, "Саша", [0])
-        quiz.record_answer("p1", 6, "Вова", [1])
+        quiz.record_answer("p1", 6, "Вова", [0])
         leaderboard = quiz.leaderboard(-1)
         self.assertEqual(len(leaderboard), 2)
         names = [name for name, _ in leaderboard]
