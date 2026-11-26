@@ -33,7 +33,7 @@ def allowed(chat_id: int, now: float | None = None) -> str | None:
     return None
 
 def parse(raw: str) -> dict | None:
-    match = re.search(r"\{.*\}", raw or "", re.S)
+    match = re.search(r"\\{.*\\}", raw or "", re.S)
     if not match:
         return None
     try:
@@ -60,21 +60,6 @@ def parse(raw: str) -> dict | None:
         return None
     return {"question": question, "options": options, "correct": correct,
             "explanation": str(data.get("explanation") or "").strip()[:190] or None}
-
-def _system(topic: str, adult: int) -> str:
-    base = (
-        "Ты придумываешь ОДИН вопрос викторины для Telegram-чата Minecraft-сообщества. Вопрос должен иметь один бесспорно верный ответ "
-        "и три правдоподобных неверных. Не используй спорные или зависящие от версии факты. Ответь ТОЛЬКО JSON: "
-        '{"question":"...","options":["...","...","...","..."],"correct":0-3,"explanation":"одна короткая фраза, почему"}. '
-        "Вариантов ровно 4, верный ставь на случайное место."
-    )
-    if topic == "rules":
-        base += " Тема: правила сообщества PRISMA. Правила:\n" + "\n".join(f"{t}: {b}" for t, b in RULES) + "\nСпрашивай только по этим правилам."
-    else:
-        base += " Тема: Minecraft (мобы, крафт, блоки, механики, история игры, редстоун, биомы). Разной сложности."
-    if adult:
-        base += " Тон вопроса дерзкий и с юмором."
-    return base
 
 async def generate(topic: str = "minecraft", adult: int = 0, seen: list[str] | None = None) -> dict | None:
     if not is_configured("user"):
