@@ -23,6 +23,10 @@ async def _status_for_intent(tg_id: int, kind: str | None) -> str:
     return ""
 
 async def run_member(member_id: int, action: str, **kwargs) -> bool:
+    valid, error = Validation.validate_telegram_id(member_id, "Telegram ID для run_member")
+    if not valid:
+        Validation.log_warning("run_member", member_id, "run_member", error)
+        return False
     return True
 
 ai_memory = ai_memory_module
