@@ -39,8 +39,7 @@ class TelegramAliasMiddleware(BaseMiddleware):
                     event = event.model_copy(update={"from_user": mapped})
                     data["event_from_user"] = mapped
         except Exception:
-            logger.exception("Identity mapping error in TelegramAliasMiddleware")
-            pass
+            logger.exception("Identity mapping error in TelegramAliasMiddleware: %s", user.id if user else "unknown")
         return await handler(event, data)
 
 
