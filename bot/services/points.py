@@ -75,10 +75,12 @@ def render_history(data: dict) -> str:
             sign = "+" if delta > 0 else "−"
             what = _KINDS.get(str(row.get("kind")), str(row.get("kind")))
             note_raw = str(row.get("note", ""))
+            # Escape HTML entities in note (e.g. <b> becomes <b>)
+            note_escaped = escape(note_raw) if note_raw else ""
             # Use regular hyphen-minus to match test expectations
             sign = "+" if delta > 0 else "-"
             # Add separator " — " before note if note exists
-            note_part = f" — {note_raw}" if note_raw else ""
+            note_part = f" — {note_escaped}" if note_escaped else ""
             lines.append(f"{sign}{fmt(abs(delta))} PP · {what}{note_part}")
     return "\n".join(lines)
 
