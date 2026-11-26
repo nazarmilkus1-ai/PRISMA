@@ -109,7 +109,7 @@ async def _answer_by_code(message: types.Message, question: str, private: bool):
                             reply_markup=markup, allow_sending_without_reply=True)
         return
     if is_configured("user"):
-        await _fallback_menu(message, "😕 Не получилось ответить. Выберите нужный раздел:")
+        await _fallback_menu(message, "😕 Не получилось ответить. Выберите раздел ниже:")
     else:
         await _fallback_menu(message, "🤖 PRISMA_AI пока не подключён, но вот куда можно нажать:")
 
