@@ -1,5 +1,6 @@
 from aiogram import types
 from utils.validation import Validation
+from db.rpc import bot_get_user_status
 
 
 async def _answer_by_code(message: types.Message, question: str, private: bool):
