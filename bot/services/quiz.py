@@ -127,6 +127,7 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
     if right:
         _scores[poll["chat"]][user_id] += 1
     # If wrong answer by new user, keep at 0 but user is now tracked for leaderboard
+    # Only track users who answered correctly in the leaderboard
     return right
 
 def leaderboard(chat_id: int, limit: int = 10) -> list[tuple[str, int]]:
