@@ -8,7 +8,7 @@ async def _status_for_intent(tg_id: int, kind: str | None) -> str:
     if not ok:
         Validation.log_warning("_status_for_intent", tg_id, "_status_for_intent", error)
         return ""
-    return await bot_get_user_status(tg_id, kind)
+    return await bot_get_user_status(tg_id)
 
 
 async def run_member(tg_id: int, member_id: int) -> bool:
