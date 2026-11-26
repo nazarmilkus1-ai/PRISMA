@@ -63,6 +63,13 @@ class FmtTests(unittest.TestCase):
         result = reminders.fmt(None)
         self.assertEqual(result, "00.00")
 
+    def test_fmt_with_past_date(self):
+        from datetime import datetime
+        when = datetime(2020, 1, 1, 0, 0, tzinfo=reminders.TZ)
+        result = reminders.fmt(when)
+        self.assertIn("01.01", result)
+        self.assertIn("00:00", result)
+
 
 class ToolWiringTests(unittest.TestCase):
     def test_both_assistants_have_reminder_tools(self):
