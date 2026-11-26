@@ -34,6 +34,15 @@ class QuizParseTests(unittest.TestCase):
         result = quiz.parse('{"question": "Короткий", "options": ["Один", "Два", "Три", "Четыре"], "correct": 0}')
         self.assertIsNone(result)
 
+    def test_parse_question_exactly_10_chars(self):
+        result = quiz.parse('{"question": "1234567890", "options": ["Один", "Два", "Три", "Четыре"], "correct": 0}')
+        self.assertIsNotNone(result)
+        self.assertEqual(result["question"], "1234567890")
+
+    def test_parse_question_exactly_300_chars(self):
+        result = quiz.parse('{"question": "' + "A" * 300 + '", "options": ["Один", "Два", "Три", "Четыре"], "correct": 0}')
+        self.assertIsNotNone(result)
+
     def test_parse_question_too_long(self):
         long_question = "A" * 301
         result = quiz.parse('{"question": "' + long_question + '", "options": ["Один", "Два", "Три", "Четыре"], "correct": 0}')
