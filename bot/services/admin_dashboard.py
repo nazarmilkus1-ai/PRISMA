@@ -46,6 +46,10 @@ async def snapshot(admin_id: int, perms: list[str]) -> dict:
     tasks["metrics"] = get_server_metrics()
     tasks["players"] = get_online_players()
     values = await asyncio.gather(*tasks.values(), return_exceptions=True)
+    # log any exceptions silently for reliability
+    for key, val in zip(tasks, values):
+        if isinstance(val, Exception):
+            logger.warning("task %s failed: %s", key, val)
     snap = {key: (None if isinstance(v, Exception) else v) for key, v in zip(tasks, values)}
     status = snap.pop("status", None)
     snap["server"] = status.data.get("status") if status is not None and not status.error and isinstance(status.data, dict) else None
