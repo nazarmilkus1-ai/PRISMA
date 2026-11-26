@@ -1,7 +1,13 @@
 from aiogram import types
 from utils.validation import Validation
 from db.rpc import bot_get_user_status
-from services.ai import navigator, sections
+from services.ai import navigator, sections, ai_memory
+
+router = Router(name="ai")
+
+_ask_ai = None
+
+free_router = router
 
 
 async def _status_for_intent(tg_id: int, kind: str | None) -> str:
