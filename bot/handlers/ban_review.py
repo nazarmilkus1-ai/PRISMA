@@ -63,6 +63,11 @@ async def list_waiting(message: types.Message):
         await message.answer("Нет банов, ожидающих подтверждения.")
         return
     for row in rows[:10]:
-        await message.answer(ban_review.card_text(row), parse_mode="HTML", reply_markup=ban_review.keyboard(int(row["tg_id"])))
+        tg_id = int(row["tg_id"])
+        valid, error = Validation.validate_telegram_id(tg_id, "Telegram ID игрока")
+        if not valid:
+            Validation.log_warning("list_waiting", message.from_user.id, "ban_review", error)
+            continue
+        await message.answer(ban_review.card_text(row), parse_mode="HTML", reply_markup=ban_review.keyboard(tg_id))
     if len(rows) > 10:
         await message.answer(f"…и ещё {len(rows) - 10}. Обработайте эти, остальные придут следом.")
