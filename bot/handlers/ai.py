@@ -353,7 +353,7 @@ async def _copilot(message: types.Message, request: str):
                                         memory=ai_memory.summary(agent_chat, admin_id))
     except Exception as exc:  # the model, a tool or the gateway failed: say so honestly
         logger.warning("copilot failed: %s", exc)
-        await waiting.edit_text("😕 Не получилось выполнить запрос (модель или данные недоступны). Попробуйте ещё раз или переформулируйте. Проверка связи: /ai_status")
+        await waiting.edit_text("😕 Не получилось выполнить запрос. Попробуйте ещё раз или переформулируйте вопрос.")
         return
     answer_id = ai_memory.new_answer_id()
     ai_memory.remember(agent_chat, admin_id, "user", request)
