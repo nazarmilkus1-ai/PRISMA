@@ -7,10 +7,13 @@
 """
 from __future__ import annotations
 
+import logging
 import secrets
 import time
 
 from db.rpc import bot_telegram_alias_resolve
+
+logger = logging.getLogger(__name__)
 
 CODE_TTL = 600.0
 ALIAS_CACHE_TTL = 120.0
