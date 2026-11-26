@@ -110,7 +110,10 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
     if not poll or not option_ids:
         return None
     # Если пользователь уже отвечал на этот опрос — игнорируем повторную отправку
+    # Но всё ещё считаем баллы, если пользователя ещё нет в очках (для лидераборда)
     if user_id in poll["answered"]:
+        if user_id not in _scores[poll["chat"]]:
+            _scores[poll["chat"]][user_id] = 0
         return None
     # Check if this specific option was already chosen by another user
     # If so, ignore this answer (duplicate option)
