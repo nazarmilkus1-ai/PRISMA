@@ -50,7 +50,7 @@ def parse(raw: str) -> dict | None:
     question = str(data.get("question") or "").strip()
     options = [str(o).strip() for o in (data.get("options") or [])]
     correct = data.get("correct")
-    if not isinstance(correct, int) or isinstance(correct, bool) or len(options) != 4 or not 0 <= correct <= 3:
+    if not isinstance(correct, int) or type(correct) is bool or len(options) != 4 or not 0 <= correct <= 3:
         return None
     if not 10 <= len(question) <= 300 or any(not 1 <= len(o) <= 100 for o in options) or len({o.casefold() for o in options}) != 4:
         return None
