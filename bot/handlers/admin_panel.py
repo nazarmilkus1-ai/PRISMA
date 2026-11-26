@@ -50,12 +50,18 @@ async def send_dashboard(message: types.Message, edit: bool = False) -> None:
 async def admin_entry(message: types.Message, state: FSMContext):
     """Entry point: staff are switched into admin mode automatically; others are told plainly."""
     await state.clear()
-    context = await staff_context(message.from_user.id)
+    user_id = message.from_user.id
+    valid, error = Validation.validate_telegram_id(user_id, "admin_entry")
+    if not valid:
+        Validation.log_warning("admin_entry", user_id, "admin_entry", error)
+        await message.answer("❌ Неверный идентификатор пользователя.")
+        return
+    context = await staff_context(user_id)
     if not context.get("is_staff"):
         await message.answer("❌ Админ-панель доступна только персоналу PRISMA.")
         return
-    await set_mode(message.from_user.id, ADMIN_MODE)
-    await set_user_commands(message.bot, message.from_user.id, admin=True)
+    await set_mode(user_id, ADMIN_MODE)
+    await set_user_commands(message.bot, user_id, admin=True)
     await send_dashboard(message)
 
 
