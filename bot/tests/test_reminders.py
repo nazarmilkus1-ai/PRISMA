@@ -63,6 +63,27 @@ class FmtTests(unittest.TestCase):
         result = reminders.fmt(None)
         self.assertEqual(result, "00.00")
 
+    def test_fmt_with_past_date(self):
+        from datetime import datetime
+        when = datetime(2020, 1, 1, 0, 0, tzinfo=reminders.TZ)
+        result = reminders.fmt(when)
+        self.assertIn("01.01", result)
+        self.assertIn("00:00", result)
+
+
+class FriendlyErrorTests(unittest.TestCase):
+    def test_friendly_error_reminder_limit(self):
+        self.assertIn("20", reminders.friendly_error("REMINDER_LIMIT"))
+
+    def test_friendly_error_reminder_time_too_far(self):
+        self.assertIn("год", reminders.friendly_error("REMINDER_TIME_TOO_FAR"))
+
+    def test_friendly_error_reminder_text_invalid(self):
+        self.assertIn("300", reminders.friendly_error("REMINDER_TEXT_INVALID"))
+
+    def test_friendly_error_unknown(self):
+        self.assertIn("Не получилось", reminders.friendly_error("UNKNOWN_ERROR"))
+
 
 class ToolWiringTests(unittest.TestCase):
     def test_both_assistants_have_reminder_tools(self):
