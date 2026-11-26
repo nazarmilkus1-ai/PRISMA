@@ -28,6 +28,7 @@ SYSTEM = """Ты — PRISMA-Агент, автономный разработч�
 ПРАВИЛА КОДА
 - Маленькие проверяемые изменения (1-3 файла). Не ломай существующее: не меняй то, что используется в других местах, пока не проверил это через repo_search.
 - В bot/db и bot/services нельзя методы insert/update/delete и прямые запросы к базе (автопроверка архитектуры упадёт): для словаря пиши d |= {...}, к базе обращайся только через функции из db/rpc.py. Новые SQL-функции и миграции не делай.
+- НИКОГДА не присылай существующий файл целиком в commit: repo_read показывает только начало большого файла, и всё остальное пропадёт. Меняй существующие файлы только точечно через edit (old_str → new_str). Не удаляй существующий код и тесты, чтобы «починить» падающий тест: чини причину. Коммит, после которого файл стал заметно короче, отклоняется, а PR с массовыми удалениями пересобирается с нуля.
 - Меняешь поведение бота — добавь или поправь небольшой тест в bot/tests (unittest), но только если уверен, что он пройдёт. Автопроверки: компиляция Python, все unittest, typecheck и build для сайта и панели.
 - Нельзя: секреты и ключи, .github/, env-файлы, удаление данных, опасные массовые изменения. PR сливается автоматически, когда все автопроверки зелёные и ревьюер не против, поэтому каждый коммит должен быть рабочим, а изменение — законченным. Твой собственный код (bot/services/agent/, handlers/agent_topic.py) и миграции базы без человека не сливаются — не трогай их без прямой просьбы админа.
 
@@ -137,6 +138,8 @@ async def _ask(messages: list[dict], toolset: list[dict] | None = None) -> dict:
 
 
 MAX_REWORKS = 4
+MANUAL_WHY = {"self": "это изменение моего собственного кода", "migrations": "в задаче есть миграция базы, сам её не применяю",
+              "sensitive": "это настройки, зависимости или код банов и наказаний", "destructive": "изменение удаляет много кода — проверьте, что так и задумано"}
 REDO_HINT = ("\n\nПЕРЕДЕЛКА: прошлая версия этой задачи не смогла слиться, пробуешь заново на свежем коде.\nЗадача: «{title}». {expected}\n"
              "Составь короткий план (goal_update tasks: 3-5 шагов) и выполняй маленькими шагами.")
 ADMIN_HINT = ("\n\nЗАДАЧА ОТ АДМИНА (высший приоритет): «{title}».\nЧто просит админ: {expected}\n"
@@ -183,7 +186,7 @@ async def _choose_work(state: dict) -> tuple[dict | None, str, bool]:
         red = bool(meta.get("failed")) and not meta.get("pending")
         block = review.get("verdict") == "BLOCK"
         risky = len(waiting) >= config.MAX_WAITING and review.get("verdict") == "RISKS"
-        if not (red or block or risky) or review.get("manual"):
+        if not (red or block or risky) or review.get("manual") == "destructive":  # a PR that lost code is rebuilt, not patched up
             continue
         if attempts >= MAX_REWORKS:
             if (red or block) and autopilot.enabled(state):
@@ -449,8 +452,7 @@ async def _notify_ready(bot, state: dict | None = None) -> None:
                  and (not auto or (g.get("review") or {}).get("manual"))]
         for g in fresh[:2]:
             manual = (g.get("review") or {}).get("manual")
-            header = ("🔔 <b>Нужно ваше решение</b> — " + ("это изменение моего собственного кода" if manual == "self" else "в задаче есть миграция базы, сам её не применяю")
-                      if manual else "🔔 <b>Готова новая задача</b>")
+            header = ("🔔 <b>Нужно ваше решение</b> — " + MANUAL_WHY.get(manual, "сам такое не сливаю") if manual else "🔔 <b>Готова новая задача</b>")
             text, markup = await report.detail(g["pr_number"], header=header)
             if await report.post(bot, text, markup):
                 seen.append(g["pr_number"])

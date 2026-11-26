@@ -345,13 +345,45 @@ def classify_paths(paths: list[str]) -> dict:
     }
 
 
+def destructive(stats: list[dict]) -> bool:
+    """True when the PR mostly deletes working code or tests (a lost part of a file looks exactly like this)."""
+    if not stats:
+        return False
+    added, deleted = sum(f["add"] for f in stats), sum(f["del"] for f in stats)
+    if any(f.get("status") == "removed" for f in stats):
+        return True
+    if deleted >= config.DESTRUCTIVE_MIN_DELETED and deleted > 2 * added:
+        return True
+    if any(f["del"] >= config.DESTRUCTIVE_FILE_DELETED and f["del"] > 2 * f["add"] + 20 for f in stats):
+        return True
+    tests = [f for f in stats if "/tests/" in str(f["path"]) or str(f["path"]).startswith("tests/") or "test_" in str(f["path"]).rsplit("/", 1)[-1]]
+    return sum(f["del"] for f in tests) > sum(f["add"] for f in tests) + 20
+
+
+def manual_reason(info: dict) -> str:
+    """Why the agent must not merge this PR itself: migrations | self | sensitive | destructive | "" (free to merge)."""
+    paths = [str(p) for p in (info.get("paths") or [])]
+    kinds = classify_paths(paths)
+    if kinds["refused"]:
+        return "migrations"
+    if kinds["self"]:
+        return "self"
+    if any(p.startswith(config.SENSITIVE_PREFIXES) or p.rsplit("/", 1)[-1] in config.SENSITIVE_NAMES for p in paths):
+        return "sensitive"
+    if destructive(info.get("stats") or []):
+        return "destructive"
+    return ""
+
+
 async def pr_info(number: int) -> dict:
     pr, err = await _get(f"/pulls/{int(number)}")
     if err:
         return {"error": f"GitHub {err}"}
     files, ferr = await _get(f"/pulls/{int(number)}/files", {"per_page": 100})
-    paths = [f.get("filename") for f in (files or [])] if not ferr and isinstance(files, list) else []
-    return {
+    rows = [f for f in files if isinstance(f, dict)] if not ferr and isinstance(files, list) else []
+    paths = [f.get("filename") for f in rows]
+    stats = [{"path": f.get("filename"), "status": f.get("status"), "add": int(f.get("additions") or 0), "del": int(f.get("deletions") or 0)} for f in rows]
+    return {"stats": stats,
         "number": pr.get("number"), "state": pr.get("state"), "merged": bool(pr.get("merged")), "title": pr.get("title"),
         "head_ref": (pr.get("head") or {}).get("ref"), "head_sha": (pr.get("head") or {}).get("sha"),
         "url": pr.get("html_url"), "paths": paths, "mergeable": pr.get("mergeable"), "mergeable_state": pr.get("mergeable_state"),

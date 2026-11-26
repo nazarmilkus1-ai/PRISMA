@@ -58,6 +58,14 @@ WRITE_BLOCKED_NAMES = ("render.env", "vercel.env")
 MERGE_REFUSED_PREFIXES = ("supabase/migrations/",)
 # Merging these is allowed but the card warns loudly.
 SELF_PREFIXES = ("bot/services/agent/", "bot/handlers/agent_topic.py")
+# The agent never merges these by itself (a person decides): infrastructure and dependencies, and the code that punishes, bans or lifts bans.
+SENSITIVE_PREFIXES = (".github/", "scripts/", "bot/main.py", "bot/config", "bot/handlers/ban_review.py", "bot/services/ban_review.py",
+                      "bot/handlers/moderation.py", "bot/handlers/admin_actions.py", "bot/handlers/automod.py")
+SENSITIVE_NAMES = ("requirements.txt", "package.json", "package-lock.json", "Dockerfile", "render.yaml", "vercel.json", "pom.xml", "build.gradle", ".env")
+# A change that mostly deletes working code is almost always a model that lost part of a file: it is rebuilt, never merged.
+DESTRUCTIVE_MIN_DELETED = 150  # lines deleted in the whole PR (and more than twice what was added)
+DESTRUCTIVE_FILE_DELETED = 80  # lines deleted in one file (and more than twice what was added there, plus 20)
+SHRINK_MIN_LINES = 40  # a committed file shorter than 70% of what is on the base branch is refused (files under this size are exempt)
 
 # Read-only documentation sites the agent may fetch (https, no redirects off this list).
 WEB_ALLOWLIST = (

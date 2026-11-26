@@ -6,8 +6,12 @@ from db import rpc
 from . import config, github
 
 
-async def evaluate(number: int, *, owner: bool, override: bool = False) -> tuple[bool, str, dict]:
-    """Return (allowed, human_text, pr_info). Pure decision: it merges nothing."""
+_REASONS = {"self": "это правки моего собственного кода", "sensitive": "это инфраструктура, зависимости или код наказаний/банов",
+            "destructive": "изменение удаляет слишком много рабочего кода", "migrations": "в задаче есть миграция базы"}
+
+
+async def evaluate(number: int, *, owner: bool, override: bool = False, auto: bool = False) -> tuple[bool, str, dict]:
+    """Return (allowed, human_text, pr_info). Pure decision: it merges nothing. `auto` = the agent itself asks: a person must decide the risky ones."""
     info = await github.pr_info(number)
     if info.get("error"):
         return False, "Не смог прочитать PR: " + str(info["error"])[:120], info
@@ -22,6 +26,9 @@ async def evaluate(number: int, *, owner: bool, override: bool = False) -> tuple
     kinds = github.classify_paths(info.get("paths") or [])
     if kinds["refused"]:
         return False, "PR меняет supabase/migrations: такую миграцию нужно применить к базе вручную, кнопка не сливает.", info
+    reason = github.manual_reason(info)
+    if auto and reason:
+        return False, f"Без человека не сливаю: {_REASONS.get(reason, reason)}.", info
     ci = await github.ci(str(info.get("head_sha") or ""))
     if not ci.get("error") and not ci.get("total"):
         return False, "Автопроверки ещё не запустились — подождите минуту и нажмите снова.", info
@@ -43,8 +50,8 @@ def can_merge(user_id: int, permissions: list[str]) -> bool:
     return bool(_MERGE_PERMS & set(permissions or [])) or user_id in config.MERGE_ADMIN_IDS
 
 
-async def do_merge(number: int, *, owner: bool, override: bool = False, who: str = "админом") -> tuple[bool, str]:
-    ok, text, info = await evaluate(number, owner=owner, override=override)
+async def do_merge(number: int, *, owner: bool, override: bool = False, who: str = "админом", auto: bool = False) -> tuple[bool, str]:
+    ok, text, info = await evaluate(number, owner=owner, override=override, auto=auto)
     if not ok:
         return False, text
     out = await github.merge_pr(number, str(info.get("title") or f"PR #{number}"))

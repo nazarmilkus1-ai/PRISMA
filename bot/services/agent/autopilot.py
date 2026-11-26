@@ -62,7 +62,7 @@ async def redo(goal: dict, why: str, state: dict) -> bool:
     await rpc.bot_agent_state_patch({"redos": redos})
     text = (f"Переделай заново на свежем коде основной ветки: «{title}». Что нужно: {str(goal.get('expected') or title)[:700]}. "
             f"Прошлая попытка (PR #{pr}) не удалась: {why}. Сначала посмотри текущий код (repo_search, repo_read): он мог измениться. "
-            "Делай маленькими шагами, чтобы не конфликтовать.")
+            "Делай маленькими шагами, чтобы не конфликтовать. ПРАВЬ ТОЧЕЧНО через edit, не присылай файл целиком и не удаляй существующий код и тесты.")
     new_goal, _ = await jobs.add_task(text, "агент", source="redo", title=f"Переделать: {title}"[:200])
     return bool(new_goal)
 
@@ -102,8 +102,10 @@ async def step(bot, state: dict) -> None:
             info = await github.pr_info(int(g["pr_number"]))
             if info.get("error") or info.get("merged") or info.get("state") != "open":
                 continue
-            kinds = github.classify_paths(info.get("paths") or [])
-            manual = "migrations" if kinds["refused"] else ("self" if kinds["self"] else "")
+            manual = github.manual_reason(info)
+            if manual == "destructive" and g.get("source") != "admin":
+                await redo(g, "изменение вырезало слишком много рабочего кода или тестов", state)  # never merged, never «fixed» further: rebuilt from scratch
+                continue
             review = dict(g.get("review") or {})
             if manual != (review.get("manual") or ""):
                 review["manual"] = manual
@@ -115,7 +117,7 @@ async def step(bot, state: dict) -> None:
                 continue
             if merged_now or not gap_ok or count >= config.MAX_AUTO_MERGES_PER_DAY:
                 continue
-            ok, text = await merge.do_merge(int(g["pr_number"]), owner=False, who="агентом сам")
+            ok, text = await merge.do_merge(int(g["pr_number"]), owner=False, who="агентом сам", auto=True)
             if not ok:
                 logger.info("auto-merge of PR %s waits: %s", g["pr_number"], text[:120])
                 continue
