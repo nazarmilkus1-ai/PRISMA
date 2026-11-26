@@ -1,3 +1,5 @@
+from aiogram import Router
+
 free_router = Router(name="ai_free")
 
 async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
