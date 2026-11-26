@@ -61,8 +61,8 @@ def parse_amount(raw: str | None) -> int | None:
     if not digit_part.isascii() or not digit_part.isdigit():
         return None
     value = int(raw)
-    # Allow negative numbers; reject zero and numbers > 100000
-    if value == 0 or abs(value) > 100000:
+    # Allow negative numbers; reject zero
+    if value == 0:
         return None
     return value
 
