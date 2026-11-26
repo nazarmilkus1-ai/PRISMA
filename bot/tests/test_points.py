@@ -39,6 +39,14 @@ class PointsTextTests(unittest.TestCase):
         self.assertIsNone(points.parse_amount("-"))
         # Unicode digits
         self.assertIsNone(points.parse_amount("５０"))
+        # None input
+        self.assertIsNone(points.parse_amount(None))
+        # Negative float as string
+        self.assertIsNone(points.parse_amount("-3.14"))
+        # String with only minus
+        self.assertIsNone(points.parse_amount("-"))
+        # Unicode digits
+        self.assertIsNone(points.parse_amount("５０"))
         # Boolean string
         self.assertIsNone(points.parse_amount("True"))
         # Empty with plus
