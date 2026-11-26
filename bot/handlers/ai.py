@@ -47,6 +47,6 @@ async def _answer(message: types.Message, question: str, private: bool = True) -
 
     Tries AI first, falls back to canned code if AI is not configured or fails.
     """
-    if not await is_configured():
+    if not is_configured():
         return await _answer_by_code(message, question, private)
     return await _ask_ai(message, question, private)
