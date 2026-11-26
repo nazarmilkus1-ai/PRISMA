@@ -132,6 +132,7 @@ async def read_raw(path: str, ref: str | None = None) -> tuple[str | None, str |
     try:
         return base64.b64decode(data.get("content") or "").decode("utf-8"), None
     except Exception:
+        logger.exception("failed to decode base64 content")
         return None, "binary file"
 
 
