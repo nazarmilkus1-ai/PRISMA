@@ -96,6 +96,25 @@ class PointsTextTests(unittest.TestCase):
         self.assertIn("Не хватает", points.error_text("INSUFFICIENT_PP"))
         self.assertIn("Не получилось", points.error_text("WAT"))
 
+    def test_parse_amount_edge_cases_additional(self):
+        # Empty plus sign
+        self.assertIsNone(points.parse_amount("+"))
+        # Minus only
+        self.assertIsNone(points.parse_amount("-"))
+        # String with only spaces and plus
+        self.assertIsNone(points.parse_amount("  +  "))
+        # Unicode digits
+        self.assertIsNone(points.parse_amount("５０"))
+        # Boolean string
+        self.assertIsNone(points.parse_amount("True"))
+    def test_fmt_edge_cases_additional(self):
+        # Negative float as string should return "0" via error logging
+        self.assertEqual(points.fmt(-3.14), "-3")
+        # Very small number
+        self.assertEqual(points.fmt(0.5), "0")
+        # Large number with many digits
+        self.assertEqual(points.fmt(1000000000), "1 000 000 000")
+
 
 if __name__ == "__main__":
     unittest.main()
