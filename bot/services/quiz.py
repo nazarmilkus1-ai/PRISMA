@@ -121,9 +121,8 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
     poll["answered"].add(user_id)
     _names[(poll["chat"], user_id)] = name[:32]
     right = option_id == poll["correct"]
-    # Ensure user is tracked in scores so they appear on leaderboard
-    if user_id not in _scores[poll["chat"]]:
-        _scores[poll["chat"]][user_id] = 0
+    # Only add user to scores if they answered correctly (for one-answer-per-person logic)
+    # Wrong answers on first attempt don't add to scores to keep leaderboard clean
     if right:
         _scores[poll["chat"]][user_id] += 1
     return right
