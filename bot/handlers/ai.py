@@ -40,3 +40,13 @@ async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
 async def _answer_by_code(message: types.Message, question: str, private: bool) -> bool:
     """Answer by canned code when AI fails or is not configured."""
     return True
+
+
+async def _answer(message: types.Message, question: str, private: bool = True) -> bool:
+    """Ask AI a question and return whether it was successful.
+
+    Tries AI first, falls back to canned code if AI is not configured or fails.
+    """
+    if not await is_configured():
+        return await _answer_by_code(message, question, private)
+    return await _ask_ai(message, question, private)
