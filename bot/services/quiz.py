@@ -119,8 +119,7 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
     options = poll.get("options") or []
     if not isinstance(poll["correct"], int) or option_id < 0 or option_id >= len(options):
         return None
-    # Check if this specific option was already chosen by another user
-    # If so, ignore this answer (duplicate option)
+    # Check if this user already answered this poll
     if user_id in poll.get("answered", set()):
         return None
     # Track that this user answered (but allow different users with same poll)
