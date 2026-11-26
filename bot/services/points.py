@@ -62,6 +62,9 @@ def parse_amount(raw: str | None) -> int | None:
     # Отрицательные числа недопустимы
     if raw.startswith("-"):
         return None
+    # Разрешаем опциональный знак + в начале
+    if raw.startswith("+"):
+        raw = raw[1:]
     if not raw or not raw.isascii() or not raw.isdigit():
         return None
     return int(raw)
