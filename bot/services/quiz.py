@@ -131,6 +131,9 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
         _scores[poll["chat"]][user_id] = 0
     if right:
         _scores[poll["chat"]][user_id] += 1
+    else:
+        # Still add user to scores even if answer is wrong, so they appear on leaderboard
+        _scores[poll["chat"]][user_id] = _scores[poll["chat"]].get(user_id, 0)
     return right
 
 
