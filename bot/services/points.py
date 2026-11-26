@@ -50,7 +50,8 @@ def fee_label(row: dict) -> str:
 def fmt(value: object) -> str:
     try:
         return f"{int(value):,}".replace(",", " ")
-    except (TypeError, ValueError):
+    except (TypeError, ValueError) as exc:
+        logger.error("Failed to format value %s: %s", value, exc)
         return "0"
 
 
