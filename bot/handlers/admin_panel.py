@@ -9,3 +9,6 @@ async def _home(tg_id: int) -> tuple[str, types.InlineKeyboardMarkup]:
     perms = context.get("permissions") or []
     snap = await admin_dashboard.snapshot(tg_id, perms)
     return admin_dashboard.render_home(context.get("role"), perms, snap), home_keyboard(snap, perms, PANEL_URL)
+    perms = context.get("permissions") or []
+    snap = await admin_dashboard.snapshot(tg_id, perms)
+    return admin_dashboard.render_home(context.get("role"), perms, snap), home_keyboard(snap, perms, PANEL_URL)
