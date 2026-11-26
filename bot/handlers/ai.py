@@ -14,6 +14,10 @@ def is_configured() -> bool:
     return True
 
 async def _status_for_intent(tg_id: int, kind: str | None) -> str:
+    valid, error = Validation.validate_telegram_id(tg_id, "Telegram ID для статуса")
+    if not valid:
+        Validation.log_warning("_status_for_intent", tg_id, "_status_for_intent", error)
+        return ""
     if kind == "guide":
         return "PENDING"
     return ""
