@@ -1,3 +1,8 @@
+from aiogram import types
+from db.rpc import bot_find_user, bot_touch_user
+from utils.validation import Validation
+
+
 async def _resolve_target(message: types.Message, args: list[str]):
     reply = message.reply_to_message
     if reply and reply.from_user and not reply.from_user.is_bot:
@@ -28,6 +33,7 @@ async def _resolve_target(message: types.Message, args: list[str]):
     target = args[0]
     result = await bot_find_user(target)
     if result.error or not isinstance(result.data, dict) or result.data.get("error"):
+        Validation.log_warning("Resolve target", 0, "bot_find_user", result.error or "неизвестная ошибка")
         return None, args
 
     target = dict(result.data)
