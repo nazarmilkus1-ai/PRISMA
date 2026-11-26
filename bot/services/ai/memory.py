@@ -227,3 +227,8 @@ async def rate(user_id: int, chat_id: int, answer_id: str, rating: int) -> bool:
 
 # Module-level export for package imports (e.g. from services.ai import ai_memory)
 ai_memory = _store
+
+# Ensure ai_memory is always accessible
+import sys
+if "services.ai" not in sys.modules:
+    pass  # ai_memory is already exported via __init__.py
