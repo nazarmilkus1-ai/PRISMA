@@ -28,5 +28,5 @@ free_router = navigator
 async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
     """Ask AI a question and return whether it was successful."""
     from services.ai import ambient
-    answer = await ambient.generate(message, question, private)
-    return answer is not None and answer != ""
+    answer = await ambient.decide(-1001, "Test", question)
+    return answer.get("action") == "answer"
