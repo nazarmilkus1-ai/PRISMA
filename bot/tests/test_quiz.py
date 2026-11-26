@@ -56,6 +56,24 @@ class QuizParseTests(unittest.TestCase):
         result = quiz.parse('{"question": "Тест", "options": [], "correct": 0}')
         self.assertIsNone(result)
 
+    def test_parse_edge_cases_additional(self):
+        # Question exactly 10 chars (minimum)
+        result = quiz.parse('{"question": "1234567890", "options": ["a", "b", "c", "d"], "correct": 0}')
+        self.assertIsNotNone(result)
+        # Question exactly 300 chars (maximum)
+        long_q = "A" * 300
+        result = quiz.parse('{"question": "' + long_q + '", "options": ["a", "b", "c", "d"], "correct": 0}')
+        self.assertIsNotNone(result)
+        # Options with mixed case should fail (duplicate check)
+        result = quiz.parse('{"question": "Test", "options": ["One", "one", "Three", "Four"], "correct": 0}')
+        self.assertIsNone(result)
+        # Option too short (1 char minimum) - "a" is valid
+        result = quiz.parse('{"question": "Test", "options": ["a", "b", "c", "d"], "correct": 0}')
+        self.assertIsNotNone(result)
+        # Option too long (100 char maximum)
+        long_opt = "B" * 101
+        result = quiz.parse('{"question": "Test", "options": ["' + long_opt + '", "b", "c", "d"], "correct": 0}')
+        self.assertIsNone(result)
 
 if __name__ == "__main__":
     unittest.main()
