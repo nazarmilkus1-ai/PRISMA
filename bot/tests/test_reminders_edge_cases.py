@@ -36,7 +36,7 @@ class RemindersEdgeCaseTests(unittest.TestCase):
 
     def test_parse_через_large_number(self):
         when, text = reminders.parse("через 1000 минут напоминание", NOW)
-        self.assertIsNotNone(result)
+        self.assertIsNotNone(when)
         self.assertEqual(text, "напоминание")
 
     def test_parse_25_99_garbage(self):
