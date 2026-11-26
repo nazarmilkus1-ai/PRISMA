@@ -117,19 +117,6 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
     # Check if this specific option was already chosen by another user
     # If so, ignore this answer (duplicate option)
     option_id = option_ids[0]
-    for answered_user in poll["answered"]:
-        if answered_user != user_id:
-            existing_option = None
-            if (poll["chat"], answered_user) in _names:
-                # Check what option the other user chose by looking at their recorded answer
-                # We need to find which option_id was used - stored implicitly by the order of answers
-                # Since we can't directly know, we just check if this option was already taken
-                # by looking at the current state - if option_id is already "used", skip
-                # Actually, we need a different approach: track which option_ids are taken
-                pass
-    # Since we can't easily track which option_id each user chose retroactively,
-    # we use a simpler approach: allow the answer if the user hasn't answered yet,
-    # and mark the option as taken by adding user_id to a set per option
     poll["answered"].add(user_id)
     _names[(poll["chat"], user_id)] = name[:32]
     right = option_id == poll["correct"]
