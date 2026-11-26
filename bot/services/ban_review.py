@@ -38,6 +38,14 @@ def card_text(row: dict) -> str:
 
 
 def keyboard(tg_id: int) -> InlineKeyboardMarkup:
+    ok, error = Validation.validate_telegram_id(tg_id, "Telegram ID для клавиатуры проверки бана")
+    if not ok:
+        Validation.log_warning("Ban review keyboard", tg_id, "keyboard", error)
+        # Возвращаем клавиатуру с заглушкой, чтобы не ломать UI
+        return InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="✅ Вернуть", callback_data=f"{CB_PREFIX}:ok:0"),
+            InlineKeyboardButton(text="⛔ Оставить бан", callback_data=f"{CB_PREFIX}:keep:0"),
+        ]])
     return InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="✅ Вернуть", callback_data=f"{CB_PREFIX}:ok:{int(tg_id)}"),
         InlineKeyboardButton(text="⛔ Оставить бан", callback_data=f"{CB_PREFIX}:keep:{int(tg_id)}"),
