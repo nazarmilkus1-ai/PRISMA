@@ -57,6 +57,9 @@ def parse(raw: str) -> dict | None:
     # Validate question contains actual content (not just ?)
     if question == "?" or not any(c.isalnum() for c in question):
         return None
+    # Correct index must be valid for the actual number of options provided
+    if correct >= len(options):
+        return None
     return {"question": question, "options": options, "correct": correct,
             "explanation": str(data.get("explanation") or "").strip()[:190] or None}
 
