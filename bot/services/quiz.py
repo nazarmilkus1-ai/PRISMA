@@ -86,7 +86,7 @@ async def generate(topic: str = "minecraft", adult: int = 0, seen: list[str] | N
                 [{"role": "system", "content": _system(topic, adult) + avoid}, {"role": "user", "content": "Новый вопрос."}],
                 role="user", max_tokens=800, timeout=40, temperature=0.9)
         except AIError:
-            return None
+            continue
         quiz = parse(str(message.get("content") or ""))
         if quiz:
             return quiz
