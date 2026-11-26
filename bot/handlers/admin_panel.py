@@ -1,4 +1,5 @@
 from utils.validation import Validation
+from utils.permissions import is_admin_mode
 
 async def send_dashboard(message: types.Message, edit: bool = False) -> None:
     valid, err = Validation.validate_telegram_id(message.from_user.id, "Telegram ID")
@@ -23,4 +24,6 @@ async def _guard(callback: types.CallbackQuery, permission: str | None) -> bool:
     valid, err = Validation.validate_telegram_id(callback.from_user.id, "Telegram ID")
     if not valid:
         logger.warning("Invalid Telegram ID in _guard: %s", callback.from_user.id)
+        return False
+    if callback.from_user is None or not await is_admin_mode(callback.from_user.id):
         return False
