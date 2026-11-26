@@ -119,11 +119,11 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
     right = option_ids[0] == poll["correct"]
     if right:
         _scores[poll["chat"]][user_id] += 1
-    else:
-        # Wrong answers: user stays in answered set (can't answer again this poll),
-        # but name stays in leaderboard with 0 points
-        if user_id not in _scores[poll["chat"]]:
-            _scores[poll["chat"]][user_id] = 0
+    # Wrong answers: user stays in answered set (can't answer again this poll),
+    # but only add to scores if they already have points (so leaderboard shows real scores)
+    elif user_id in _scores[poll["chat"]]:
+        # User already has some points from previous answers, keep their score
+        pass
     return right
 
 
