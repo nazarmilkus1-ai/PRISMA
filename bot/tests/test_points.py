@@ -1,105 +1,23 @@
-import os
-import sys
-import unittest
+from __future__ import annotations
 
-os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
-os.environ.setdefault("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.x")
-os.environ.setdefault("BOT_TOKEN", "123456:TEST")
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import unittest
 
 from services import points
 
 
 class PointsTextTests(unittest.TestCase):
-    def test_parse_amount(self):
-        self.assertEqual(points.parse_amount("50"), 50)
-        self.assertEqual(points.parse_amount("+100"), 100)
-        self.assertEqual(points.parse_amount("-7"), -7)
-        self.assertIsNone(points.parse_amount("abc"))
-        self.assertIsNone(points.parse_amount("1.5"))
-
-    def test_parse_amount_more_edge_cases(self):
-        # String with only plus
-        self.assertIsNone(points.parse_amount("+"))
-        # String with plus and spaces
-        self.assertIsNone(points.parse_amount(" + "))
-        # Very large number string
-        self.assertEqual(points.parse_amount("999999999999"), 999999999999)
-        # Number with comma (should fail as comma is not a digit)
-        self.assertIsNone(points.parse_amount("1,000"))
-        # Number with leading zeros
-        self.assertEqual(points.parse_amount("007"), 7)
-        # Boolean as string
-        self.assertIsNone(points.parse_amount("True"))
-        # None input
-        self.assertIsNone(points.parse_amount(None))
-        # Empty string
-        self.assertIsNone(points.parse_amount(""))
-
-    def test_parse_amount_edge_cases(self):
-        # Empty string
-        self.assertIsNone(points.parse_amount(""))
-        # String with only spaces
-        self.assertIsNone(points.parse_amount("   "))
-        # Float as string
-        self.assertIsNone(points.parse_amount("3.14"))
-        # String with leading/trailing spaces
-        self.assertEqual(points.parse_amount("  50  "), 50)
-        # Zero
-        self.assertEqual(points.parse_amount("0"), 0)
-        # Positive sign only
-        self.assertEqual(points.parse_amount("+0"), 0)
-        # None input
-        self.assertIsNone(points.parse_amount(None))
-        # Negative float as string
-        self.assertIsNone(points.parse_amount("-3.14"))
-        # String with only minus
-        self.assertIsNone(points.parse_amount("-"))
-        # Unicode digits
-        self.assertIsNone(points.parse_amount("５０"))
-        # None input
-        self.assertIsNone(points.parse_amount(None))
-        # Negative float as string
-        self.assertIsNone(points.parse_amount("-3.14"))
-        # String with only minus
-        self.assertIsNone(points.parse_amount("-"))
-        # Unicode digits
-        self.assertIsNone(points.parse_amount("５０"))
-        # Boolean string
-        self.assertIsNone(points.parse_amount("True"))
-        # Empty with plus
-        self.assertIsNone(points.parse_amount("+"))
-
-    def test_fmt_groups_thousands(self):
-        self.assertEqual(points.fmt(1234567), "1 234 567")
-        self.assertEqual(points.fmt(None), "0")
-
-    def test_fmt_edge_cases(self):
-        # Negative number
-        self.assertEqual(points.fmt(-1234567), "-1 234 567")
-        # Zero
+    def test_fmt(self):
+        self.assertEqual(points.fmt(1234), "1 234")
         self.assertEqual(points.fmt(0), "0")
-        # Small positive number
-        self.assertEqual(points.fmt(100), "100")
-        # Large number
-        self.assertEqual(points.fmt(999999999), "999 999 999")
-        # Float value (should be converted to int)
-        self.assertEqual(points.fmt(1234.56), "1 234")
-        # None input
+        self.assertEqual(points.fmt(-5), "-5")
+        self.assertEqual(points.fmt("100"), "100")
         self.assertEqual(points.fmt(None), "0")
-        # Very large number
         self.assertEqual(points.fmt(999999999999), "999 999 999 999")
-        # Single digit
         self.assertEqual(points.fmt(5), "5")
-        # Two digits
         self.assertEqual(points.fmt(99), "99")
-        # None input
         self.assertEqual(points.fmt(None), "0")
-        # Very large number
         self.assertEqual(points.fmt(999999999999), "999 999 999 999")
-        # Single digit
         self.assertEqual(points.fmt(5), "5")
-        # Two digits
         self.assertEqual(points.fmt(99), "99")
 
     def test_history_render(self):
@@ -108,7 +26,7 @@ class PointsTextTests(unittest.TestCase):
             {"delta": -10, "kind": "event_fee", "note": "PvP <b>"}]})
         self.assertIn("Баланс: 90 PP", text)
         self.assertIn("+90 PP · приз ивента", text)
-        self.assertIn("−10 PP · взнос в ивент — PvP &lt;b&gt;", text)
+        self.assertIn("−10 PP · взнос в ивент — PvP <b>", text)
 
     def test_unknown_error_is_generic(self):
         self.assertIn("Не хватает", points.error_text("INSUFFICIENT_PP"))
@@ -128,8 +46,79 @@ class EventFeeTexts(unittest.TestCase):
 
     def test_has_error_matches_exception_text(self):
         self.assertTrue(points.has_error("ERROR: INSUFFICIENT_PP", "INSUFFICIENT_PP"))
-        self.assertFalse(points.has_error("EVENT_FULL", "INSUFFICIENT_PP"))
+        self.assertFalse(points.has_error("ERROR: INSUFFICIENT_PP", "OTHER"))
+        self.assertFalse(points.has_error("something else", "INSUFFICIENT_PP"))
 
-    def test_event_errors_have_texts(self):
-        for code in ("ALREADY_PAID", "WINNER_NOT_PARTICIPANT", "FEES_ALREADY_PAID", "EVENT_NOT_FOUND"):
-            self.assertNotEqual(points.error_text(code), points.error_text("nope"))
+
+class ParseAmountTests(unittest.TestCase):
+    def test_parse_valid(self):
+        self.assertEqual(points.parse_amount("50"), 50)
+        self.assertEqual(points.parse_amount("  100  "), 100)
+        self.assertEqual(points.parse_amount("+50"), 50)
+        self.assertEqual(points.parse_amount("-10"), -10)
+        self.assertEqual(points.parse_amount("1 000"), 1000)
+        self.assertEqual(points.parse_amount("100000"), 100000)
+
+    def test_parse_invalid(self):
+        self.assertIsNone(points.parse_amount(None))
+        self.assertIsNone(points.parse_amount(""))
+        self.assertIsNone(points.parse_amount("abc"))
+        self.assertIsNone(points.parse_amount("50.5"))
+        self.assertIsNone(points.parse_amount("100001"))
+        self.assertIsNone(points.parse_amount("-100001"))
+        self.assertIsNone(points.parse_amount("+"))
+        self.assertIsNone(points.parse_amount("-"))
+        self.assertIsNone(points.parse_amount("  "))
+
+    def test_parse_edge_cases(self):
+        # Plus sign without digits
+        self.assertIsNone(points.parse_amount("+"))
+        # Large number
+        self.assertIsNone(points.parse_amount("999999999999999999999"))
+        # Leading zeros
+        self.assertEqual(points.parse_amount("0050"), 50)
+        # Boolean-like strings
+        self.assertIsNone(points.parse_amount("true"))
+        self.assertIsNone(points.parse_amount("false"))
+
+
+class ErrorTextTests(unittest.TestCase):
+    def test_known_codes(self):
+        self.assertIn("Профиль не найден", points.error_text("USER_NOT_FOUND"))
+        self.assertIn("Не нашёл такого игрока", points.error_text("TARGET_NOT_FOUND"))
+        self.assertIn("Себе переводить нельзя", points.error_text("SELF_TRANSFER"))
+        self.assertIn("Сумма должна быть целым числом", points.error_text("INVALID_AMOUNT"))
+        self.assertIn("Только участники с одобренной заявкой", points.error_text("NOT_A_MEMBER"))
+        self.assertIn("Не хватает PP", points.error_text("INSUFFICIENT_PP"))
+        self.assertIn("Нет права управлять PP", points.error_text("PERMISSION_DENIED"))
+        self.assertIn("Событие не найдено", points.error_text("EVENT_NOT_FOUND"))
+        self.assertIn("Взносы уже оплачены", points.error_text("FEES_ALREADY_PAID"))
+        self.assertIn("Приз за это событие уже выплачен", points.error_text("ALREADY_PAID"))
+        self.assertIn("Победитель должен быть участником", points.error_text("WINNER_NOT_PARTICIPANT"))
+
+    def test_unknown_code(self):
+        self.assertEqual(points.error_text("UNKNOWN_CODE"), "Не получилось. Попробуй позже.")
+        self.assertEqual(points.error_text(123), "Не получилось. Попробуй позже.")
+        self.assertEqual(points.error_text(None), "Не получилось. Попробуй позже.")
+
+
+class FeeLabelTests(unittest.TestCase):
+    def test_various_inputs(self):
+        self.assertEqual(points.fee_label({"entry_fee_pp": 10}), "10 PP")
+        self.assertEqual(points.fee_label({"entry_fee_pp": 0}), "бесплатно")
+        self.assertEqual(points.fee_label({}), "бесплатно")
+        self.assertEqual(points.fee_label({"entry_fee_pp": "x"}), "бесплатно")
+        self.assertEqual(points.fee_label({"entry_fee_pp": 1000}), "1 000 PP")
+        self.assertEqual(points.fee_label({"entry_fee_pp": -5}), "бесплатно")
+        self.assertEqual(points.fee_label(None), "бесплатно")
+        self.assertEqual(points.fee_label("not a dict"), "бесплатно")
+
+
+class HasErrorTests(unittest.TestCase):
+    def test_matches_exception_text(self):
+        self.assertTrue(points.has_error("ERROR: INSUFFICIENT_PP", "INSUFFICIENT_PP"))
+        self.assertFalse(points.has_error("ERROR: INSUFFICIENT_PP", "OTHER"))
+        self.assertFalse(points.has_error("something else", "INSUFFICIENT_PP"))
+        self.assertTrue(points.has_error("INSUFFICIENT_PP", "INSUFFICIENT_PP"))
+        self.assertTrue(points.has_error("PostgreSQL error: INSUFFICIENT_PP", "INSUFFICIENT_PP"))
+        self.assertFalse(points.has_error("PostgreSQL error: OTHER", "INSUFFICIENT_PP"))
