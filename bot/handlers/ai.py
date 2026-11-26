@@ -6,6 +6,7 @@ import re
 from aiogram import types
 from utils.validation import Validation
 from db.rpc import bot_get_user_status
+from services.ai import navigator
 
 async def _answer_by_code(message: types.Message, question: str, private: bool):
     tg_id = message.from_user.id
