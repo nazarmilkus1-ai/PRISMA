@@ -39,6 +39,10 @@ class PointsTextTests(unittest.TestCase):
         self.assertIsNone(points.parse_amount("-"))
         # Unicode digits
         self.assertIsNone(points.parse_amount("５０"))
+        # Boolean string
+        self.assertIsNone(points.parse_amount("True"))
+        # Empty with plus
+        self.assertIsNone(points.parse_amount("+"))
 
     def test_fmt_groups_thousands(self):
         self.assertEqual(points.fmt(1234567), "1 234 567")
