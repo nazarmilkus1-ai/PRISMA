@@ -1,3 +1,4 @@
+from aiogram import types
 from utils.validation import Validation
 
 
