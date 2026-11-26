@@ -21,10 +21,38 @@ async def _cycle_seconds() -> int:
         return config.CYCLE_SECONDS
 
 
+MAINTAIN_SECONDS = 100  # merging and un-sticking PRs do not wait for the end of a long work cycle
+
+
+async def _maintain_loop(bot, stop: asyncio.Event) -> None:
+    await asyncio.sleep(30)
+    while not stop.is_set():
+        try:
+            state = (await rpc.bot_agent_state_get()).data or {}
+            if not state.get("paused") and (await rpc.bot_agent_claim("maintain", MAINTAIN_SECONDS)).data is True:
+                await brain.maintain(bot)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("agent maintenance iteration failed")
+        try:
+            await asyncio.wait_for(stop.wait(), timeout=30)
+        except asyncio.TimeoutError:
+            pass
+
+
 async def run_worker(bot, stop: asyncio.Event) -> None:
     if not config.ENABLED:
         logger.info("autonomous agent disabled (AGENT_ENABLED=0)")
         return
+    maintainer = asyncio.create_task(_maintain_loop(bot, stop))
+    try:
+        await _work_loop(bot, stop)
+    finally:
+        maintainer.cancel()
+
+
+async def _work_loop(bot, stop: asyncio.Event) -> None:
     await asyncio.sleep(45)
     while not stop.is_set():
         try:

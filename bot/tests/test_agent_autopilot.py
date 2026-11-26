@@ -452,7 +452,7 @@ class QuotaTests(unittest.IsolatedAsyncioTestCase):
                 patch.object(brain.report, "live", AsyncMock()), patch.object(brain.report, "post", posts), patch.object(brain, "_live_done", AsyncMock()), \
                 patch.object(brain.rpc, "bot_agent_journal_add", AsyncMock()), patch.object(brain.rpc, "bot_agent_state_patch", patch_state), \
                 patch.object(memory, "build_context", AsyncMock(return_value="ctx")), patch.object(brain.github, "tree_overview", AsyncMock(return_value="tree")), \
-                patch.object(brain, "_maintain", maintain), patch.object(brain, "_ask", AsyncMock(side_effect=ask_error)):
+                patch.object(brain, "maintain", maintain), patch.object(brain, "_ask", AsyncMock(side_effect=ask_error)):
             out = await brain.run_cycle(bot=None)
         return out, maintain, posts, patch_state
 
@@ -591,6 +591,58 @@ class ShrinkGuardTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("не потерять", out["error"])
         commit.assert_not_awaited()
         self.assertEqual(ctx.commits, 0)
+
+
+class MaintainLoopTests(unittest.IsolatedAsyncioTestCase):
+    async def _run_loop(self, state, claim):
+        """Runs exactly one iteration of the background loop (the stop flag is raised while it is reading the state)."""
+        import asyncio
+        from services.agent import loop
+        stop = asyncio.Event()
+        maintain = AsyncMock()
+
+        async def get_state():
+            stop.set()
+            return RPCResult(data=state)
+
+        async def no_sleep(seconds):
+            return None
+
+        with patch.object(loop.rpc, "bot_agent_state_get", get_state), \
+                patch.object(loop.rpc, "bot_agent_claim", AsyncMock(return_value=RPCResult(data=claim))) as claimed, \
+                patch.object(loop.brain, "maintain", maintain), patch.object(loop.asyncio, "sleep", no_sleep):
+            await asyncio.wait_for(loop._maintain_loop(None, stop), timeout=5)
+        return maintain, claimed
+
+    async def test_background_loop_maintains_when_it_wins_the_lease(self):
+        maintain, claimed = await self._run_loop({}, True)
+        maintain.assert_awaited_once()
+        self.assertEqual(claimed.await_args.args[0], "maintain")
+
+    async def test_background_loop_respects_pause_and_a_lost_lease(self):
+        maintain, claimed = await self._run_loop({"paused": True}, True)
+        maintain.assert_not_awaited()
+        claimed.assert_not_awaited()
+        maintain, _ = await self._run_loop({}, False)
+        maintain.assert_not_awaited()
+
+    async def test_maintenance_runs_refresh_step_and_notify_in_order_under_a_lock(self):
+        order = []
+        with patch.object(brain, "_refresh_waiting", AsyncMock(side_effect=lambda: order.append("refresh"))), \
+                patch.object(brain.rpc, "bot_agent_state_get", AsyncMock(return_value=RPCResult(data={}))), \
+                patch.object(brain.autopilot, "step", AsyncMock(side_effect=lambda bot, st: order.append("step"))), \
+                patch.object(brain, "_notify_ready", AsyncMock(side_effect=lambda bot, st: order.append("notify"))):
+            await brain.maintain(None)
+        self.assertEqual(order, ["refresh", "step", "notify"])
+        self.assertFalse(brain._maintain_lock.locked())
+
+    async def test_a_failing_refresh_does_not_stop_merging(self):
+        step = AsyncMock()
+        with patch.object(brain, "_refresh_waiting", AsyncMock(side_effect=RuntimeError("github down"))), \
+                patch.object(brain.rpc, "bot_agent_state_get", AsyncMock(return_value=RPCResult(data={}))), \
+                patch.object(brain.autopilot, "step", step), patch.object(brain, "_notify_ready", AsyncMock()):
+            await brain.maintain(None)
+        step.assert_awaited_once()
 
 
 class HandlerTests(unittest.IsolatedAsyncioTestCase):
