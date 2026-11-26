@@ -44,7 +44,7 @@ class QuizParseTests(unittest.TestCase):
         self.assertIsNone(result)
 
     def test_parse_valid_with_explanation(self):
-        result = quiz.parse('{"question": "Тест", "options": ["Один", "Два", "Три", "Четыре"], "correct": 1, "explanation": "Правильный ответ"}')
+        result = quiz.parse('{"question": "Какой цвет трава?", "options": ["Один", "Два", "Три", "Четыре"], "correct": 1, "explanation": "Правильный ответ"}')
         self.assertIsNotNone(result)
         self.assertEqual(result["explanation"], "Правильный ответ")
 
