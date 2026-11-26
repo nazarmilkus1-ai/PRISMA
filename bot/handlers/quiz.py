@@ -31,7 +31,7 @@ async def quiz_command(message: types.Message, command: CommandObject):
         pass
     item = await quiz.generate(topic, ambient.adult(chat_id), quiz.recent(chat_id))
     if not item:
-        await message.reply("Не получилось придумать вопрос, попробуйте ещё раз через минуту.")
+        await message.reply("Не удалось придумать вопрос. Попробуйте через минуту.")
         return
     quiz.remember_question(chat_id, item["question"])
     try:
