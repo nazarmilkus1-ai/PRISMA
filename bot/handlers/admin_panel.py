@@ -50,6 +50,7 @@ async def send_dashboard(message: types.Message, edit: bool = False) -> None:
             await message.edit_text(text, parse_mode="HTML", reply_markup=markup)
             return
         except Exception:
+            logger.exception("Error editing message in admin_panel")
             pass
     await message.answer(text, parse_mode="HTML", reply_markup=markup)
 
