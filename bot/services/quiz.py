@@ -117,15 +117,17 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
     # Check if this specific option was already chosen by another user
     # If so, ignore this answer (duplicate option)
     option_id = option_ids[0]
+    # Validate option_id is within valid range for this poll's options
+    if not isinstance(poll["correct"], int) or option_id < 0 or option_id >= len(poll["options"]):
+        return None
     # Track that this user answered (but allow different users with same poll)
     poll["answered"].add(user_id)
     _names[(poll["chat"], user_id)] = name[:32]
     right = option_id == poll["correct"]
-    # Only add user to scores and increment if answer is correct
-    # Wrong answers give 0 and user is not tracked for leaderboard
+    # Add user to scores regardless of correctness, so they appear on leaderboard
+    if user_id not in _scores[poll["chat"]]:
+        _scores[poll["chat"]][user_id] = 0
     if right:
-        if user_id not in _scores[poll["chat"]]:
-            _scores[poll["chat"]][user_id] = 0
         _scores[poll["chat"]][user_id] += 1
     return right
 
