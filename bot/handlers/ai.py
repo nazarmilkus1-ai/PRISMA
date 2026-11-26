@@ -1,4 +1,4 @@
-from aiogram import Router
+from aiogram import Router, types
 
 free_router = Router(name="ai_free")
 
