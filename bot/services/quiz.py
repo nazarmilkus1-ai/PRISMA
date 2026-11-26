@@ -110,9 +110,9 @@ def register_poll(poll_id: str, chat_id: int, correct: int) -> None:
 
 
 def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) -> bool | None:
-    """True/False for a counted answer, None when the poll is unknown or no option_ids."""
+    """True/False for a counted answer, None when the poll is unknown or the user already answered."""
     poll = _polls.get(poll_id)
-    if not poll or not option_ids:
+    if not poll or user_id in poll["answered"] or not option_ids:
         return None
     poll["answered"].add(user_id)
     _names[(poll["chat"], user_id)] = name[:32]
