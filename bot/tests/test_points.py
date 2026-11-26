@@ -22,6 +22,32 @@ class PointsTextTests(unittest.TestCase):
         self.assertEqual(points.fmt(1234567), "1 234 567")
         self.assertEqual(points.fmt(None), "0")
 
+    def test_fmt_negative(self):
+        self.assertEqual(points.fmt(-100), "-100")
+        self.assertEqual(points.fmt(-1234567), "-1 234 567")
+
+    def test_fmt_zero(self):
+        self.assertEqual(points.fmt(0), "0")
+
+    def test_fmt_large_number(self):
+        self.assertEqual(points.fmt(999999999), "999 999 999")
+
+    def test_parse_amount_positive(self):
+        self.assertEqual(points.parse_amount("50"), 50)
+        self.assertEqual(points.parse_amount("+100"), 100)
+
+    def test_parse_amount_negative(self):
+        self.assertEqual(points.parse_amount("-7"), -7)
+
+    def test_parse_amount_invalid(self):
+        self.assertIsNone(points.parse_amount("abc"))
+        self.assertIsNone(points.parse_amount("1.5"))
+        self.assertIsNone(points.parse_amount(""))
+
+    def test_parse_amount_with_spaces(self):
+        self.assertEqual(points.parse_amount(" 50 "), 50)
+        self.assertEqual(points.parse_amount("+ 100"), 100)
+
     def test_history_render(self):
         text = points.render_history({"balance": 90, "items": [
             {"delta": 90, "kind": "event_prize", "note": None},
