@@ -1,5 +1,11 @@
 from utils.validation import Validation
 
+async def send_dashboard(message: types.Message, edit: bool = False) -> None:
+    valid, err = Validation.validate_telegram_id(message.from_user.id, "Telegram ID")
+    if not valid:
+        logger.warning("Invalid Telegram ID in send_dashboard: %s", message.from_user.id)
+        return
+
 async def _home(tg_id: int) -> tuple[str, types.InlineKeyboardMarkup]:
     valid, err = Validation.validate_telegram_id(tg_id, "Telegram ID")
     if not valid:
