@@ -19,6 +19,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 import config
 from db.rpc import bot_ban_review_claim, bot_get_community_chat_id
+from utils.validation import Validation
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,11 @@ def card_text(row: dict) -> str:
     )
 
 
-def keyboard(tg_id: int) -> InlineKeyboardMarkup:
+def keyboard(tg_id: int) -> InlineKeyboardMarkup | None:
+    valid, error = Validation.validate_telegram_id(tg_id, "Telegram ID для клавиатуры бан-ревью")
+    if not valid:
+        Validation.log_warning("ban_review.keyboard", tg_id, "keyboard", error)
+        return None
     return InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="✅ Вернуть", callback_data=f"{CB_PREFIX}:ok:{int(tg_id)}"),
         InlineKeyboardButton(text="⛔ Оставить бан", callback_data=f"{CB_PREFIX}:keep:{int(tg_id)}"),
@@ -61,16 +66,28 @@ async def notify_admins(bot: Bot, rows: list[dict]) -> int:
         return 0
     sent = 0
     for row in rows:
+        tg_id = row.get("tg_id")
+        valid, error = Validation.validate_telegram_id(tg_id, "Telegram ID для уведомления админов")
+        if not valid:
+            Validation.log_warning("ban_review.notify_admins", tg_id, "notify_admins", error)
+            continue
         try:
-            await bot.send_message(target, card_text(row), parse_mode="HTML", reply_markup=keyboard(int(row["tg_id"])))
+            kb = keyboard(int(tg_id))
+            if kb is None:
+                continue
+            await bot.send_message(target, card_text(row), parse_mode="HTML", reply_markup=kb)
             sent += 1
         except Exception:
-            logger.exception("ban review notification failed for %s", row.get("tg_id"))
+            logger.exception("ban review notification failed for %s", tg_id)
     return sent
 
 
 async def invite_back(bot: Bot, tg_id: int) -> str:
     """Unban in the community chat and send the player an invitation. Returns a short status for the admins."""
+    valid, error = Validation.validate_telegram_id(tg_id, "Telegram ID для возвращения игрока")
+    if not valid:
+        Validation.log_warning("ban_review.invite_back", tg_id, "invite_back", error)
+        return "некорректный Telegram ID"
     chat = await bot_get_community_chat_id()
     chat_id = chat.data if not chat.error and isinstance(chat.data, int) else None
     link = None
