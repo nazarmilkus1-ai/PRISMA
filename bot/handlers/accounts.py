@@ -140,7 +140,7 @@ async def cmd_link_tg(message: types.Message, command: CommandObject):
     try:
         await message.bot.send_message(primary, "✅ Второй Telegram-аккаунт привязан. Отвязать: /removetg")
     except Exception:
-        pass
+        logger.exception("Error sending message to primary Telegram account")
 
 
 @router.message(Command("removetg"))
