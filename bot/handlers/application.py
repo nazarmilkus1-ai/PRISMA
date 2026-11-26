@@ -22,6 +22,7 @@ from db.rpc import bot_get_pending_count, bot_get_user_status, bot_submit_applic
 from fsm.states import ApplicationForm
 from keyboards.inline import agreement_keyboard, platform_keyboard, preview_keyboard, discovery_source_keyboard, APPLICATION_DISCOVERY_SOURCES
 from utils.helpers import bedrock_gamertag, bedrock_server_nick, validate_birth_date, validate_minecraft_nick, validate_text
+from utils.validation import Validation
 
 from services.community_membership import clear_onboarding_restriction
 
@@ -210,6 +211,13 @@ async def process_agreement(callback: types.CallbackQuery, state: FSMContext):
         await state.clear()
         await callback.message.edit_text("❌ Вы отказались от обработки данных. Вернуться можно через /start.")
         return
+    tg_id_valid, tg_id_error = Validation.validate_telegram_id(callback.from_user.id, "Telegram ID при согласии")
+    if not tg_id_valid:
+        Validation.log_warning("process_agreement", callback.from_user.id, "process_agreement", tg_id_error)
+        await callback.answer(tg_id_error, show_alert=True)
+        await state.clear()
+        await callback.message.edit_text("❌ Ошибка валидации ID. Попробуйте /start ещё раз.")
+        return
     await state.update_data(
         tg_id=callback.from_user.id,
         username=callback.from_user.username or "",
@@ -358,6 +366,14 @@ async def edit_field(callback: types.CallbackQuery, state: FSMContext):
 async def confirm_application(callback: types.CallbackQuery, state: FSMContext):
     await callback.answer()
     data = await state.get_data()
+    tg_id = data.get("tg_id")
+    valid, error = Validation.validate_telegram_id(tg_id, "Telegram ID для подтверждения заявки")
+    if not valid:
+        Validation.log_warning("confirm_application", tg_id, "confirm_application", error)
+        await callback.message.edit_text(
+            f"❌ {escape(error)}", parse_mode="HTML"
+        )
+        return
     birth_date = datetime.strptime(data["birth_date"], "%d.%m.%Y").date().isoformat()
     result = await bot_submit_application(
         data["tg_id"],
