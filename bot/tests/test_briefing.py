@@ -1,6 +1,7 @@
 import os
 import sys
 import unittest
+from unittest.mock import AsyncMock, patch
 
 os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
 os.environ.setdefault("SUPABASE_KEY", "[скрыто]")
@@ -13,14 +14,29 @@ from services import briefing
 class BriefingTests(unittest.IsolatedAsyncioTestCase):
     async def test_build_briefing_with_data(self):
         """Тестируем build_briefing с данными"""
-        result = await briefing.build_briefing()
-        self.assertIsInstance(result, (str, type(None)))
+        with patch("services.briefing.bot_get_pending_count", AsyncMock(return_value=5)), \
+             patch("services.briefing.open_reports", AsyncMock(return_value([], None))), \
+             patch("services.briefing.open_appeals", AsyncMock(return_value([], None))), \
+             patch("services.briefing.bot_list_inactive_members", AsyncMock(return_value=type('obj', (object,), {'data': [], 'error': None, 'isinstance': lambda self, x: isinstance(x, list)})())):
+            result = await briefing.build_briefing()
+            self.assertIsInstance(result, str)
+            self.assertIn("Утренний брифинг", result)
 
     async def test_build_briefing_returns_none_when_no_data(self):
         """Тестируем build_briefing когда данных нет"""
-        result = await briefing.build_briefing()
-        self.assertIsNone(result)
+        with patch("services.briefing.bot_get_pending_count", AsyncMock(return_value=0)), \
+             patch("services.briefing.open_reports", AsyncMock(return_value([], None))), \
+             patch("services.briefing.open_appeals", AsyncMock(return_value([], None))), \
+             patch("services.briefing.bot_list_inactive_members", AsyncMock(return_value=type('obj', (object,), {'data': [], 'error': None, 'isinstance': lambda self, x: isinstance(x, list)})())):
+            result = await briefing.build_briefing()
+            self.assertIsNone(result)
 
-
-if __name__ == "__main__":
-    unittest.main()
+    async def test_build_briefing_with_mixed_data(self):
+        """Тестируем build_briefing с частичными данными"""
+        with patch("services.briefing.bot_get_pending_count", AsyncMock(return_value=3)), \
+             patch("services.briefing.open_reports", AsyncMock(return_value([], None))), \
+             patch("services.briefing.open_appeals", AsyncMock(return_value([], None))), \
+             patch("services.briefing.bot_list_inactive_members", AsyncMock(return_value=type('obj', (object,), {'data': [], 'error': None, 'isinstance': lambda self, x: isinstance(x, list)})())):
+            result = await briefing.build_briefing()
+            self.assertIsInstance(result, str)
+            self.assertIn("Заявок ждут решения: <b>3</b>", result)
