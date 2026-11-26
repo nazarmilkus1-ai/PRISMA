@@ -23,3 +23,10 @@ async def run_member(member_id: int, action: str, **kwargs) -> bool:
 
 ai_memory = ai_memory_module
 free_router = navigator
+
+
+async def _ask_ai(message: types.Message, question: str, private: bool) -> bool:
+    """Ask AI a question and return whether it was successful."""
+    from services.ai import ambient
+    answer = await ambient.generate(message, question, private)
+    return answer is not None and answer != ""
