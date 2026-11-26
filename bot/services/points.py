@@ -58,9 +58,12 @@ def parse_amount(raw: str | None) -> int | None:
         return None
     raw = raw.strip().replace(" ", "")
     digit_part = raw.lstrip("+-")
-    if digit_part.isascii() and digit_part.isdigit():
-        return int(raw)
-    return None
+    if not digit_part.isascii() or not digit_part.isdigit():
+        return None
+    value = int(raw)
+    if value < 1 or value > 100000:
+        return None
+    return value
 
 
 def render_history(data: dict) -> str:
