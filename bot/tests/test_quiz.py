@@ -36,7 +36,7 @@ class QuizParseTests(unittest.TestCase):
 
     def test_parse_question_too_long(self):
         long_question = "A" * 301
-        result = quiz.parse(f'{"question": "{long_question}", "options": ["Один", "Два", "Три", "Четыре"], "correct": 0}')
+        result = quiz.parse('{"question": "' + long_question + '", "options": ["Один", "Два", "Три", "Четыре"], "correct": 0}')
         self.assertIsNone(result)
 
     def test_parse_duplicate_options(self):
