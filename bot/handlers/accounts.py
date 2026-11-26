@@ -140,7 +140,8 @@ async def cmd_link_tg(message: types.Message, command: CommandObject):
     await message.answer("✅ Готово: этот аккаунт теперь работает как ваш профиль PRISMA в личке с ботом.")
     try:
         await message.bot.send_message(primary, "✅ Второй Telegram-аккаунт привязан. Отвязать: /removetg")
-    except Exception:
+    except Exception as exc:
+        logger.error(f"Failed to send bind message: {exc}")
         pass
 
 
