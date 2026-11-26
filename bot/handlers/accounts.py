@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from html import escape
 
+import logging
+
 from aiogram import BaseMiddleware, Router, types
 from aiogram.filters import Command, CommandObject
 
