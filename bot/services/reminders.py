@@ -73,6 +73,8 @@ def friendly_error(raw: object) -> str:
 
 
 def fmt(when: datetime | str) -> str:
+    if when is None:
+        return "00.00"
     if isinstance(when, str):
         when = datetime.fromisoformat(when.replace("Z", "+00:00"))
     return when.astimezone(TZ).strftime("%d.%m %H:%M")
