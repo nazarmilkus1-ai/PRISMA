@@ -95,8 +95,9 @@ def recent(chat_id: int) -> list[str]:
 
 def register_poll(poll_id: str, chat_id: int, correct: int, options: list[str] | None = None) -> None:
     if options is None:
-        # Create options based on correct index; ensure correct index is always valid
-        options = [f"option_{i}" for i in range(correct + 1)]
+        # Create options based on correct index; clamp correct to valid range
+        options = [f"option_{i}" for i in range(max(1, correct + 1))]
+        correct = min(correct, len(options) - 1)
     _polls[poll_id] = {"chat": chat_id, "correct": correct, "options": options, "answered": set()}
     if len(_polls) > MAX_TRACKED:
         for key in list(_polls)[: MAX_TRACKED // 2]:
