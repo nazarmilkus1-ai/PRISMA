@@ -7,10 +7,17 @@
 """
 from __future__ import annotations
 
+import logging
+import logging
+
 import secrets
 import time
 
 from db.rpc import bot_telegram_alias_resolve
+
+logger = logging.getLogger(__name__)
+
+logger = logging.getLogger(__name__)
 
 CODE_TTL = 600.0
 ALIAS_CACHE_TTL = 120.0
@@ -75,6 +82,7 @@ async def primary_for(tg_id: int, now: float | None = None) -> int | None:
     try:
         result = await bot_telegram_alias_resolve(tg_id)
     except Exception:
+        logger.exception("alias resolve failed for tg_id %s", tg_id)
         return None
     if result.error:
         return None
