@@ -10,15 +10,15 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from services import briefing
 
 
-class BriefingTests(unittest.TestCase):
-    def test_build_briefing_with_data(self):
+class BriefingTests(unittest.IsolatedAsyncioTestCase):
+    async def test_build_briefing_with_data(self):
         """Тестируем build_briefing с данными"""
-        result = briefing.build_briefing()
+        result = await briefing.build_briefing()
         self.assertIsInstance(result, (str, type(None)))
 
-    def test_build_briefing_returns_none_when_no_data(self):
+    async def test_build_briefing_returns_none_when_no_data(self):
         """Тестируем build_briefing когда данных нет"""
-        result = briefing.build_briefing()
+        result = await briefing.build_briefing()
         self.assertIsNone(result)
 
 
