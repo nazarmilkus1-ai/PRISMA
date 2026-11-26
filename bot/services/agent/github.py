@@ -363,6 +363,8 @@ def destructive(stats: list[dict]) -> bool:
 def manual_reason(info: dict) -> str:
     """Why the agent must not merge this PR itself: migrations | self | sensitive | destructive | "" (free to merge)."""
     paths = [str(p) for p in (info.get("paths") or [])]
+    if destructive(info.get("stats") or []):
+        return "destructive"  # first: such a PR is rebuilt, whatever else it touches
     kinds = classify_paths(paths)
     if kinds["refused"]:
         return "migrations"
@@ -370,8 +372,6 @@ def manual_reason(info: dict) -> str:
         return "self"
     if any(p.startswith(config.SENSITIVE_PREFIXES) or p.rsplit("/", 1)[-1] in config.SENSITIVE_NAMES for p in paths):
         return "sensitive"
-    if destructive(info.get("stats") or []):
-        return "destructive"
     return ""
 
 

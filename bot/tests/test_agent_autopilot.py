@@ -512,6 +512,9 @@ class SafetyGuardTests(unittest.IsolatedAsyncioTestCase):
                           "bot/handlers/ban_review.py", "bot/services/ban_review.py", "bot/main.py"):
             self.assertEqual(reason(sensitive), "sensitive", sensitive)
         self.assertEqual(reason("bot/handlers/menu.py", stats=_stats(("bot/handlers/menu.py", "modified", 3, 400))), "destructive")
+        # a destructive PR that also touches bans code or the agent itself is still rebuilt, not handed to a person as a «sensitive» card
+        lost = _stats(("bot/handlers/ban_review.py", "modified", 5, 300))
+        self.assertEqual(reason("bot/handlers/ban_review.py", "bot/services/agent/brain.py", stats=lost), "destructive")
 
     async def test_pr_info_carries_per_file_stats(self):
         async def get(path, params=None):
