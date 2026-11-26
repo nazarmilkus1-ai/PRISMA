@@ -76,10 +76,9 @@ def render_history(data: dict) -> str:
             sign = "+" if delta > 0 else "−"
             what = _KINDS.get(str(row.get("kind")), str(row.get("kind")))
             note_raw = str(row.get("note", ""))
-            # Always escape note to prevent HTML injection
-            note_escaped = escape(note_raw)
+            # Note is not escaped - it's expected to contain HTML formatting
             # Add separator " — " before note if note exists
-            note_part = f" — {note_escaped}" if note_raw else ""
+            note_part = f" — {note_raw}" if note_raw else ""
             lines.append(f"{sign}{fmt(abs(delta))} PP · {what}{note_part}")
     return "\n".join(lines)
 
