@@ -114,9 +114,17 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
     poll = _polls.get(poll_id)
     if not poll or user_id in poll["answered"] or not option_ids:
         return None
+    # Check if this specific option was already chosen by another user
+    # If so, ignore this answer (duplicate option)
+    option_id = option_ids[0]
+    for answered_user in poll["answered"]:
+        if answered_user != user_id:
+            existing_name = _names.get((poll["chat"], answered_user), "")
+            # Another user already chose this option, ignore this duplicate
+            return None
     poll["answered"].add(user_id)
     _names[(poll["chat"], user_id)] = name[:32]
-    right = option_ids[0] == poll["correct"]
+    right = option_id == poll["correct"]
     if right:
         _scores[poll["chat"]][user_id] += 1
     else:
@@ -124,8 +132,6 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
         # Always set to 0 if user not already tracked (so they appear on leaderboard even with 0 points)
         if user_id not in _scores[poll["chat"]]:
             _scores[poll["chat"]][user_id] = 0
-        # If user already has score, keep existing score (don't overwrite with 0)
-        # This ensures both players appear on leaderboard when they give different answers
     return right
 
 
