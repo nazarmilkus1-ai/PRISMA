@@ -125,6 +125,8 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
         # Always set to 0 if user not already tracked (so they appear on leaderboard even with 0 points)
         if user_id not in _scores[poll["chat"]]:
             _scores[poll["chat"]][user_id] = 0
+    # Если пользователь ответил неверно — всё равно добавляем в лидерборд
+    # (уже сделано выше через установку 0, но оставляем явно для ясности)
     return right
 
 
