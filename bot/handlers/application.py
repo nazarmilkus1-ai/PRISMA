@@ -358,6 +358,7 @@ async def edit_field(callback: types.CallbackQuery, state: FSMContext):
 async def confirm_application(callback: types.CallbackQuery, state: FSMContext):
     await callback.answer()
     data = await state.get_data()
+    Validation.validate_telegram_id(data["tg_id"], "confirm_application")
     birth_date = datetime.strptime(data["birth_date"], "%d.%m.%Y").date().isoformat()
     result = await bot_submit_application(
         data["tg_id"],
