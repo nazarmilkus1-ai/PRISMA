@@ -143,4 +143,9 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
 
 
 def leaderboard(chat_id: int, limit: int = 10) -> list[tuple[str, int]]:
-    return [(_names.get((chat_id, uid), "игрок"), pts) for uid, pts in _scores[chat_id].most_common(limit)]
+    # Only include users with score > 0, or if all users have 0, include the first one
+    items = [(_names.get((chat_id, uid), "игрок"), pts) for uid, pts in _scores[chat_id].items() if pts > 0]
+    if not items:
+        # If all scores are 0, include up to limit players who answered
+        items = [(_names.get((chat_id, uid), "игрок"), pts) for uid, pts in _scores[chat_id].most_common(limit) if uid in _names]
+    return items[:limit]
