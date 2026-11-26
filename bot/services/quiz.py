@@ -119,15 +119,12 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
     if answer_key in poll.setdefault("answered", set()):
         return None  # User already answered this poll - ignore duplicate
     poll.setdefault("answered", set()).add(answer_key)
-    _names[answer_key] = name[:32]
-    # Track user in scores regardless of correctness for leaderboard
-    if user_id not in _scores[poll["chat"]]:
-        _scores[poll["chat"]][user_id] = 0
     right = option_id == poll["correct"]
-    # Always increment or set score based on correctness
     if right:
+        _names[answer_key] = name[:32]
+        if user_id not in _scores[poll["chat"]]:
+            _scores[poll["chat"]][user_id] = 0
         _scores[poll["chat"]][user_id] += 1
-    # Wrong answers don't remove user from scores - they stay tracked for leaderboard
     return right
 
 def leaderboard(chat_id: int, limit: int = 10) -> list[tuple[str, int]]:
