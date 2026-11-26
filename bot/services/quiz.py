@@ -124,8 +124,9 @@ def record_answer(poll_id: str, user_id: int, name: str, option_ids: list[int]) 
         # Always set to 0 if user not already tracked (so they appear on leaderboard even with 0 points)
         if user_id not in _scores[poll["chat"]]:
             _scores[poll["chat"]][user_id] = 0
-        # Also ensure the name is stored for this user on this chat
-        _names[(poll["chat"], user_id)] = name[:32]
+        # If user already has score, keep existing score (don't overwrite with 0)
+        # This ensures both players appear on leaderboard when they give different answers
+        # _names already updated above
     return right
 
 
