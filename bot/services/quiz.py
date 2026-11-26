@@ -45,9 +45,12 @@ def parse(raw: str) -> dict | None:
     question = str(data.get("question") or "").strip()
     options = [str(o).strip() for o in (data.get("options") or [])]
     correct = data.get("correct")
-    if not isinstance(correct, int) or isinstance(correct, bool) or len(options) != 4 or not 0 <= correct <= 3:
+    # Allow 2-4 options, correct index must be valid for the number of options
+    if not isinstance(correct, int) or isinstance(correct, bool) or correct is None or len(options) < 2 or len(options) > 4:
         return None
-    if not 10 <= len(question) <= 300 or any(not 1 <= len(o) <= 100 for o in options) or len({o.casefold() for o in options}) != 4:
+    if not 0 <= correct < len(options):
+        return None
+    if not 10 <= len(question) <= 300 or any(not 1 <= len(o) <= 100 for o in options) or len({o.casefold() for o in options}) != len(options):
         return None
     return {"question": question, "options": options, "correct": correct,
             "explanation": str(data.get("explanation") or "").strip()[:190] or None}
