@@ -70,6 +70,17 @@ class FmtTests(unittest.TestCase):
         self.assertIn("01.01", result)
         self.assertIn("00:00", result)
 
+    def test_fmt_with_empty_string(self):
+        result = reminders.fmt("")
+        self.assertEqual(result, "00.00")
+
+    def test_fmt_with_future_date(self):
+        from datetime import datetime
+        when = datetime(2030, 6, 15, 20, 45, tzinfo=reminders.TZ)
+        result = reminders.fmt(when)
+        self.assertIn("15.06", result)
+        self.assertIn("20:45", result)
+
 
 class FriendlyErrorTests(unittest.TestCase):
     def test_friendly_error_reminder_limit(self):
