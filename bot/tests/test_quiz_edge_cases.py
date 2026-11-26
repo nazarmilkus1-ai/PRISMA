@@ -31,7 +31,7 @@ class QuizEdgeCaseTests(unittest.TestCase):
         self.assertEqual(result["correct"], 0)
 
     def test_parse_all_options_correct(self):
-        result = quiz.parse('{"question": "Тест", "options": ["a", "b", "c", "d"], "correct": 3}')
+        result = quiz.parse('{"question": "Тестовый вопрос", "options": ["a", "b", "c", "d"], "correct": 3}')
         self.assertIsNotNone(result)
 
     def test_parse_missing_correct_field(self):
