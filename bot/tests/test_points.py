@@ -18,6 +18,24 @@ class PointsTextTests(unittest.TestCase):
         self.assertIsNone(points.parse_amount("abc"))
         self.assertIsNone(points.parse_amount("1.5"))
 
+    def test_parse_amount_more_edge_cases(self):
+        # String with only plus
+        self.assertIsNone(points.parse_amount("+"))
+        # String with plus and spaces
+        self.assertIsNone(points.parse_amount(" + "))
+        # Very large number string
+        self.assertEqual(points.parse_amount("999999999999"), 999999999999)
+        # Number with comma (should fail as comma is not a digit)
+        self.assertIsNone(points.parse_amount("1,000"))
+        # Number with leading zeros
+        self.assertEqual(points.parse_amount("007"), 7)
+        # Boolean as string
+        self.assertIsNone(points.parse_amount("True"))
+        # None input
+        self.assertIsNone(points.parse_amount(None))
+        # Empty string
+        self.assertIsNone(points.parse_amount(""))
+
     def test_parse_amount_edge_cases(self):
         # Empty string
         self.assertIsNone(points.parse_amount(""))
