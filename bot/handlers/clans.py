@@ -99,6 +99,11 @@ def _help_text():
 
 
 async def _show_info(message: types.Message, tg_id: int):
+    valid, error = Validation.validate_telegram_id(tg_id, "Telegram ID для просмотра клана")
+    if not valid:
+        logger.warning("_show_info: invalid tg_id %s", tg_id)
+        await message.answer("❌ Неверный Telegram ID.")
+        return
     result = await bot_get_clan_info(tg_id)
     if result.error:
         await message.answer("❌ Не удалось получить данные клана.")
