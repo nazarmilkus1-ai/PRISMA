@@ -46,7 +46,7 @@ def parse(raw: str) -> dict | None:
     # Allow 2-4 options, correct index must be valid for the number of options
     if not isinstance(correct, int) or isinstance(correct, bool) or correct is None:
         return None
-    if len(options) < 2 or len(options) > 4:
+    if len(options) != 4:
         return None
     if not 0 <= correct < len(options):
         return None
