@@ -37,6 +37,12 @@ def parse(text: str, now: datetime | None = None) -> tuple[datetime, str] | None
             return datetime(int(y), int(mo), int(d), int(h), int(mi), tzinfo=TZ), rest.strip()
         except ValueError:
             return None
+    match = _CLOCK.match(text)
+    if match:
+        day_part, hour, minute, rest = match.groups()
+        hour = int(hour)
+        minute = int(minute)
+        return datetime(now.year, now.month, now.day, hour, minute, tzinfo=TZ), rest.strip()
     match = _REL.match(text)
     if match and match.group(2).lower() in _UNIT and match.group(3) is not None and match.group(3).strip():
         minutes = int(match.group(1)) * _UNIT[match.group(2).lower()]
