@@ -257,7 +257,5 @@ class ForgetTests(unittest.TestCase):
         self.assertIn(2, accounts._alias_cache)
 
 
-import time
-
 if __name__ == "__main__":
     unittest.main()
