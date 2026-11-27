@@ -6,7 +6,7 @@ from types import SimpleNamespace
 from unittest import mock
 
 os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
-os.environ.setdefault("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.x")
+os.environ.setdefault("SUPABASE_KEY", "test_key")
 os.environ.setdefault("BOT_TOKEN", "123456:TEST")
 os.environ.setdefault("MODERATION_GROUP_ID", "-100123")
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
