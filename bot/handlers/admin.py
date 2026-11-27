@@ -164,7 +164,7 @@ async def admin_appeals(callback: types.CallbackQuery):
     await callback.answer()
     rows, err = await open_appeals(callback.from_user.id)
     if err:
-        await callback.message.answer("❌ Не удалось загрузить апелляции.")
+        await callback.message.answer("❌ Не удалось загрузить апелляции. Попробуйте позже.")
         return
     if not rows:
         await callback.message.answer("⚖️ Открытых апелляций нет.")
