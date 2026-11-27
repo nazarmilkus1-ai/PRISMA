@@ -47,12 +47,12 @@ def parse(text: str, now: datetime | None = None) -> tuple[datetime, str] | None
         day_word, h, mi, rest = match.groups()
         try:
             target = now.replace(hour=int(h), minute=int(mi), second=0, microsecond=0)
+            if day_word is None and target <= now:
+                target += timedelta(days=1)
         except ValueError:
             return None
         shift = {"завтра": 1, "послезавтра": 2}.get((day_word or "").lower(), 1)
         target += timedelta(days=shift)
-        if target <= now and day_word is None:
-            target += timedelta(days=1)  # "14:30" already passed today → tomorrow
         return target, rest.strip()
     return None
 
