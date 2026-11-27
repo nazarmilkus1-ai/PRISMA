@@ -33,7 +33,7 @@ def _display_name(row: dict) -> str:
 def _mention(row: dict) -> str:
     try:
         telegram_id = int(row["telegram_id"])
-    except (KeyError, TypeError, ValueError):
+    except (KeyError, TypeError, ValueError) as e:
         logger.warning(f"Invalid telegram_id in row: {row}")
         return escape(_display_name(row))
     return f'<a href="tg://user?id={telegram_id}">{escape(_display_name(row))}</a>'
