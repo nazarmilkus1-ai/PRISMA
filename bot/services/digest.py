@@ -66,7 +66,7 @@ async def gather(chat_id: int) -> dict:
     try:
         facts["online"] = _TAG.sub("", await live._online())
     except Exception as exc:
-        logger.debug("digest online failed: %s", exc)
+        logger.error("digest online failed: %s", exc)
     top = await bot_chat_top(chat_id, 1, 3)
     if not top.error and isinstance(top.data, list):
         facts["top"] = [{"name": _name(r), "messages": int(r.get("messages") or 0)} for r in top.data if isinstance(r, dict)]
