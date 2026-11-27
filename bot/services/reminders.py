@@ -46,6 +46,10 @@ def parse(text: str, now: datetime | None = None) -> tuple[datetime, str] | None
     match = _CLOCK.match(text)
     if match:
         day_word, h, mi, rest = match.groups()
+        # Check if day_word is valid (one of the expected day names)
+        valid_day_words = {"сегодня", "завтра", "послезавтра", "вчера"}
+        if day_word and day_word.lower() not in valid_day_words:
+            return None
         try:
             target = now.replace(hour=int(h), minute=int(mi), second=0, microsecond=0)
         except ValueError:
