@@ -101,7 +101,7 @@ def _help_text():
 async def _show_info(message: types.Message, tg_id: int):
     result = await bot_get_clan_info(tg_id)
     if result.error:
-        await message.answer("❌ Не удалось получить данные клана. Проверьте правильность ника или попробуйте позже.")
+        await message.answer("❌ Не удалось получить данные клана. Попробуйте позже.")
         return
     if isinstance(result.data, dict) and result.data.get("error") == "NO_CLAN":
         await message.answer("⚔️ Вы не состоите в клане. Используйте <code>/clan create</code> или <code>/clan list</code>.", parse_mode="HTML")
