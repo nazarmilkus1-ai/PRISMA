@@ -135,7 +135,7 @@ async def _show_info(message: types.Message, tg_id: int):
 async def _list_clans(message: types.Message):
     result = await bot_list_clans()
     if result.error or not isinstance(result.data, list):
-        await message.answer("❌ Не удалось получить список кланов.")
+        await message.answer("❌ Не удалось получить список кланов. Попробуйте позже или свяжитесь с админом.")
         return
     if not result.data:
         await message.answer("⚔️ Активных кланов пока нет.")
