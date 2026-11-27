@@ -73,4 +73,5 @@ async def create_issue(title: str, body: str) -> tuple[str | None, str | None]:
                     return None, f"GitHub HTTP {resp.status}"
                 return str(data.get("html_url")), None
     except Exception as exc:
+        logging.error(f"GitHub issue creation error: {exc}")
         return None, type(exc).__name__
