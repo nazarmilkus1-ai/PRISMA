@@ -65,10 +65,10 @@ def parse(text: str, now: datetime | None = None) -> tuple[datetime, str] | None
 
 
 ERRORS = {
-    "REMINDER_TIME_PAST": "Это время уже прошло или слишком близко.",
+    "REMINDER_TIME_PAST": "Это время уже прошло или слишком близко. Выберите позже.",
     "REMINDER_TIME_TOO_FAR": "Напоминания можно ставить не дальше чем на год вперёд.",
-    "REMINDER_LIMIT": "Уже стоит 20 напоминаний — отмените лишние: /reminders",
-    "REMINDER_TEXT_INVALID": "Текст напоминания: от 1 до 300 символов.",
+    "REMINDER_LIMIT": "У вас уже 20 напоминаний. Удалите лишние командой /reminders, чтобы добавить новое.",
+    "REMINDER_TEXT_INVALID": "Текст напоминания должен быть от 1 до 300 символов.",
 }
 
 
