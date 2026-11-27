@@ -134,7 +134,7 @@ async def cmd_link_tg(message: types.Message, command: CommandObject):
     result = await bot_telegram_alias_create(primary, message.from_user.id)
     error = result.error or (result.data.get("error") if isinstance(result.data, dict) else None)
     if error:
-        await message.answer("❌ " + escape(accounts.TELEGRAM_ERRORS.get(str(error), "Не удалось привязать аккаунт.")))
+        await message.answer("❌ Не удалось привязать аккаунт. Попробуйте позже или свяжитесь с админом.")
         return
     accounts.forget(message.from_user.id)
     await message.answer("✅ Готово: этот аккаунт теперь работает как ваш профиль PRISMA в личке с ботом.")
