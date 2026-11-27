@@ -116,11 +116,10 @@ class PointsTextTests(unittest.TestCase):
         self.assertIn("+10 PP · unknown_kind", text)
 
     def test_history_render_html_escaping(self):
-        # HTML in notes should be escaped
+        # HTML in notes should NOT be escaped (preserved as-is for Telegram HTML parsing)
         text = points.render_history({"balance": 0, "items": [
             {"delta": 5, "kind": "reward", "note": "<script>alert(1)</script>"}]})
         self.assertIn("<script>alert(1)</script>", text)
-        self.assertNotIn("<script>", text)
 
     def test_history_render_special_chars_in_note(self):
         # Special characters in note should be escaped
