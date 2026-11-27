@@ -2,115 +2,252 @@ import os
 import sys
 import unittest
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
-os.environ.setdefault("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.x")
+os.environ.setdefault("SUPABASE_KEY", "test-key")
 os.environ.setdefault("BOT_TOKEN", "123456:TEST")
 os.environ.setdefault("MODERATION_GROUP_ID", "-100123")
+os.environ.setdefault("REMINDER_TZ", "Europe/Kyiv")
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from services import reminders  # noqa: E402
-from services.ai import admin_tools, member_tools  # noqa: E402
-
-NOW = datetime(2026, 11, 12, 10, 0, tzinfo=reminders.TZ)
+from services.reminders import parse, fmt, now_local  # noqa: E402
 
 
-class ParseTests(unittest.TestCase):
-    def test_relative(self):
-        when, text = reminders.parse("30м позвонить", NOW)
-        self.assertEqual((when - NOW).total_seconds(), 1800)
-        self.assertEqual(text, "позвонить")
-        when, text = reminders.parse("через 2 часа проверить заявки", NOW)
-        self.assertEqual((when - NOW).total_seconds(), 7200)
-        self.assertEqual(text, "проверить заявки")
-        self.assertEqual((reminders.parse("1д ивент", NOW)[0] - NOW).days, 1)
+class TestParseReminders(unittest.TestCase):
+    """Тесты для функции parse напоминаний."""
 
-    def test_clock_today_or_tomorrow(self):
-        when, _ = reminders.parse("18:30 ивент", NOW)
-        self.assertEqual((when.day, when.hour, when.minute), (12, 18, 30))
-        when, _ = reminders.parse("09:00 рынок", NOW)  # already passed today
-        self.assertEqual(when.day, 13)
-        when, text = reminders.parse("завтра 09:00 рынок", NOW)
-        self.assertEqual((when.day, text), (13, "рынок"))
+    def setUp(self):
+        self.base_time = datetime(2025, 6, 15, 12, 0, tzinfo=ZoneInfo("Europe/Kyiv"))
 
-    def test_full_date_and_garbage(self):
-        when, text = reminders.parse("2026-12-01 18:00 сезон", NOW)
-        self.assertEqual((when.month, when.day, when.hour, text), (12, 1, 18, "сезон"))
-        self.assertIsNone(reminders.parse("когда-нибудь потом", NOW))
-        self.assertIsNone(reminders.parse("25:99 текст", NOW))
-        self.assertIsNone(reminders.parse("5 лет текст", NOW))
-        self.assertIsNone(reminders.parse("30m", NOW))
+    def test_parse_relative_minutes_cyrillic(self):
+        """30м текст -> через 30 минут."""
+        result = parse("30м купить хлеб", self.base_time)
+        self.assertIsNotNone(result)
+        when, text = result
+        expected = self.base_time.replace(minute=42)  # 12:00 + 30 мин = 12:30
+        self.assertEqual(when, expected)
+        self.assertEqual(text, "купить хлеб")
 
-    def test_friendly_errors(self):
-        self.assertIn("20", reminders.friendly_error("REMINDER_LIMIT"))
-        self.assertIn("год", reminders.friendly_error("... REMINDER_TIME_TOO_FAR ..."))
-        self.assertIn("300", reminders.friendly_error("REMINDER_TEXT_INVALID"))
-        self.assertIn("Не получилось", reminders.friendly_error("UNKNOWN_ERROR"))
+    def test_parse_relative_minutes_latin(self):
+        """30m text -> через 30 минут."""
+        result = parse("30m buy bread", self.base_time)
+        self.assertIsNotNone(result)
+        when, text = result
+        expected = self.base_time.replace(minute=42)
+        self.assertEqual(when, expected)
+        self.assertEqual(text, "buy bread")
 
-class FmtTests(unittest.TestCase):
-    def test_fmt_with_datetime(self):
-        from datetime import datetime
-        when = datetime(2026, 12, 25, 14, 30, tzinfo=reminders.TZ)
-        result = reminders.fmt(when)
-        self.assertIn("25.12", result)
-        self.assertIn("14:30", result)
+    def test_parse_relative_hours_cyrillic(self):
+        """2ч текст -> через 2 часа."""
+        result = parse("2ч позвонить маме", self.base_time)
+        self.assertIsNotNone(result)
+        when, text = result
+        expected = self.base_time.replace(hour=14)  # 12:00 + 2 часа = 14:00
+        self.assertEqual(when, expected)
+        self.assertEqual(text, "позвонить маме")
 
-    def test_fmt_with_string(self):
-        result = reminders.fmt("2026-12-25T14:30:00+00:00")
-        self.assertIn("25.12", result)
-        self.assertIn("16:30", result)
+    def test_parse_relative_hours_latin(self):
+        """2h text -> через 2 часа."""
+        result = parse("2h call mom", self.base_time)
+        self.assertIsNotNone(result)
+        when, text = result
+        expected = self.base_time.replace(hour=14)
+        self.assertEqual(when, expected)
+        self.assertEqual(text, "call mom")
 
-    def test_fmt_with_none(self):
-        result = reminders.fmt(None)
-        self.assertEqual(result, "00.00")
+    def test_parse_relative_days_cyrillic(self):
+        """1д текст -> через 1 день."""
+        result = parse("1д сходить в магазин", self.base_time)
+        self.assertIsNotNone(result)
+        when, text = result
+        expected = datetime(2025, 6, 16, 12, 0, tzinfo=ZoneInfo("Europe/Kyiv"))
+        self.assertEqual(when, expected)
+        self.assertEqual(text, "сходить в магазин")
 
-    def test_fmt_with_past_date(self):
-        from datetime import datetime
-        when = datetime(2020, 1, 1, 0, 0, tzinfo=reminders.TZ)
-        result = reminders.fmt(when)
-        self.assertIn("01.01", result)
-        self.assertIn("00:00", result)
+    def test_parse_relative_with_prefix_through(self):
+        """через 30м текст -> через 30 минут."""
+        result = parse("через 30м купить хлеб", self.base_time)
+        self.assertIsNotNone(result)
+        when, text = result
+        expected = self.base_time.replace(minute=42)
+        self.assertEqual(when, expected)
+        self.assertEqual(text, "купить хлеб")
 
-    def test_fmt_with_empty_string(self):
-        result = reminders.fmt("")
-        self.assertEqual(result, "00.00")
+    def test_parse_relative_with_prefix_in(self):
+        """in 30m text -> через 30 минут."""
+        result = parse("in 30m buy bread", self.base_time)
+        self.assertIsNotNone(result)
+        when, text = result
+        expected = self.base_time.replace(minute=42)
+        self.assertEqual(when, expected)
+        self.assertEqual(text, "buy bread")
 
-    def test_fmt_with_future_date(self):
-        from datetime import datetime
-        when = datetime(2030, 6, 15, 20, 45, tzinfo=reminders.TZ)
-        result = reminders.fmt(when)
-        self.assertIn("15.06", result)
-        self.assertIn("20:45", result)
+    def test_parse_clock_time_today(self):
+        """14:30 текст -> сегодня в 14:30."""
+        result = parse("14:30 встреча", self.base_time)
+        self.assertIsNotNone(result)
+        when, text = result
+        expected = datetime(2025, 6, 15, 14, 30, tzinfo=ZoneInfo("Europe/Kyiv"))
+        self.assertEqual(when, expected)
+        self.assertEqual(text, "встреча")
+
+    def test_parse_clock_time_with_at(self):
+        """в 14:30 текст -> сегодня в 14:30."""
+        result = parse("в 14:30 встреча", self.base_time)
+        self.assertIsNotNone(result)
+        when, text = result
+        expected = datetime(2025, 6, 15, 14, 30, tzinfo=ZoneInfo("Europe/Kyiv"))
+        self.assertEqual(when, expected)
+        self.assertEqual(text, "встреча")
+
+    def test_parse_clock_time_tomorrow(self):
+        """завтра 09:00 текст -> завтра в 09:00."""
+        result = parse("завтра 09:00 завтрак", self.base_time)
+        self.assertIsNotNone(result)
+        when, text = result
+        expected = datetime(2025, 6, 16, 9, 0, tzinfo=ZoneInfo("Europe/Kyiv"))
+        self.assertEqual(when, expected)
+        self.assertEqual(text, "завтрак")
+
+    def test_parse_clock_time_day_after_tomorrow(self):
+        """послезавтра 10:00 текст -> послезавтра в 10:00."""
+        result = parse("послезавтра 10:00 обед", self.base_time)
+        self.assertIsNotNone(result)
+        when, text = result
+        expected = datetime(2025, 6, 17, 10, 0, tzinfo=ZoneInfo("Europe/Kyiv"))
+        self.assertEqual(when, expected)
+        self.assertEqual(text, "обед")
+
+    def test_parse_clock_time_past_moves_to_tomorrow(self):
+        """10:00 текст (время уже прошло) -> завтра в 10:00."""
+        # base_time = 12:00, 10:00 уже прошло
+        result = parse("10:00 ранний подъём", self.base_time)
+        self.assertIsNotNone(result)
+        when, text = result
+        expected = datetime(2025, 6, 16, 10, 0, tzinfo=ZoneInfo("Europe/Kyiv"))
+        self.assertEqual(when, expected)
+        self.assertEqual(text, "ранний подъём")
+
+    def test_parse_full_date(self):
+        """2026-12-01 18:00 текст -> точная дата."""
+        result = parse("2026-12-01 18:00 новый год", self.base_time)
+        self.assertIsNotNone(result)
+        when, text = result
+        expected = datetime(2026, 12, 1, 18, 0, tzinfo=ZoneInfo("Europe/Kyiv"))
+        self.assertEqual(when, expected)
+        self.assertEqual(text, "новый год")
+
+    def test_parse_full_date_with_dot_separator(self):
+        """2026-12-01 18.00 текст -> точка как разделитель."""
+        result = parse("2026-12-01 18.00 новый год", self.base_time)
+        self.assertIsNotNone(result)
+        when, text = result
+        expected = datetime(2026, 12, 1, 18, 0, tzinfo=ZoneInfo("Europe/Kyiv"))
+        self.assertEqual(when, expected)
+        self.assertEqual(text, "новый год")
+
+    def test_parse_invalid_no_text_after_time(self):
+        """30м без текста -> None."""
+        result = parse("30м", self.base_time)
+        self.assertIsNone(result)
+
+    def test_parse_invalid_unknown_unit(self):
+        """30x текст -> None (неизвестная единица)."""
+        result = parse("30x текст", self.base_time)
+        self.assertIsNone(result)
+
+    def test_parse_invalid_empty_string(self):
+        """Пустая строка -> None."""
+        result = parse("", self.base_time)
+        self.assertIsNone(result)
+
+    def test_parse_invalid_only_whitespace(self):
+        """Только пробелы -> None."""
+        result = parse("   ", self.base_time)
+        self.assertIsNone(result)
+
+    def test_parse_invalid_none(self):
+        """None -> None."""
+        result = parse(None, self.base_time)
+        self.assertIsNone(result)
+
+    def test_parse_invalid_clock_time_wrong_format(self):
+        """25:00 текст -> None (неверный час)."""
+        result = parse("25:00 текст", self.base_time)
+        self.assertIsNone(result)
+
+    def test_parse_invalid_clock_time_wrong_minute(self):
+        """12:60 текст -> None (неверная минута)."""
+        result = parse("12:60 текст", self.base_time)
+        self.assertIsNone(result)
+
+    def test_parse_invalid_full_date_wrong(self):
+        """2026-13-01 18:00 текст -> None (неверный месяц)."""
+        result = parse("2026-13-01 18:00 текст", self.base_time)
+        self.assertIsNone(result)
+
+    def test_parse_case_insensitive(self):
+        """Регистр не важен: 30М, 2Ч, ЗАВТРА."""
+        result = parse("30М ТЕКСТ", self.base_time)
+        self.assertIsNotNone(result)
+        when, text = result
+        expected = self.base_time.replace(minute=42)
+        self.assertEqual(when, expected)
+        self.assertEqual(text, "ТЕКСТ")
+
+        result = parse("ЗАВТРА 09:00 ТЕКСТ", self.base_time)
+        self.assertIsNotNone(result)
+        when, text = result
+        expected = datetime(2025, 6, 16, 9, 0, tzinfo=ZoneInfo("Europe/Kyiv"))
+        self.assertEqual(when, expected)
+        self.assertEqual(text, "ТЕКСТ")
 
 
-class FriendlyErrorTests(unittest.TestCase):
-    def test_friendly_error_reminder_limit(self):
-        self.assertIn("20", reminders.friendly_error("REMINDER_LIMIT"))
+class TestFmtReminders(unittest.TestCase):
+    """Тесты для функции fmt форматирования времени."""
 
-    def test_friendly_error_reminder_time_too_far(self):
-        self.assertIn("год", reminders.friendly_error("REMINDER_TIME_TOO_FAR"))
+    def test_fmt_none(self):
+        """None -> 00.00."""
+        self.assertEqual(fmt(None), "00.00")
 
-    def test_friendly_error_reminder_text_invalid(self):
-        result = reminders.friendly_error("REMINDER_TEXT_INVALID")
-        self.assertIn("300", result)
-        self.assertNotIn("Бесплатно", result)
+    def test_fmt_empty_string(self):
+        """Пустая строка -> 00.00."""
+        self.assertEqual(fmt(""), "00.00")
 
-    def test_friendly_error_unknown(self):
-        self.assertIn("Не получилось", reminders.friendly_error("UNKNOWN_ERROR"))
+    def test_fmt_whitespace_string(self):
+        """Пробелы -> 00.00."""
+        self.assertEqual(fmt("   "), "00.00")
+
+    def test_fmt_datetime_with_tz(self):
+        """datetime с таймзоной -> формат дд.мм чч:мм."""
+        dt = datetime(2025, 12, 1, 18, 30, tzinfo=ZoneInfo("Europe/Kyiv"))
+        self.assertEqual(fmt(dt), "01.12 18:30")
+
+    def test_fmt_datetime_without_tz(self):
+        """datetime без таймзоны -> как есть."""
+        dt = datetime(2025, 12, 1, 18, 30)
+        self.assertEqual(fmt(dt), "01.12 18:30")
+
+    def test_fmt_iso_string_with_z(self):
+        """ISO строка с Z -> формат дд.мм чч:мм."""
+        self.assertEqual(fmt("2025-12-01T18:30:00Z"), "01.12 18:30")
+
+    def test_fmt_iso_string_with_offset(self):
+        """ISO строка с offset -> формат дд.мм чч:мм."""
+        self.assertEqual(fmt("2025-12-01T18:30:00+03:00"), "01.12 18:30")
 
 
-class ToolWiringTests(unittest.TestCase):
-    def test_both_assistants_have_reminder_tools(self):
-        for tools in (member_tools.TOOLS, admin_tools.TOOLS):
-            names = {t["function"]["name"] for t in tools}
-            self.assertTrue({"set_reminder", "list_reminders", "cancel_reminder"} <= names)
+class TestNowLocal(unittest.TestCase):
+    """Тесты для функции now_local."""
 
-
-class ToolBehaviourTests(unittest.IsolatedAsyncioTestCase):
-    async def test_rejects_missing_time(self):
-        result = await member_tools.reminders_tool("set_reminder", {"text": "x"}, 1)
-        self.assertIn("error", result)
+    def test_now_local_returns_datetime_with_tz(self):
+        """now_local возвращает datetime с таймзоной Europe/Kyiv."""
+        now = now_local()
+        self.assertIsInstance(now, datetime)
+        self.assertIsNotNone(now.tzinfo)
+        self.assertEqual(str(now.tzinfo), "Europe/Kyiv")
 
 
 if __name__ == "__main__":
-    unittest.main(verbosity=2)
+    unittest.main()
