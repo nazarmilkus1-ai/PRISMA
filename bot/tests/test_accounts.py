@@ -120,8 +120,8 @@ class NewCodeEdgeCases(unittest.TestCase):
     def test_new_code_removes_expired_codes(self):
         accounts.new_code(10, now=0)
         accounts.new_code(20, now=100)
-        # At now=700, first code expired (TTL=600), second still valid
-        code = accounts.new_code(30, now=700)
+        # At now=699, first code expired (TTL=600, expired at 600), second still valid (expires at 700)
+        code = accounts.new_code(30, now=699)
         self.assertEqual(len(accounts._codes), 2)  # expired removed, new added
 
     def test_new_code_only_one_live_per_primary(self):
