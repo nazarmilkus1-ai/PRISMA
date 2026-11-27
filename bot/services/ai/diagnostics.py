@@ -32,8 +32,8 @@ class _RingHandler(logging.Handler):
             if record.exc_info and record.exc_info[1] is not None:
                 line += f" | {type(record.exc_info[1]).__name__}: {record.exc_info[1]}"
             _buffer.append(redact(line)[:400])
-        except Exception as exc:
-            logging.error(f"Logging handler error: {exc}")
+        except Exception:  # logging must never break the bot (and must not log from inside its own handler)
+            pass
 
 
 _installed = False

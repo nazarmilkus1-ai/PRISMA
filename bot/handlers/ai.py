@@ -105,11 +105,11 @@ async def _answer_by_code(message: types.Message, question: str, private: bool):
         me = await message.bot.me()
         markup = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
             text="🤖 Написать PRISMA_AI в личке", url=ambient.invite_url(me.username or "", "general"))]])
-        await message.reply("😕 Сейчас ответить не получилось. Напишите мне в личку, если проблема сохранится.",
+        await message.reply("😕 Сейчас не получилось ответить. Попробуй ещё раз или напиши мне в личку.",
                             reply_markup=markup, allow_sending_without_reply=True)
         return
     if is_configured("user"):
-        await _fallback_menu(message, "😕 Не получилось ответить. Выберите раздел ниже:")
+        await _fallback_menu(message, "😕 Не получилось ответить. Выберите нужный раздел:")
     else:
         await _fallback_menu(message, "🤖 PRISMA_AI пока не подключён, но вот куда можно нажать:")
 
@@ -353,7 +353,7 @@ async def _copilot(message: types.Message, request: str):
                                         memory=ai_memory.summary(agent_chat, admin_id))
     except Exception as exc:  # the model, a tool or the gateway failed: say so honestly
         logger.warning("copilot failed: %s", exc)
-        await waiting.edit_text("😕 Не получилось выполнить запрос. Попробуйте ещё раз или переформулируйте вопрос.")
+        await waiting.edit_text("😕 Не получилось выполнить запрос (модель или данные недоступны). Попробуйте ещё раз или переформулируйте. Проверка связи: /ai_status")
         return
     answer_id = ai_memory.new_answer_id()
     ai_memory.remember(agent_chat, admin_id, "user", request)

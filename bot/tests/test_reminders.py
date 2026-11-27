@@ -43,7 +43,7 @@ class ParseTests(unittest.TestCase):
     def test_friendly_errors(self):
         self.assertIn("20", reminders.friendly_error("REMINDER_LIMIT"))
         self.assertIn("год", reminders.friendly_error("... REMINDER_TIME_TOO_FAR ..."))
-        self.assertIn("Бесплатно", reminders.friendly_error("REMINDER_TEXT_INVALID"))
+        self.assertIn("300", reminders.friendly_error("REMINDER_TEXT_INVALID"))
         self.assertIn("Не получилось", reminders.friendly_error("UNKNOWN_ERROR"))
 
 class FmtTests(unittest.TestCase):
@@ -90,10 +90,9 @@ class FriendlyErrorTests(unittest.TestCase):
         self.assertIn("год", reminders.friendly_error("REMINDER_TIME_TOO_FAR"))
 
     def test_friendly_error_reminder_text_invalid(self):
-        # Последнее исправление: в ERRORS для REMINDER_TEXT_INVALID добавлено "Бесплатно"
         result = reminders.friendly_error("REMINDER_TEXT_INVALID")
         self.assertIn("300", result)
-        self.assertIn("Бесплатно", result)
+        self.assertNotIn("Бесплатно", result)
 
     def test_friendly_error_unknown(self):
         self.assertIn("Не получилось", reminders.friendly_error("UNKNOWN_ERROR"))

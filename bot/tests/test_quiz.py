@@ -31,7 +31,7 @@ class QuizParseTests(unittest.TestCase):
         self.assertIsNone(result)
 
     def test_parse_question_too_short(self):
-        result = quiz.parse('{"question": "Короткий", "options": ["Один", "Два", "Три", "Четыре"], "correct": 0}')
+        result = quiz.parse('{"question": "Кто?", "options": ["Один", "Два", "Три", "Четыре"], "correct": 0}')
         self.assertIsNone(result)
 
     def test_parse_question_too_long(self):

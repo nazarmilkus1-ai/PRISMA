@@ -7,11 +7,11 @@ import logging
 from datetime import datetime, timezone
 from html import escape
 
-logger = logging.getLogger(__name__)
-
 from db.admin import open_appeals, open_reports, pending_applications
 from db.player import get_online_players, get_server_metrics
 from db.rpc import bot_get_server_status, bot_list_support_requests
+
+logger = logging.getLogger(__name__)
 
 
 def _can(perms, key: str) -> bool:

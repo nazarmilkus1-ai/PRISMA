@@ -8,14 +8,10 @@
 from __future__ import annotations
 
 import logging
-import logging
-
 import secrets
 import time
 
 from db.rpc import bot_telegram_alias_resolve
-
-logger = logging.getLogger(__name__)
 
 logger = logging.getLogger(__name__)
 
@@ -88,9 +84,6 @@ async def primary_for(tg_id: int, now: float | None = None) -> int | None:
         return None
     try:
         primary = int(result.data) if result.data not in (None, "") else None
-    except (TypeError, ValueError) as exc:
-        logger.error("Failed to parse primary tg_id %s: %s", tg_id, exc)
-        primary = None
     except (TypeError, ValueError) as exc:
         logger.error("Failed to parse primary tg_id %s: %s", tg_id, exc)
         primary = None
