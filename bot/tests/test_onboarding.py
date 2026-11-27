@@ -3,7 +3,7 @@ import sys
 import unittest
 
 # Добавляем путь к модулям, чтобы импортировать функции из bot.services.onboarding
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from bot.services.onboarding import _display_name, _mention
 
