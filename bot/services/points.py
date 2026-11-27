@@ -57,15 +57,19 @@ def parse_amount(raw: str | None) -> int | None:
     if raw is None:
         return None
     raw = raw.strip().replace(" ", "")
-    digit_part = raw.lstrip("+-")
+    # Check if negative
+    is_negative = raw.startswith("-")
+    if is_negative:
+        raw = raw[1:]  # Remove minus for digit check
+    digit_part = raw.lstrip("+")
     if not digit_part.isascii() or not digit_part.isdigit():
         return None
-    value = int(raw)
+    value = int(raw) if not is_negative else -int(raw.lstrip("+"))
     # Allow negative numbers; reject zero
     if value == 0:
         return None
-    # Range: 1 to 100 000
-    if value < 1 or value > 100_000:
+    # Range: -100 000 to -1 and 1 to 100 000
+    if abs(value) > 100_000:
         return None
     return value
 
