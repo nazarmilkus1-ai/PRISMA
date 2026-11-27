@@ -36,13 +36,15 @@ def parse(text: str, now: datetime | None = None) -> tuple[datetime, str] | None
     if match:
         y, mo, d, h, mi, rest = match.groups()
         try:
-            return datetime(int(y), int(mo), int(d), int(h), int(mi), tzinfo=TZ), rest.strip()
+            dt = datetime(int(y), int(mo), int(d), int(h), int(mi), tzinfo=TZ)
+            return dt, rest.strip()
         except ValueError:
             return None
     match = _REL.match(text)
     if match and match.group(2).lower() in _UNIT:
         minutes = int(match.group(1)) * _UNIT[match.group(2).lower()]
-        return now + timedelta(minutes=minutes), match.group(3).strip()
+        dt = now + timedelta(minutes=minutes)
+        return dt, match.group(3).strip()
     match = _CLOCK.match(text)
     if match:
         day_word, h, mi, rest = match.groups()
