@@ -230,12 +230,14 @@ class TestFmtReminders(unittest.TestCase):
         self.assertEqual(fmt(dt), "01.12 18:30")
 
     def test_fmt_iso_string_with_z(self):
-        """ISO строка с Z -> формат дд.мм чч:мм."""
-        self.assertEqual(fmt("2025-12-01T18:30:00Z"), "01.12 18:30")
+        """ISO строка с Z (UTC) -> конвертируется в локальное время (Киев)."""
+        # 2025-12-01 в Киеве UTC+2 (зима), 18:30 UTC = 20:30 Киев
+        self.assertEqual(fmt("2025-12-01T18:30:00Z"), "01.12 20:30")
 
     def test_fmt_iso_string_with_offset(self):
-        """ISO строка с offset -> формат дд.мм чч:мм."""
-        self.assertEqual(fmt("2025-12-01T18:30:00+03:00"), "01.12 18:30")
+        """ISO строка с offset +03:00 -> конвертируется в локальное время (Киев)."""
+        # 2025-12-01 в Киеве UTC+2 (зима), 18:30+03:00 = 17:30 Киев
+        self.assertEqual(fmt("2025-12-01T18:30:00+03:00"), "01.12 17:30")
 
 
 class TestNowLocal(unittest.TestCase):
