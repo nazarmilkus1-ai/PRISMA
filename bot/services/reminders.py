@@ -40,8 +40,11 @@ def parse(text: str, now: datetime | None = None) -> tuple[datetime, str] | None
     match = _CLOCK.match(text)
     if match:
         day_part, hour, minute, rest = match.groups()
-        hour = int(hour)
-        minute = int(minute)
+        try:
+            hour = int(hour)
+            minute = int(minute)
+        except ValueError:
+            return None
         return datetime(now.year, now.month, now.day, hour, minute, tzinfo=TZ), rest.strip()
     match = _REL.match(text)
     if match and match.group(2).lower() in _UNIT and match.group(3) is not None and match.group(3).strip():
