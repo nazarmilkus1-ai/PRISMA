@@ -13,9 +13,29 @@ PRISMA uses separate environment files for each runtime. The .env.example files 
 
 ## Telegram bot — bot/.env
 
-Required: BOT_TOKEN, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
+### Required
+- `BOT_TOKEN` — Telegram bot token from @BotFather
+- `SUPABASE_URL` — Supabase project URL (https://...)
+- `SUPABASE_SERVICE_ROLE_KEY` — Supabase service role key (server-only, starts with `sb_secret_`)
+  - Legacy alias `SUPABASE_KEY` is accepted for existing Render deployments
 
-Optional/common settings include REDIS_URL, OWNER_TG_ID, ADMIN_GROUP_ID, MODERATION_GROUP_ID, SITE_URL, PANEL_URL, Minecraft server address/port variables, SENTRY_DSN, LOG_LEVEL, and PRISMA_ENV. Check bot/.env.example for the current list.
+### Optional
+- `REDIS_URL` — Redis connection URL (redis:// or rediss:// protocol)
+- `REDIS_TOKEN` — Redis token if required by provider
+- `PRISMA_ENV` — Environment name (development, staging, production), default: development
+- `PLUGIN_API_URL` — Minecraft plugin API endpoint URL
+- `PLUGIN_API_KEY` — API key for plugin communication
+- `OWNER_TG_ID` — Telegram ID of the bot owner
+- `ADMIN_GROUP_ID` — Telegram group ID for admin notifications
+- `MODERATION_GROUP_ID` — Telegram group ID for moderation logs
+- `PANEL_URL` — Staff dashboard URL
+- `SITE_URL` — Participant website URL (fallback: NEXT_PUBLIC_SITE_URL or default)
+- `MINECRAFT_HOST` — Minecraft server hostname
+- `MINECRAFT_JAVA_ADDRESS` — Java edition server address (fallback: NEXT_PUBLIC_JAVA_ADDRESS)
+- `MINECRAFT_BEDROCK_ADDRESS` — Bedrock edition server address (fallback: NEXT_PUBLIC_BEDROCK_ADDRESS)
+- `MINECRAFT_JAVA_PORT` — Java edition RCON port, default: 25575
+- `MINECRAFT_BEDROCK_PORT` — Bedrock edition RCON port, default: 18591 (fallback: NEXT_PUBLIC_BEDROCK_PORT)
+- `LOG_LEVEL` — Logging level (DEBUG, INFO, WARNING, ERROR), default: INFO
 
 Use a Redis protocol URL (redis:// or rediss://). An HTTPS REST endpoint is not interchangeable with REDIS_URL. In-memory FSM storage is for local tests only.
 
