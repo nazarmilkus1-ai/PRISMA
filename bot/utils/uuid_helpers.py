@@ -14,4 +14,5 @@ def decode_uuid(value: str) -> str:
             raise ValueError("Invalid UUID length")
         return str(uuid.UUID(bytes=raw))
     except (ValueError, TypeError, binascii.Error) as exc:
+        logger.error("Invalid UUID encoding: %s", exc)
         raise ValueError("Invalid UUID encoding") from exc
