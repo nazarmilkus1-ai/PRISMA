@@ -1,8 +1,6 @@
 """PRISMA Points (PP): text for the bot. All money logic lives in the database (private.pp_apply)."""
 from __future__ import annotations
 
-from html import escape
-
 import logging
 
 logger = logging.getLogger(__name__)
