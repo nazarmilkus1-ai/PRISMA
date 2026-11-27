@@ -1,7 +1,6 @@
 import pytest
 from bot.services.reminders import parse
-from datetime import datetime
 
-def test_parse_invalid_input():
-    result = parse("30m", now=datetime(2023, 1, 1))
+def test_parse_invalid_30m():
+    result = parse("30m")
     assert result is None
