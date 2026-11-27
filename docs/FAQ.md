@@ -2,7 +2,7 @@
 
 ## Is PRISMA 2.1.0 stable?
 
-The inspected source baseline is an integration candidate, not a stable release declaration. Check docs/RELEASE_STATUS.md for the verification state and release gate.
+The inspected source baseline is an integration candidate, not a stable release declaration. Check [RELEASE_STATUS.md](RELEASE_STATUS.md) for the verification state and release gate.
 
 ## Is this a one-click Minecraft server package?
 
@@ -31,3 +31,27 @@ The repository currently has no LICENSE file. Public visibility does not by itse
 ## Where can I find documentation about modules and their runtime management?
 
 See [MODULES.md](MODULES.md) for the module registry, ownership model, runtime state in `public.prisma_module_states`, and the removal procedure. The admin dashboard at `/admin/dashboard/modules` (permission `modules.manage`) controls runtime enablement with audit logging.
+
+## Where can I find documentation about the Guardian watchdog?
+
+See [GUARDIAN.md](GUARDIAN.md) for the watchdog agent that monitors bot health, restarts Render services, and sends alerts.
+
+## Where can I find documentation about Minecraft authentication?
+
+See [MINECRAFT_AUTH.md](MINECRAFT_AUTH.md) for Java and Bedrock authentication flows, password management, and shared contracts.
+
+## Where can I find the configuration reference?
+
+See [CONFIGURATION.md](CONFIGURATION.md) for all environment variables for the bot, website, dashboard, and Minecraft plugin.
+
+## Where can I find the architecture overview?
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for component boundaries, data flow, security boundaries, and module lifecycle.
+
+## Where can I find the development workflow?
+
+See [DEVELOPMENT.md](DEVELOPMENT.md) for implementation order, module registry, database rules, and review checklist.
+
+## Where can I find operations and deployment guidance?
+
+See [OPERATIONS.md](OPERATIONS.md) for deployment topology, database operations, health checks, bot operations, Minecraft operations, release procedure, rollback, and incident response.
