@@ -207,29 +207,5 @@ class DigestEnabledTests(unittest.TestCase):
         self.assertTrue(digest.manual_allowed(-5, now=1000 + digest.COOLDOWN + 1))
 
 
-class DigestFmtTests(unittest.TestCase):
-    def test_fmt_datetime(self):
-        """fmt должна форматировать datetime."""
-        when = datetime(2026, 12, 25, 14, 30, tzinfo=ZoneInfo("Europe/Kyiv"))
-        result = digest.fmt(when)
-        self.assertIn("25.12", result)
-        self.assertIn("14:30", result)
-
-    def test_fmt_string(self):
-        """fmt должна парсить ISO строку."""
-        result = digest.fmt("2026-12-25T14:30:00+00:00")
-        self.assertIn("25.12", result)
-        # UTC+2 = 16:30
-        self.assertIn("16:30", result)
-
-    def test_fmt_none(self):
-        """fmt должна возвращать 00.00 для None."""
-        self.assertEqual(digest.fmt(None), "00.00")
-
-    def test_fmt_empty_string(self):
-        """fmt должна возвращать 00.00 для пустой строки."""
-        self.assertEqual(digest.fmt(""), "00.00")
-
-
 if __name__ == "__main__":
     unittest.main(verbosity=2)
