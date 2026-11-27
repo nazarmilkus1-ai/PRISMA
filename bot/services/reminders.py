@@ -43,6 +43,8 @@ def parse(text: str, now: datetime | None = None) -> tuple[datetime, str] | None
         try:
             hour = int(hour)
             minute = int(minute)
+            if not (0 <= hour <= 23 and 0 <= minute <= 59):
+                return None
         except ValueError:
             return None
         return datetime(now.year, now.month, now.day, hour, minute, tzinfo=TZ), rest.strip()
