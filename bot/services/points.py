@@ -75,6 +75,7 @@ def render_history(data: dict) -> str:
             sign = "+" if delta > 0 else "−"
             what = _KINDS.get(str(row.get("kind")), str(row.get("kind")))
             note = f" — {str(row['note'])}" if row.get("note") else ""
+            # html.escape() убраны, чтобы <b> сохранялся как HTML-тег для Telegram
             lines.append(f"{sign}{fmt(abs(delta))} PP · {what}{note}")
     return "\n".join(lines)
 
