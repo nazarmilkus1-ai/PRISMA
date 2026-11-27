@@ -39,10 +39,13 @@ _GROUP_COMMANDS = frozenset({
 
 
 def _clean_text(value: str, maximum: int = 500) -> str:
-    cleaned = " ".join((value or "").replace("\x00", " ").split()).strip()
+    cleaned = (value or "").strip()
     if not cleaned or len(cleaned) > maximum:
         return ""
-    return "".join(char for char in cleaned if not (ord(char) < 32 or ord(char) == 127)).strip().strip().strip()
+    cleaned = " ".join(cleaned.split())  # normalize whitespace
+    # Remove control characters (ord < 32 or == 127)
+    cleaned = "".join(char for char in cleaned if not (ord(char) < 32 or ord(char) == 127))
+    return cleaned.strip()
 
 
 def _looks_like_group_command(value: str) -> bool:
