@@ -47,7 +47,16 @@ def parse(text: str, now: datetime | None = None) -> tuple[datetime, str] | None
                 return None
         except ValueError:
             return None
-        return datetime(now.year, now.month, now.day, hour, minute, tzinfo=TZ), rest.strip()
+        target = datetime(now.year, now.month, now.day, hour, minute, tzinfo=TZ)
+        if day_part:
+            day_part = day_part.lower()
+            if day_part == "завтра":
+                target += timedelta(days=1)
+            elif day_part == "послезавтра":
+                target += timedelta(days=2)
+        elif target <= now:
+            target += timedelta(days=1)
+        return target, rest.strip()
     match = _REL.match(text)
     if match and match.group(2).lower() in _UNIT and match.group(3) is not None and match.group(3).strip():
         minutes = int(match.group(1)) * _UNIT[match.group(2).lower()]
