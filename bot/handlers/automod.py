@@ -104,7 +104,8 @@ def _effective_mute_until(result_data: dict) -> int | None:
         if isinstance(value, str):
             try:
                 parsed = int(datetime.fromisoformat(value.replace("Z", "+00:00")).timestamp())
-            except (TypeError, ValueError, OverflowError):
+            except (TypeError, ValueError, OverflowError) as exc:
+                logger.exception("Failed to parse expiry value: %s", value)
                 parsed = None
         elif isinstance(value, (int, float)):
             parsed = int(value)
