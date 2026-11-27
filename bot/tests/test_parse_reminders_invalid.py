@@ -1,7 +1,6 @@
-import pytest
 from bot.services.reminders import parse
-from datetime import datetime
+from bot.utils.helpers import NOW
 
-def test_parse_invalid_reminder_format():
-    result = parse('30m', datetime.now())
-    assert result is None
+def test_invalid_format_30m():
+    result = parse("30m позвонить", NOW)
+    assert result is None, f"Expected None for invalid format '30m' but got {result}"
