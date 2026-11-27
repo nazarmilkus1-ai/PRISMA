@@ -1,4 +1,5 @@
 import unittest
+
 class Test(unittest.TestCase):
-    def test_example(self):
+    def test_import(self):
         self.assertTrue(True)
