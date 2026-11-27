@@ -38,7 +38,7 @@ def parse(text: str, now: datetime | None = None) -> tuple[datetime, str] | None
         except ValueError:
             return None
     match = _REL.match(text)
-    if match and match.group(2).lower() in _UNIT and match.group(3).strip():
+    if match and match.group(2).lower() in _UNIT and match.group(3) and match.group(3).strip():
         minutes = int(match.group(1)) * _UNIT[match.group(2).lower()]
         return now + timedelta(minutes=minutes), match.group(3).strip()
     match = _CLOCK.match(text)
