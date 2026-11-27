@@ -179,6 +179,13 @@ jobs:
           python-version: "3.12"
       - name: Compile bot
         run: python -m compileall -q bot
+      - name: Check undefined names in bot
+        run: |
+          python -m pip install --no-cache-dir pyflakes==4.1.0
+          if python -m pyflakes bot | grep "undefined name"; then
+            echo "::error::undefined name in bot code (a missing import or logger raises NameError at runtime)"
+            exit 1
+          fi
       - name: Install bot dependencies
         run: python -m pip install --no-cache-dir -r bot/requirements.txt
       - name: Run bot tests

@@ -1,5 +1,6 @@
 """Staff panel: one entry point (/admin or the «Админ-панель» button), a live dashboard,
 and section screens. Writes stay in handlers/admin_actions (confirm buttons + per-click checks)."""
+import logging
 from html import escape
 
 from aiogram import F, Router, types
@@ -19,6 +20,7 @@ from utils.commands import set_user_commands
 from utils.mode import ADMIN_MODE, set_mode
 from utils.permissions import require_admin_mode_callback, staff_context
 
+logger = logging.getLogger(__name__)
 router = Router(name="admin_panel")
 
 
@@ -27,10 +29,6 @@ class PanelStates(StatesGroup):
 
 
 async def _home(tg_id: int) -> tuple[str, types.InlineKeyboardMarkup]:
-    ok, error = Validation.validate_telegram_id(tg_id, "Telegram ID для админ-панели")
-    if not ok:
-        Validation.log_warning("_home", tg_id, "_home", error)
-        return "❌ Неверный идентификатор пользователя.", types.InlineKeyboardMarkup(inline_keyboard=[])
     context = await staff_context(tg_id)
     perms = context.get("permissions") or []
     snap = await admin_dashboard.snapshot(tg_id, perms)
@@ -38,20 +36,13 @@ async def _home(tg_id: int) -> tuple[str, types.InlineKeyboardMarkup]:
 
 
 async def send_dashboard(message: types.Message, edit: bool = False) -> None:
-    tg_id = message.chat.id if edit else message.from_user.id
-    ok, error = Validation.validate_telegram_id(tg_id, "Telegram ID для админ-панели")
-    if not ok:
-        Validation.log_warning("send_dashboard", tg_id, "send_dashboard", error)
-        await message.answer("❌ Неверный идентификатор пользователя.")
-        return
-    text, markup = await _home(tg_id)
+    text, markup = await _home(message.chat.id if edit else message.from_user.id)
     if edit:
         try:
             await message.edit_text(text, parse_mode="HTML", reply_markup=markup)
             return
         except Exception as exc:
-            logger.error(f"Admin panel error: {exc}")
-            pass
+            logger.warning("admin panel: cannot edit the message, sending a new one: %s", exc)
     await message.answer(text, parse_mode="HTML", reply_markup=markup)
 
 
@@ -79,11 +70,6 @@ async def home_callback(callback: types.CallbackQuery, state: FSMContext):
 
 
 async def _guard(callback: types.CallbackQuery, permission: str | None) -> bool:
-    ok, error = Validation.validate_telegram_id(callback.from_user.id, "Telegram ID для админ-панели")
-    if not ok:
-        Validation.log_warning("_guard", callback.from_user.id, "_guard", error)
-        await callback.answer("❌ Неверный идентификатор пользователя.", show_alert=True)
-        return False
     if not await require_admin_mode_callback(callback):
         return False
     if permission:
@@ -100,7 +86,7 @@ async def _show(callback: types.CallbackQuery, text: str, markup: types.InlineKe
     try:
         await callback.message.edit_text(text, parse_mode="HTML", reply_markup=markup)
     except Exception as exc:
-        logger.error(f"Failed to edit message: {exc}")
+        logger.warning("admin panel: cannot edit the message, sending a new one: %s", exc)
         await callback.message.answer(text, parse_mode="HTML", reply_markup=markup)
 
 
