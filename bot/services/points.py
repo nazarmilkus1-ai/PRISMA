@@ -7,15 +7,15 @@ import logging
 logger = logging.getLogger(__name__)
 
 _ERRORS = {
-    "USER_NOT_FOUND": "Ваш профиль не найден в системе. Найдите игрока по username (например, @username) или нику в игре, затем запустите /start ещё раз.",
-    "TARGET_NOT_FOUND": "Не нашёл такого игрока (укажи @username или ник в игре).",
-    "SELF_TRANSFER": "Себе переводить нельзя.",
-    "INVALID_AMOUNT": "Сумма должна быть целым числом от 1 до 100 000.",
+    "USER_NOT_FOUND": "Ваш профиль не найден. Напишите @username или ник в игре, а затем нажмите /start.",
+    "TARGET_NOT_FOUND": "Игрок не найден. Укажите @username или ник в игре.",
+    "SELF_TRANSFER": "Себе переводить PP нельзя.",
+    "INVALID_AMOUNT": "Сумма — целое число от 1 до 100 000.",
     "NOT_A_MEMBER": "Переводить PP могут только участники с одобренной заявкой.",
-    "INSUFFICIENT_PP": "Не хватает PP.",
-    "PERMISSION_DENIED": "Нет права управлять PP.",
-    "EVENT_NOT_FOUND": "Событие не найдено (укажи slug или id).",
-    "FEES_ALREADY_PAID": "Взносы уже оплачены по другой цене — менять нельзя.",
+    "INSUFFICIENT_PP": "Недостаточно PP для перевода.",
+    "PERMISSION_DENIED": "Нет прав для управления PP.",
+    "EVENT_NOT_FOUND": "Событие не найдено. Укажите правильный slug или id.",
+    "FEES_ALREADY_PAID": "Взносы уже оплачены — изменить нельзя.",
     "ALREADY_PAID": "Приз за это событие уже выплачен.",
     "WINNER_NOT_PARTICIPANT": "Победитель должен быть участником события.",
 }
