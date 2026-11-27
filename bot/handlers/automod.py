@@ -224,7 +224,8 @@ async def _apply(
         if isinstance(expires_at, str):
             try:
                 until_date = int(datetime.fromisoformat(expires_at.replace("Z", "+00:00")).timestamp())
-            except (TypeError, ValueError, OverflowError):
+            except (TypeError, ValueError, OverflowError) as exc:
+                logger.exception("Failed to parse expires_at: %s", expires_at)
                 until_date = None
         elif isinstance(expires_at, (int, float)):
             until_date = int(expires_at)
