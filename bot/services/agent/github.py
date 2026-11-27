@@ -478,7 +478,8 @@ def parse_zip(raw: bytes) -> dict[str, str]:
                     continue
                 try:
                     files[name] = archive.read(info).decode("utf-8")
-                except (UnicodeDecodeError, KeyError):
+                except (UnicodeDecodeError, KeyError) as exc:
+                    logger.warning(f"github: cannot read file {exc}")
                     continue
     except zipfile.BadZipFile:
         return {}
