@@ -7,7 +7,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 _ERRORS = {
-    "USER_NOT_FOUND": "Профиль игрока не найден. Сначала найдите игрока по username или нику в игре, затем запустите /start ещё раз.",
+    "USER_NOT_FOUND": "Профиль игрока PRISMA не найден. Сначала найдите игрока по username или нику в игре, затем запустите /start ещё раз.",
     "TARGET_NOT_FOUND": "Не нашёл такого игрока (укажи @username или ник в игре).",
     "SELF_TRANSFER": "Себе переводить нельзя.",
     "INVALID_AMOUNT": "Сумма должна быть целым числом от 1 до 100 000.",
