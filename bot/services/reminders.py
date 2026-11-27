@@ -42,7 +42,6 @@ def parse(text: str, now: datetime | None = None) -> tuple[datetime, str] | None
         minutes = int(match.group(1)) * _UNIT[match.group(2).lower()]
         return now + timedelta(minutes=minutes), match.group(3).strip()
     return None
-    return None
     match = _CLOCK.match(text)
     if match:
         day_word, h, mi, rest = match.groups()
