@@ -34,7 +34,8 @@ async def on_decision(call: types.CallbackQuery):
     try:
         base = call.message.html_text if call.message else ""
         await call.message.edit_text(f"{base}\n\n{note}", parse_mode="HTML", reply_markup=None)
-    except Exception:
+    except Exception as exc:
+        logger.error(f"Failed to edit message: {exc}")
         pass
     await call.answer("Готово.")
 
