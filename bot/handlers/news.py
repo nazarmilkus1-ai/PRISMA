@@ -27,7 +27,7 @@ def _render_news(items: list[dict]) -> str:
 async def send_news(message: types.Message):
     result = await bot_get_news(message.from_user.id)
     if result.error:
-        await message.answer("❌ Не удалось загрузить новости. Попробуйте ещё раз позже.")
+        await message.answer("❌ Не удалось загрузить новости. Попробуйте позже.")
         return
 
     items = result.data if isinstance(result.data, list) else []
