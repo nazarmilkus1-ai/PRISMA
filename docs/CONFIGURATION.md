@@ -69,13 +69,37 @@ Use a Redis protocol URL (redis:// or rediss://). An HTTPS REST endpoint is not 
 
 ## Participant website — site/.env.local
 
-The baseline example includes NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, SUPABASE_SERVICE_ROLE_KEY, NEXT_PUBLIC_BOT_USERNAME, NEXT_PUBLIC_DYNMAP_URL, NEXT_PUBLIC_SITE_URL, and optional Sentry DSNs.
+### Required
+- `NEXT_PUBLIC_SUPABASE_URL` — Supabase project URL (https://...)
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — Supabase publishable (anon) key
+- `SUPABASE_SERVICE_ROLE_KEY` — Supabase service role key (server-side only)
+- `NEXT_PUBLIC_BOT_USERNAME` — Telegram bot username (without @)
+- `NEXT_PUBLIC_SITE_URL` — Website URL (https://...)
+
+### Optional
+- `NEXT_PUBLIC_DYNMAP_URL` — Dynmap URL for live map
+- `SENTRY_DSN` — Sentry DSN for error tracking (client-side)
+- `SENTRY_ORG` — Sentry organization slug
+- `SENTRY_PROJECT` — Sentry project slug
 
 The service-role key is server-side only. Never expose it through a browser bundle.
 
 ## Staff dashboard — panel/.env.local
 
-The baseline example includes NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (or the documented legacy anon key), SUPABASE_SERVICE_ROLE_KEY, NEXT_PUBLIC_BOT_USERNAME, NEXT_PUBLIC_SITE_URL, ADMIN_TELEGRAM_IDS, ADMIN_EMAILS, NOTIFY_FUNCTION_SECRET, and optional Sentry DSNs.
+### Required
+- `NEXT_PUBLIC_SUPABASE_URL` — Supabase project URL (https://...)
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — Supabase publishable (anon) key
+- `SUPABASE_SERVICE_ROLE_KEY` — Supabase service role key (server-side only)
+- `NEXT_PUBLIC_BOT_USERNAME` — Telegram bot username (without @)
+- `NEXT_PUBLIC_SITE_URL` — Website URL (https://...)
+- `ADMIN_TELEGRAM_IDS` — Comma-separated Telegram IDs of admins
+- `ADMIN_EMAILS` — Comma-separated admin emails for auth
+- `NOTIFY_FUNCTION_SECRET` — Secret for notify function verification
+
+### Optional
+- `SENTRY_DSN` — Sentry DSN for error tracking
+- `SENTRY_ORG` — Sentry organization slug
+- `SENTRY_PROJECT` — Sentry project slug
 
 Grant staff access only to intended accounts. Review both application-level RBAC and database RLS/RPC grants.
 
