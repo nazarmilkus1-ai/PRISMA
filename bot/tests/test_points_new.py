@@ -31,7 +31,7 @@ class PointsNewTests(unittest.TestCase):
             ],
         }
         result = points.render_history(data)
-        self.assertIn("Баланс: 1,000 PP", result)
+        self.assertIn("Баланс: 1 000 PP", result)
         self.assertIn("+100 PP", result)
         self.assertIn("−50 PP", result)
         self.assertIn("пополнение", result)
