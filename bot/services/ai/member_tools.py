@@ -261,7 +261,8 @@ async def execute(name: str, args: dict, ctx: Context) -> dict:
     if name == "calc":
         try:
             value = safe_calc(str(args.get("expression") or ""))
-        except (ValueError, SyntaxError, ZeroDivisionError, OverflowError):
+        except (ValueError, SyntaxError, ZeroDivisionError, OverflowError) as exc:
+            logger.warning("Failed to calculate expression: %s", exc)
             return {"error": "cannot evaluate"}
         return {"result": round(value, 6) if isinstance(value, float) else value}
     if name == "site_links":
