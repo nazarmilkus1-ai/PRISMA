@@ -33,6 +33,7 @@ MAX_STEPS = _int("AGENT_MAX_STEPS", 32)
 MAX_CALLS_PER_DAY = _int("AGENT_MAX_CALLS_PER_DAY", 12000)
 MAX_COMMITS_PER_DAY = _int("AGENT_MAX_COMMITS_PER_DAY", 600)  # every edit is one small commit
 MAX_SAYS_PER_CYCLE = 3
+MAX_GOAL_CYCLES = _int("AGENT_MAX_GOAL_CYCLES", 8)  # cycles in a row on one self-chosen goal before it is closed (no endless polishing of one line)
 # Autonomous mode: the agent merges its own PRs once every automatic check is green and the reviewer does not say BLOCK.
 # PRs touching the agent's own code or database migrations are never merged by it; those wait for a human.
 AUTO_MERGE = _env("AGENT_AUTO_MERGE", "1").lower() not in {"0", "false", "off", "no"}
