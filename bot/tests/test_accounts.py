@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import unittest
 from types import SimpleNamespace
 from unittest import mock
@@ -103,6 +104,158 @@ class MiddlewareTests(unittest.IsolatedAsyncioTestCase):
         with mock.patch.object(accounts, "primary_for", fake_primary):
             await handler.TelegramAliasMiddleware()(inner, message, {})
         self.assertEqual(seen["id"], 500)
+
+
+class NewCodeEdgeCases(unittest.TestCase):
+    def setUp(self):
+        accounts._codes.clear()
+        accounts._alias_cache.clear()
+
+    def test_new_code_returns_8_char_uppercase(self):
+        code = accounts.new_code(10, now=0)
+        self.assertEqual(len(code), 8)
+        self.assertTrue(code.isupper())
+        self.assertTrue(all(c in accounts._ALPHABET for c in code))
+
+    def test_new_code_removes_expired_codes(self):
+        accounts.new_code(10, now=0)
+        accounts.new_code(20, now=100)
+        # At now=699, first code expired (TTL=600, expired at 600), second still valid (expires at 700)
+        code = accounts.new_code(30, now=699)
+        self.assertEqual(len(accounts._codes), 2)  # expired removed, new added
+
+    def test_new_code_only_one_live_per_primary(self):
+        code1 = accounts.new_code(10, now=0)
+        code2 = accounts.new_code(10, now=1)
+        self.assertNotEqual(code1, code2)
+        self.assertEqual(len(accounts._codes), 1)
+        self.assertEqual(accounts.take_code(code2, now=2), 10)
+        self.assertIsNone(accounts.take_code(code1, now=2))
+
+    def test_new_code_different_primaries_can_have_codes(self):
+        code1 = accounts.new_code(10, now=0)
+        code2 = accounts.new_code(20, now=0)
+        self.assertNotEqual(code1, code2)
+        self.assertEqual(len(accounts._codes), 2)
+        self.assertEqual(accounts.take_code(code1, now=1), 10)
+        self.assertEqual(accounts.take_code(code2, now=1), 20)
+
+
+class TakeCodeEdgeCases(unittest.TestCase):
+    def setUp(self):
+        accounts._codes.clear()
+        accounts._alias_cache.clear()
+
+    def test_take_code_case_insensitive(self):
+        code = accounts.new_code(10, now=0)
+        self.assertEqual(accounts.take_code(code.lower(), now=1), 10)
+        self.assertIsNone(accounts.take_code(code.upper(), now=2))
+
+    def test_take_code_strips_whitespace(self):
+        code = accounts.new_code(10, now=0)
+        self.assertEqual(accounts.take_code(f"  {code}  ", now=1), 10)
+
+    def test_take_code_empty_string_returns_none(self):
+        self.assertIsNone(accounts.take_code("", now=0))
+        self.assertIsNone(accounts.take_code("   ", now=0))
+
+    def test_take_code_expired_returns_none_and_removes(self):
+        code = accounts.new_code(10, now=0)
+        self.assertIsNone(accounts.take_code(code, now=accounts.CODE_TTL + 1))
+        self.assertNotIn(code, accounts._codes)
+
+
+class PrimaryForEdgeCases(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        accounts._alias_cache.clear()
+
+    async def test_primary_for_cache_hit(self):
+        accounts._alias_cache[5] = (77, time.time() + 100)
+        with mock.patch.object(accounts, "bot_telegram_alias_resolve") as m:
+            result = await accounts.primary_for(5, now=time.time())
+            self.assertEqual(result, 77)
+            m.assert_not_called()
+
+    async def test_primary_for_cache_expired_calls_rpc(self):
+        accounts._alias_cache[5] = (77, time.time() - 100)
+        calls = []
+
+        async def fake(tg):
+            calls.append(tg)
+            return SimpleNamespace(error=None, data=88)
+
+        with mock.patch.object(accounts, "bot_telegram_alias_resolve", fake):
+            result = await accounts.primary_for(5, now=time.time())
+            self.assertEqual(result, 88)
+            self.assertEqual(calls, [5])
+
+    async def test_primary_for_rpc_returns_error(self):
+        async def fake(tg):
+            return SimpleNamespace(error="some error", data=None)
+
+        with mock.patch.object(accounts, "bot_telegram_alias_resolve", fake):
+            result = await accounts.primary_for(5, now=0)
+            self.assertIsNone(result)
+
+    async def test_primary_for_rpc_returns_empty_data(self):
+        async def fake(tg):
+            return SimpleNamespace(error=None, data="")
+
+        with mock.patch.object(accounts, "bot_telegram_alias_resolve", fake):
+            result = await accounts.primary_for(5, now=0)
+            self.assertIsNone(result)
+
+    async def test_primary_for_rpc_returns_none_data(self):
+        async def fake(tg):
+            return SimpleNamespace(error=None, data=None)
+
+        with mock.patch.object(accounts, "bot_telegram_alias_resolve", fake):
+            result = await accounts.primary_for(5, now=0)
+            self.assertIsNone(result)
+
+    async def test_primary_for_rpc_returns_invalid_int(self):
+        async def fake(tg):
+            return SimpleNamespace(error=None, data="not-a-number")
+
+        with mock.patch.object(accounts, "bot_telegram_alias_resolve", fake):
+            result = await accounts.primary_for(5, now=0)
+            self.assertIsNone(result)
+
+    async def test_primary_for_rpc_returns_float_string(self):
+        async def fake(tg):
+            return SimpleNamespace(error=None, data="77.5")
+
+        with mock.patch.object(accounts, "bot_telegram_alias_resolve", fake):
+            result = await accounts.primary_for(5, now=0)
+            self.assertIsNone(result)
+
+    async def test_primary_for_rpc_exception_logged(self):
+        async def boom(tg):
+            raise RuntimeError("down")
+
+        with mock.patch.object(accounts, "bot_telegram_alias_resolve", boom):
+            with self.assertLogs(logger="services.accounts", level="ERROR"):
+                result = await accounts.primary_for(5, now=0)
+                self.assertIsNone(result)
+
+
+class ForgetTests(unittest.TestCase):
+    def setUp(self):
+        accounts._codes.clear()
+        accounts._alias_cache.clear()
+
+    def test_forget_clears_all_cache(self):
+        accounts._alias_cache[1] = (10, time.time() + 100)
+        accounts._alias_cache[2] = (20, time.time() + 100)
+        accounts.forget()
+        self.assertEqual(len(accounts._alias_cache), 0)
+
+    def test_forget_clears_specific_tg_id(self):
+        accounts._alias_cache[1] = (10, time.time() + 100)
+        accounts._alias_cache[2] = (20, time.time() + 100)
+        accounts.forget(1)
+        self.assertNotIn(1, accounts._alias_cache)
+        self.assertIn(2, accounts._alias_cache)
 
 
 if __name__ == "__main__":
