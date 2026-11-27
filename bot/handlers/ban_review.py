@@ -18,6 +18,10 @@ async def on_decision(call: types.CallbackQuery):
         await call.answer("Кнопка устарела.", show_alert=True)
         return
     action, tg_id = parsed
+valid, error = Validation.validate_telegram_id(tg_id, "Telegram ID при решении")
+if not valid:
+    await call.answer("Неверный Telegram ID", show_alert=True)
+    return
     admin_id = call.from_user.id
     if action == "ok":
         result = await bot_lift_punishment(tg_id, "BAN", admin_id)
