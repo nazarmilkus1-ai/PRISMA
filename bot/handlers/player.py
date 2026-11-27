@@ -99,7 +99,7 @@ async def show_center_message(message: types.Message, tg_id: int, edit: bool = F
         return
     text = await _center_text(tg_id)
     if not text:
-        await message.answer("❌ Не удалось загрузить профиль.")
+        await message.answer("❌ Не удалось загрузить профиль. Попробуйте позже.")
         return
     if edit:
         await message.edit_text(text, reply_markup=player_center_keyboard(), parse_mode="HTML")
