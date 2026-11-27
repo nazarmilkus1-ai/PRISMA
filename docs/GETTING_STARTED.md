@@ -51,7 +51,7 @@ Do not run these commands blindly against production. Confirm the linked project
 
 ## 3. Run Redis locally
 
-The root docker-compose.yml defines Redis only; it does not start the complete PRISMA stack.
+The root docker-compose.yml contains a service definition for Redis only; this command starts the Redis container in detached mode.
 
 ```powershell
 docker compose up -d redis
