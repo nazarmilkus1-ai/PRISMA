@@ -361,11 +361,13 @@ async def group_automod(message: types.Message):
         rule_config = rule.get("config") if isinstance(rule.get("config"), dict) else {}
         try:
             window = int(rule_config.get("window_seconds") or settings.get("flood_window_seconds") or 8)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError) as exc:
+            logger.exception("Failed to parse flood window")
             window = 8
         try:
             threshold = int(rule.get("threshold") or settings.get("flood_messages") or 5)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError) as exc:
+            logger.exception("Failed to parse flood threshold")
             threshold = 5
         window = max(1, min(window, 120))
         threshold = max(2, min(threshold, 100))
