@@ -74,8 +74,8 @@ async def gather(chat_id: int) -> dict:
     if not total.error:
         try:
             facts["messages_today"] = int(total.data or 0)
-        except (TypeError, ValueError):
-            pass
+        except (TypeError, ValueError) as exc:
+            logger.error("digest messages_today failed: %s", exc)
     if config.OWNER_TG_ID:
         events = await bot_list_events(config.OWNER_TG_ID, 5)
         if not events.error and isinstance(events.data, list):
