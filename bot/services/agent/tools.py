@@ -18,7 +18,7 @@ from services.ai import ops
 from services.ai.diagnostics import redact
 
 from . import checks, config, github
-from .checks import norm_tasks, plan_progress
+from .checks import banned_theme, norm_tasks, plan_progress
 
 logger = logging.getLogger(__name__)
 
@@ -299,6 +299,11 @@ async def _dispatch(ctx: Ctx, name: str, a: dict):
         if len(waiting) >= config.MAX_WAITING:
             return {"error": f"уже {len(waiting)} готовых изменений ждут решения людей. Новую цель не ставь: запиши идеи в память (memory_save, kind=idea) "
                              "и заверши цикл."}
+        banned = banned_theme(f"{a.get('title') or ''} {a.get('why') or ''} {a.get('expected') or ''}",
+                              ((await rpc.bot_agent_state_get()).data or {}).get("banned_themes"))
+        if banned:
+            return {"error": f"тема «{banned}» закрыта людьми: по ней уже слишком много похожих PR. Выбери другую небольшую цель: тесты для сервисов "
+                             "без тестов, понятные игрокам тексты ответов бота, документация в docs/, мёртвый код."}
         recent = (await rpc.bot_agent_goals_list(None, 30)).data or []
         if any(_similar(str(a.get("title") or ""), str(g.get("title") or "")) for g in recent if isinstance(g, dict)):
             return {"error": "похожая цель уже есть или была. Придумай другую небольшую цель или продолжи ту, что в работе."}
