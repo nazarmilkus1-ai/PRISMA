@@ -52,6 +52,10 @@ class QuizParseTests(unittest.TestCase):
         result = quiz.parse('{"options": ["Один", "Два", "Три", "Четыре"], "correct": 0}')
         self.assertIsNone(result)
 
+    def test_parse_empty_question(self):
+        result = quiz.parse('{"question": "", "options": ["Один", "Два", "Три", "Четыре"], "correct": 0}')
+        self.assertIsNone(result)
+
     def test_parse_empty_options(self):
         result = quiz.parse('{"question": "Тест", "options": [], "correct": 0}')
         self.assertIsNone(result)
