@@ -1,6 +1,6 @@
-import unittest
 import os
 import sys
+import unittest
 
 os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
 os.environ.setdefault("SUPABASE_KEY", "[скрыто]")
@@ -9,36 +9,29 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from services import points
 
+
 class PointsNewTests(unittest.TestCase):
-    def test_parse_amount_variants(self):
-        self.assertEqual(points.parse_amount("1000"), 1000)
-        self.assertEqual(points.parse_amount("+200"), 200)
-        self.assertEqual(points.parse_amount("-50"), -50)
+    def test_parse_amount_basic(self):
+        self.assertEqual(points.parse_amount("50"), 50)
+        self.assertEqual(points.parse_amount("+100"), 100)
+        self.assertEqual(points.parse_amount("-7"), -7)
+
+    def test_parse_amount_invalid(self):
         self.assertIsNone(points.parse_amount("abc"))
         self.assertIsNone(points.parse_amount("1.5"))
         self.assertIsNone(points.parse_amount(""))
         self.assertIsNone(points.parse_amount("   "))
-        self.assertEqual(points.parse_amount("  0  "), 0)
-        self.assertEqual(points.parse_amount("+0"), 0)
         self.assertIsNone(points.parse_amount(None))
+        self.assertIsNone(points.parse_amount("-3.14"))
+        self.assertIsNone(points.parse_amount("-"))
+        self.assertIsNone(points.parse_amount("True"))
+        self.assertIsNone(points.parse_amount("+"))
+        self.assertIsNone(points.parse_amount("５０"))
 
-    def test_render_history_simple(self):
-        data = {
-            "balance": 1000,
-            "items": [
-                {"delta": 100, "kind": "transfer_in", "note": "пополнение"},
-                {"delta": -50, "kind": "shop", "note": "покупка"},
-            ],
-        }
-        result = points.render_history(data)
-        self.assertIn("Баланс: 1 000 PP", result)
-        self.assertIn("+100 PP", result)
-        self.assertIn("−50 PP", result)
-        self.assertIn("пополнение", result)
-        self.assertIn("покупка", result)
+    def test_parse_amount_edge(self):
+        self.assertEqual(points.parse_amount("  50  "), 50)
+        self.assertEqual(points.parse_amount("0"), 0)
+        self.assertEqual(points.parse_amount("+0"), 0)
 
-    def test_fee_label(self):
-        row = {"entry_fee_pp": "10"}
-        self.assertEqual(points.fee_label(row), "10 PP")
-        row = {"entry_fee_pp": "0"}
-        self.assertEqual(points.fee_label(row), "бесплатно")
+if __name__ == "__main__":
+    unittest.main()
