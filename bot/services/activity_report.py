@@ -27,7 +27,7 @@ def render(rows: list[dict], days: int) -> str:
     groups: dict[str, list[dict]] = {}
     for row in rows:
         groups.setdefault(str(row.get("category")), []).append(row)
-    count = lambda key: len(groups.get(key, []))  # noqa: E731
+    count = lambda k: len(groups.get(k, []))
     lines = [f"📊 <b>Активность за {days} дн.</b> (по сообщениям в чате сообщества)", ""]
     total_members = sum(count(k) for k in ("member_silent", "member_never_wrote", "member_active"))
     total_guests = sum(count(k) for k in ("guest_silent", "guest_never_wrote", "guest_active"))
