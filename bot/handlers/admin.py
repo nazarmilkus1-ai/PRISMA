@@ -42,7 +42,7 @@ async def admin_applications(callback: types.CallbackQuery):
     await callback.answer()
     rows, err = await pending_applications(callback.from_user.id)
     if err:
-        await callback.message.answer("❌ Не удалось загрузить заявки. Попробуйте позже или свяжитесь с админом.")
+        await callback.message.answer("❌ Не удалось загрузить заявки. Попробуйте позже.")
         return
     if not rows:
         await callback.message.answer("📋 Ожидающих заявок нет.")
