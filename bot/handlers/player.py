@@ -99,7 +99,7 @@ async def show_center_message(message: types.Message, tg_id: int, edit: bool = F
         return
     text = await _center_text(tg_id)
     if not text:
-        await message.answer("❌ Не удалось загрузить профиль.")
+        await message.answer("❌ Не удалось загрузить профиль. Попробуйте позже.")
         return
     if edit:
         await message.edit_text(text, reply_markup=player_center_keyboard(), parse_mode="HTML")
@@ -129,7 +129,7 @@ async def _stats_message(message: types.Message, tg_id: int):
     user, err = await _user(tg_id)
     stats, stats_err = await get_stats(tg_id)
     if not user or stats_err:
-        await message.answer("❌ Не удалось загрузить статистику.")
+        await message.answer("❌ Не удалось загрузить статистику. Попробуйте позже.")
         return
     playtime = int(stats.get("playtime_minutes", 0))
     await message.answer(
@@ -202,7 +202,7 @@ async def _punishments_message(message: types.Message, tg_id: int):
     rows, db_err = await get_own_punishments(tg_id) if user else ([], err)
     active = [r for r in rows if str(r.get("status") or "").upper() == "ACTIVE"]
     if db_err:
-        await message.answer("❌ Не удалось загрузить наказания.")
+        await message.answer("❌ Не удалось загрузить наказания. Попробуйте позже.")
         return
     if not active:
         await message.answer("⚖️ <b>Наказания</b>\n\nАктивных наказаний нет.", parse_mode="HTML")

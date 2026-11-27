@@ -60,7 +60,7 @@ async def cmd_accounts(message: types.Message):
         return
     result = await bot_list_minecraft_accounts(message.from_user.id)
     if result.error or not isinstance(result.data, dict) or result.data.get("error"):
-        await message.answer("❌ Не удалось получить аккаунты.")
+        await message.answer("❌ Не удалось получить список аккаунтов. Попробуйте позже или свяжитесь с админом.")
         return
     primary = result.data.get("primary") or {}
     extra = result.data.get("extra") or []
@@ -100,7 +100,7 @@ async def cmd_remove_account(message: types.Message):
         return
     result = await bot_remove_minecraft_account(message.from_user.id)
     if result.error or (isinstance(result.data, dict) and result.data.get("error")):
-        await message.answer("❌ Не удалось убрать аккаунт.")
+        await message.answer("❌ Не удалось убрать аккаунт. Попробуйте позже.")
         return
     removed = int((result.data or {}).get("removed") or 0) if isinstance(result.data, dict) else 0
     await message.answer("✅ Второй аккаунт убран." if removed else "Второго аккаунта нет.")
@@ -134,7 +134,7 @@ async def cmd_link_tg(message: types.Message, command: CommandObject):
     result = await bot_telegram_alias_create(primary, message.from_user.id)
     error = result.error or (result.data.get("error") if isinstance(result.data, dict) else None)
     if error:
-        await message.answer("❌ " + escape(accounts.TELEGRAM_ERRORS.get(str(error), "Не удалось привязать аккаунт.")))
+        await message.answer("❌ Не удалось привязать аккаунт. Попробуйте позже или свяжитесь с админом.")
         return
     accounts.forget(message.from_user.id)
     await message.answer("✅ Готово: этот аккаунт теперь работает как ваш профиль PRISMA в личке с ботом.")

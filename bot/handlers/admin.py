@@ -42,7 +42,7 @@ async def admin_applications(callback: types.CallbackQuery):
     await callback.answer()
     rows, err = await pending_applications(callback.from_user.id)
     if err:
-        await callback.message.answer("❌ Не удалось загрузить заявки.")
+        await callback.message.answer("❌ Не удалось загрузить заявки. Попробуйте позже.")
         return
     if not rows:
         await callback.message.answer("📋 Ожидающих заявок нет.")
@@ -97,7 +97,7 @@ async def admin_reports(callback: types.CallbackQuery):
     await callback.answer()
     rows, err = await open_reports(callback.from_user.id)
     if err:
-        await callback.message.answer("❌ Не удалось загрузить репорты.")
+        await callback.message.answer("❌ Не удалось загрузить репорты. Попробуйте позже.")
         return
     if not rows:
         await callback.message.answer("📢 Открытых репортов нет.")
@@ -164,7 +164,7 @@ async def admin_appeals(callback: types.CallbackQuery):
     await callback.answer()
     rows, err = await open_appeals(callback.from_user.id)
     if err:
-        await callback.message.answer("❌ Не удалось загрузить апелляции.")
+        await callback.message.answer("❌ Не удалось загрузить апелляции. Попробуйте позже.")
         return
     if not rows:
         await callback.message.answer("⚖️ Открытых апелляций нет.")

@@ -64,5 +64,5 @@ async def fetch(days: int = 7) -> tuple[list[dict] | None, int]:
 async def build(days: int = 7) -> str:
     rows, days = await fetch(days)
     if rows is None:
-        return "❌ Не удалось получить отчёт об активности."
+        return "❌ Не удалось получить отчёт об активности. Попробуйте позже или свяжитесь с админом."
     return render(rows, days)
