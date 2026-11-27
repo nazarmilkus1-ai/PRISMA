@@ -1,8 +1,7 @@
 """PRISMA Points (PP): text for the bot. All money logic lives in the database (private.pp_apply)."""
 from __future__ import annotations
 
-from html import escape
-
+import html
 import logging
 
 logger = logging.getLogger(__name__)
@@ -76,7 +75,7 @@ def render_history(data: dict) -> str:
             delta = int(row.get("delta") or 0)
             sign = "+" if delta > 0 else "−"
             what = _KINDS.get(str(row.get("kind")), str(row.get("kind")))
-            note = f" — {escape(str(row['note']))}" if row.get("note") else ""
+            note = f" — {html.escape(str(row['note']))}" if row.get("note") else ""
             lines.append(f"{sign}{fmt(abs(delta))} PP · {what}{note}")
     return "\n".join(lines)
 
