@@ -14,6 +14,16 @@ COOLDOWN = 25.0
 DAILY_CAP = 40
 MAX_TRACKED = 500
 
+
+def _system(topic: str, adult: int) -> str:
+    """Generate system prompt for quiz AI based on topic and adult mode."""
+    base = "Ты — помощник для генерации викторин по Minecraft. "
+    if adult:
+        base += "Можно использовать легкий юмор и подколы, но оставайся в рамках правил. "
+    base += f"Тема: {topic}. Формируй вопрос с 4 вариантами ответа, один из которых верный."
+    return base
+
+
 _scores: dict[int, Counter] = defaultdict(Counter)
 _names: dict[tuple[int, int], str] = {}
 _polls: dict[str, dict] = {}
