@@ -43,6 +43,19 @@ class QuizParseTests(unittest.TestCase):
         result = quiz.parse('{"question": "Тест", "options": ["Один", "Один", "Три", "Четыре"], "correct": 0}')
         self.assertIsNone(result)
 
+    def test_parse_option_too_short(self):
+        result = quiz.parse('{"question": "Тест", "options": ["", "Два", "Три", "Четыре"], "correct": 0}')
+        self.assertIsNone(result)
+
+    def test_parse_option_too_long(self):
+        long_option = "A" * 101
+        result = quiz.parse('{"question": "Тест", "options": ["' + long_option + '", "Два", "Три", "Четыре"], "correct": 0}')
+        self.assertIsNone(result)
+
+    def test_parse_correct_is_bool(self):
+        result = quiz.parse('{"question": "Тест", "options": ["Один", "Два", "Три", "Четыре"], "correct": true}')
+        self.assertIsNone(result)
+
     def test_parse_valid_with_explanation(self):
         result = quiz.parse('{"question": "Какой цвет трава?", "options": ["Один", "Два", "Три", "Четыре"], "correct": 1, "explanation": "Правильный ответ"}')
         self.assertIsNotNone(result)
@@ -59,7 +72,6 @@ class QuizParseTests(unittest.TestCase):
     def test_parse_empty_options(self):
         result = quiz.parse('{"question": "Тест", "options": [], "correct": 0}')
         self.assertIsNone(result)
-
 
 if __name__ == "__main__":
     unittest.main()
