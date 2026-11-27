@@ -35,7 +35,7 @@ def undefined_log_names(tree: ast.AST) -> list[str]:
         elif isinstance(node, ast.ExceptHandler) and node.name:
             bound.add(node.name)
         elif isinstance(node, (ast.Global, ast.Nonlocal)):
-            bound.update(node.names)
+            bound |= set(node.names)
         elif isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)):
             bound.add(node.id)
     used = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load)}
