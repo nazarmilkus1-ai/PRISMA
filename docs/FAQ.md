@@ -27,3 +27,7 @@ Only as a server-side environment variable used by server-only code. Never expos
 ## Can I reuse the code because the repository is public?
 
 The repository currently has no LICENSE file. Public visibility does not by itself grant general reuse or redistribution rights.
+
+## Where can I find documentation about modules and their runtime management?
+
+See [MODULES.md](MODULES.md) for the module registry, ownership model, runtime state in `public.prisma_module_states`, and the removal procedure. The admin dashboard at `/admin/dashboard/modules` (permission `modules.manage`) controls runtime enablement with audit logging.
