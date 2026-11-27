@@ -1,7 +1,8 @@
 import unittest
+from datetime import datetime
 from services import reminders
 
-NOW = reminders.TZ.utcnow()
+NOW = datetime.now(reminders.TZ)
 
 class TestParseNone(unittest.TestCase):
     def test_unrecognized_time_string(self):
