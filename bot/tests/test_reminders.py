@@ -39,6 +39,7 @@ class ParseTests(unittest.TestCase):
         self.assertIsNone(reminders.parse("когда-нибудь потом", NOW))
         self.assertIsNone(reminders.parse("25:99 текст", NOW))
         self.assertIsNone(reminders.parse("5 лет текст", NOW))
+        self.assertIsNone(reminders.parse("30m", NOW))
 
     def test_friendly_errors(self):
         self.assertIn("20", reminders.friendly_error("REMINDER_LIMIT"))
