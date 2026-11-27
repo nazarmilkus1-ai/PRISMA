@@ -202,7 +202,7 @@ async def _punishments_message(message: types.Message, tg_id: int):
     rows, db_err = await get_own_punishments(tg_id) if user else ([], err)
     active = [r for r in rows if str(r.get("status") or "").upper() == "ACTIVE"]
     if db_err:
-        await message.answer("❌ Не удалось загрузить наказания.")
+        await message.answer("❌ Не удалось загрузить наказания. Попробуйте позже.")
         return
     if not active:
         await message.answer("⚖️ <b>Наказания</b>\n\nАктивных наказаний нет.", parse_mode="HTML")
