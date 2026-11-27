@@ -157,6 +157,25 @@ async def _ci_note(goal: dict) -> str:
     return ""
 
 
+async def _goal_over_cap(state: dict, goal: dict) -> bool:
+    """Count the cycles in a row spent on one goal of the agent's own. Past MAX_GOAL_CYCLES the goal is closed
+    (done if it already has a PR, dropped otherwise): a free model happily rewords the same sentence for hours."""
+    from . import jobs
+    if goal.get("source") in jobs.QUEUE_SOURCES:
+        return False  # people's tasks and rebuilds may take as long as they need
+    seen = state.get("goal_cycle") if isinstance(state.get("goal_cycle"), dict) else {}
+    n = int(seen.get("n") or 0) + 1 if seen.get("id") == goal.get("id") else 1
+    if n <= config.MAX_GOAL_CYCLES:
+        await rpc.bot_agent_state_patch({"goal_cycle": {"id": goal.get("id"), "n": n}})
+        return False
+    has_pr = bool(goal.get("pr_number"))
+    await rpc.bot_agent_goal_save(goal["id"], {"status": "done" if has_pr else "dropped", **({"progress_pct": 100} if has_pr else {})})
+    await rpc.bot_agent_state_patch({"goal_cycle": None})
+    await rpc.bot_agent_journal_add("event", f"Цель #{goal['id']} «{str(goal.get('title') or '')[:80]}» закрыта: {config.MAX_GOAL_CYCLES} циклов подряд "
+                                             f"без завершения ({'PR остаётся на слияние' if has_pr else 'без PR'}).", {"goal": goal["id"]})
+    return True
+
+
 async def _choose_work(state: dict) -> tuple[dict | None, str, bool]:
     """(goal, extra prompt, idea_mode): continue the active goal, take an admin task, fix a broken PR, or look for ideas."""
     from . import jobs
@@ -168,6 +187,8 @@ async def _choose_work(state: dict) -> tuple[dict | None, str, bool]:
         # an admin asked for something while the agent's own idea had barely started: the admin goes first, the idea is kept
         await rpc.bot_agent_mem_add("idea", f"Отложено ради просьбы админа: {goal.get('title')}. {str(goal.get('expected') or '')[:300]}"[:1400], [], 3, False)
         await rpc.bot_agent_goal_save(goal["id"], {"status": "dropped"})
+        goal = None
+    if goal and await _goal_over_cap(state, goal):
         goal = None
     if goal:
         return goal, await _ci_note(goal), False

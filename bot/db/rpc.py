@@ -49,14 +49,29 @@ def _is_transient_rpc_error(exc: Exception) -> bool:
     return any(marker in exc_text for marker in TRANSIENT_RPC_ERROR_MARKERS)
 
 
+# Calls that may be repeated after a dropped connection without doing harm: reads, idempotent setters and patches,
+# lease/claim calls (a repeat after a lost answer claims nothing, which is no worse than the failure itself).
+# Everything else (points, punishments, other writes) is never retried unless the caller asks for it.
+_SAFE_RETRY_PREFIXES = (
+    "bot_get_", "bot_list_", "bot_check_", "get_", "list_", "bot_set_", "bot_claim_", "mc_bridge_claim_",
+    "bot_agent_state_", "bot_agent_goals_list", "bot_agent_mem_search", "bot_agent_mem_core", "bot_agent_inbox_take", "bot_agent_claim",
+)
+
+
+def default_retries(func_name: str) -> int:
+    return 1 if func_name.startswith(_SAFE_RETRY_PREFIXES) else 0
+
+
 async def call_rpc_async(
     func_name: str,
     params: dict,
     *,
-    retries: int = 0,
+    retries: int | None = None,
     retry_delay_seconds: float = 0.5,
 ) -> RPCResult:
     loop = asyncio.get_running_loop()
+    if retries is None:
+        retries = default_retries(func_name)
 
     def execute():
         return supabase.rpc(func_name, params).execute()
