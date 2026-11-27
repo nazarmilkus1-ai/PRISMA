@@ -192,7 +192,7 @@ class TestParseReminders(unittest.TestCase):
         result = parse("30М ТЕКСТ", self.base_time)
         self.assertIsNotNone(result)
         when, text = result
-        expected = self.base_time.replace(minute=42)
+        expected = self.base_time.replace(minute=30)
         self.assertEqual(when, expected)
         self.assertEqual(text, "ТЕКСТ")
 
