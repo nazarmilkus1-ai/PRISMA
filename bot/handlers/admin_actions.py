@@ -102,5 +102,6 @@ async def admin_action(callback: types.CallbackQuery):
                 parse_mode="HTML",
                 reply_markup=None,
             )
-        except Exception:
+        except Exception as exc:
+            logger.error(f"Admin actions error: {exc}")
             await callback.message.edit_reply_markup(reply_markup=None)
