@@ -60,7 +60,7 @@ def parse(text: str, now: datetime | None = None) -> tuple[datetime, str] | None
         target += timedelta(days=shift)
         if target <= now:
             target += timedelta(days=1)
-        if rest and rest.strip():
+        if rest and rest.strip() and day_word:
             return None
         return target, rest.strip()
     return None
