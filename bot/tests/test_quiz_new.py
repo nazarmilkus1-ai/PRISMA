@@ -2,6 +2,8 @@ import os
 import sys
 import unittest
 import json
+import asyncio
+import mock
 
 os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
 os.environ.setdefault("SUPABASE_KEY", "[скрыто]")
@@ -9,6 +11,7 @@ os.environ.setdefault("BOT_TOKEN", "123456:TEST")
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from services import quiz
+from services.ai import member_tools
 
 
 class QuizParseTests(unittest.TestCase):
