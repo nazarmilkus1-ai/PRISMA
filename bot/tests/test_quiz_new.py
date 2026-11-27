@@ -3,7 +3,7 @@ import sys
 import unittest
 import json
 import asyncio
-import mock
+from unittest import mock
 
 os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
 os.environ.setdefault("SUPABASE_KEY", "[скрыто]")
