@@ -105,7 +105,43 @@ Grant staff access only to intended accounts. Review both application-level RBAC
 
 ## Paper plugin — runtime config.yml
 
-Create the server file from minecraft-plugin/src/main/resources/config.yml.example. Required values are supabase.url and supabase.service-role-key. This secret only on the trusted Minecraft server.
+Create the server file from `minecraft-plugin/src/main/resources/config.yml.example`. Required values:
+
+### Required
+- `supabase.url` — Supabase project URL (https://...)
+- `supabase.service-role-key` — Supabase service role key (starts with `sb_secret_`)
+
+### Optional — Server Connection
+- `server.java-address` — Java edition server address
+- `server.bedrock-address` — Bedrock edition server address
+- `server.java-port` — Java edition RCON port, default: 25575
+- `server.bedrock-port` — Bedrock edition RCON port, default: 18591
+- `server.rcon-password` — RCON password
+
+### Optional — Bot API
+- `bot.api-url` — Bot API endpoint URL
+- `bot.api-key` — API key for bot communication
+
+### Optional — Features
+- `features.chat-bridge` — Enable chat bridge between Telegram and Minecraft, default: true
+- `features.player-stats` — Enable player stats tracking, default: true
+- `features.moderation` — Enable moderation features, default: true
+- `features.villages` — Enable village/clan system, default: true
+- `features.graves` — Enable grave system, default: true
+- `features.homes` — Enable player homes, default: true
+- `features.journey` — Enable player journey, default: true
+- `features.explore` — Enable explore map, default: true
+- `features.spawn` — Enable spawn points, default: true
+- `features.tpa` — Enable TPA (teleport requests), default: true
+
+### Optional — Limits & Tuning
+- `limits.max-homes` — Maximum homes per player, default: 5
+- `limits.max-village-radius` — Maximum village radius, default: 100
+- `limits.chat-bridge-cooldown` — Chat bridge cooldown in seconds, default: 2
+- `tuning.cache-ttl` — Cache TTL in seconds, default: 300
+- `tuning.metrics-interval` — Metrics collection interval in seconds, default: 60
+
+This secret only on the trusted Minecraft server.
 
 ## Local copies
 
