@@ -1,3 +1,4 @@
+import logging
 from aiogram import Router, types
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
@@ -47,7 +48,8 @@ async def report_reason(message:types.Message,state:FSMContext):
     await state.clear(); await message.answer("✅ Жалоба передана администрации.")
     if ADMIN_GROUP_ID:
         try: await message.bot.send_message(ADMIN_GROUP_ID,f"📢 <b>Новая жалоба</b>\nНа: <code>{escape(str(d['target_label']))}</code>\nОт: <code>{message.from_user.id}</code>\nПричина: {escape(reason)}",parse_mode="HTML")
-        except Exception: pass
+        except Exception as e:
+            logging.exception(f"Ошибка при отправке жалобы админам: {e}")
 
 @router.message(Command("cancel"),StateFilter(ReportForm))
 async def cancel_report(message:types.Message,state:FSMContext):
