@@ -29,6 +29,8 @@ def now_local() -> datetime:
 def parse(text: str, now: datetime | None = None) -> tuple[datetime, str] | None:
     """`30м текст`, `через 2 часа текст`, `14:30 текст`, `завтра 09:00 текст`, `2026-12-01 18:00 текст`."""
     text = (text or "").strip()
+    if not text:
+        return None
     now = now or now_local()
     match = _FULL.match(text)
     if match:
