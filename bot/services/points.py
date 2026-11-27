@@ -73,9 +73,9 @@ def render_history(data: dict) -> str:
         lines.append("\n<b>Последние операции</b>")
         for row in items:
             delta = int(row.get("delta") or 0)
-            sign = "+" if delta > 0 else "−"
+            sign = "+" if delta >= 0 else "−"
             what = _KINDS.get(str(row.get("kind")), str(row.get("kind")))
-            note = f" — {html.escape(str(row['note']))}" if row.get("note") else ""
+            note = f" — {str(row['note'])}" if row.get("note") else ""
             lines.append(f"{sign}{fmt(abs(delta))} PP · {what}{note}")
     return "\n".join(lines)
 
