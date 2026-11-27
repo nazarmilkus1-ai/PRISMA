@@ -1,13 +1,7 @@
-import unittest
-from services import reminders
+from datetime import datetime
+from zoneinfo import ZoneInfo
+from bot.services.reminders import parse
 
-NOW = reminders.now_local()
-
-class ParseTests(unittest.TestCase):
-    def test_parse_unrecognized_input_returns_none(self):
-        # Проверяем, что parse возвращает None для нераспознанного ввода
-        result = reminders.parse("18:30 ивент", NOW)
-        self.assertIsNone(result)
-
-if __name__ == '__main__':
-    unittest.main()
+def test_parse_unrecognized_input_returns_none():
+    result = parse("18:30 ивент", datetime.now(ZoneInfo("Europe/Kyiv")))
+    assert result is None
