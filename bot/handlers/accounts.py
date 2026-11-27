@@ -100,7 +100,7 @@ async def cmd_remove_account(message: types.Message):
         return
     result = await bot_remove_minecraft_account(message.from_user.id)
     if result.error or (isinstance(result.data, dict) and result.data.get("error")):
-        await message.answer("❌ Не удалось убрать аккаунт.")
+        await message.answer("❌ Не удалось убрать аккаунт. Попробуйте ещё раз позже.")
         return
     removed = int((result.data or {}).get("removed") or 0) if isinstance(result.data, dict) else 0
     await message.answer("✅ Второй аккаунт убран." if removed else "Второго аккаунта нет.")
