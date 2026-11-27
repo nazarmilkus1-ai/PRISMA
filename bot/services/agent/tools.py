@@ -115,7 +115,8 @@ def act_schemas() -> list[dict]:
 def _int(value) -> int | None:
     try:
         return int(value) if value not in (None, "", False) else None
-    except (TypeError, ValueError):
+    except (TypeError, ValueError) as e:
+        logger.warning(f"Failed to convert value to int: {value}, error: {e}")
         return None
 
 
