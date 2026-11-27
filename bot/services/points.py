@@ -75,7 +75,7 @@ def render_history(data: dict) -> str:
             delta = int(row.get("delta") or 0)
             sign = "+" if delta > 0 else "−"
             what = _KINDS.get(str(row.get("kind")), str(row.get("kind")))
-            note = f" — {str(row['note']).replace('&', '&').replace('<', '<').replace('>', '>')}" if row.get("note") else ""
+            note = f" — {html.escape(str(row['note']))}" if row.get("note") else ""
             lines.append(f"{sign}{fmt(abs(delta))} PP · {what}{note}")
     return "\n".join(lines)
 
