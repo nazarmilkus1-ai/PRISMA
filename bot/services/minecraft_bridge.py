@@ -42,7 +42,7 @@ def _clean_text(value: str, maximum: int = 500) -> str:
     cleaned = " ".join((value or "").replace("\x00", " ").split()).strip()
     if not cleaned or len(cleaned) > maximum:
         return ""
-    return "".join(" " if ord(char) < 32 or ord(char) == 127 else char for char in cleaned).strip().strip().strip()
+    return "".join(char for char in cleaned if not (ord(char) < 32 or ord(char) == 127)).strip().strip().strip()
 
 
 def _looks_like_group_command(value: str) -> bool:
