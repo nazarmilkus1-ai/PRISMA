@@ -53,7 +53,7 @@ def parse(text: str, now: datetime | None = None) -> tuple[datetime, str] | None
         if target <= now + timedelta(seconds=30) and not day_word:
             target += timedelta(days=1)  # "14:30" already passed today → tomorrow
         return target, rest.strip()
-    return now, rest.strip()
+    return now, text.strip()
 
 
 ERRORS = {
