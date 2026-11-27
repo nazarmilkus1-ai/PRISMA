@@ -35,8 +35,9 @@ class ParseTests(unittest.TestCase):
         self.assertIsNone(reminders.parse("2026-12-01 24:00:00 текст"))
 
     def test_invalid_relative(self):
-        self.assertIsNone(reminders.parse("30м позвонить"))  # неверный формат
-        self.assertIsNone(reminders.parse("через 2 часа проверить заявки"))  # неверный формат
+        self.assertIsNone(reminders.parse("30m"))  # неверный формат (нет текста)
+        self.assertIsNone(reminders.parse("через 2 часа"))  # неверный формат (нет текста)
+        self.assertIsNone(reminders.parse("5 лет текст"))  # неизвестная единица
 
 if __name__ == '__main__':
     unittest.main()
