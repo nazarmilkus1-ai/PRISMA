@@ -1,12 +1,9 @@
 import unittest
-from bot.services.reminders import parse
-from datetime import datetime
+from services import reminders
 
-class TestParseRemindersInvalid(unittest.TestCase):
-    def test_parse_invalid_format(self):
-        # Проверяем, что parse("30m") возвращает None
-        result = parse("30m", datetime.now())
-        self.assertIsNone(result)
+NOW = reminders.TZ
+def test_invalid_30m():
+    self.assertIsNone(reminders.parse("30m", NOW))
 
 if __name__ == '__main__':
     unittest.main()
