@@ -34,7 +34,8 @@ def _mention(row: dict) -> str:
     try:
         telegram_id = int(row["telegram_id"])
     except (KeyError, TypeError, ValueError):
-        return "Ошибка: некорректный номер Telegram. Проверьте введённый ID."
+        logger.warning("onboarding digest: no valid telegram_id in row, showing the name without a link")
+        return escape(_display_name(row))
     return f'<a href="tg://user?id={telegram_id}">{escape(_display_name(row))}</a>'
 
 
