@@ -42,6 +42,20 @@ def undefined_log_names(tree: ast.AST) -> list[str]:
     return [name for name in _LOG_NAMES if name in used and name not in bound]
 
 
+def banned_theme(text: str, themes) -> str | None:
+    """The first theme from `themes` that `text` falls under, or None.
+
+    A theme is a phrase the people closed after a flood of near-identical PRs (kept in agent_state.banned_themes).
+    Parts joined by «+» must all occur in the text (case-insensitive substring), so «except+лог» matches
+    «Добавить лог в except» but not a task about tests."""
+    low = (text or "").lower()
+    for theme in themes if isinstance(themes, (list, tuple)) else []:
+        parts = [p.strip() for p in str(theme).lower().split("+") if p.strip()]
+        if parts and all(p in low for p in parts):
+            return str(theme)
+    return None
+
+
 def precheck(files: list[dict]) -> str | None:
     """Return a short error for the model (Russian, one problem per line) or None when the files look sane."""
     problems: list[str] = []

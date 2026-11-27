@@ -189,7 +189,7 @@ class PlanToolsTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_goal_new_stores_the_plan(self):
         save = AsyncMock(return_value=RPCResult(data={"id": 4}))
-        with patch.object(tools.rpc, "bot_agent_goals_list", AsyncMock(return_value=RPCResult(data=[]))), patch.object(tools.rpc, "bot_agent_goal_save", save):
+        with patch.object(tools.rpc, "bot_agent_goals_list", AsyncMock(return_value=RPCResult(data=[]))), patch.object(tools.rpc, "bot_agent_state_get", AsyncMock(return_value=RPCResult(data={}))), patch.object(tools.rpc, "bot_agent_goal_save", save):
             out = json.loads(await tools.run_tool(tools.Ctx(bot=None), "goal_new", {"title": "Новая цель", "expected": "x", "tasks": ["а", "б"]}))
         self.assertTrue(out["ok"])
         self.assertEqual(save.await_args.args[1]["progress_pct"], 5)
