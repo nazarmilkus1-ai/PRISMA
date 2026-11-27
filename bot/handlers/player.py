@@ -129,7 +129,7 @@ async def _stats_message(message: types.Message, tg_id: int):
     user, err = await _user(tg_id)
     stats, stats_err = await get_stats(tg_id)
     if not user or stats_err:
-        await message.answer("❌ Не удалось загрузить статистику.")
+        await message.answer("❌ Не удалось загрузить статистику. Попробуйте позже.")
         return
     playtime = int(stats.get("playtime_minutes", 0))
     await message.answer(
