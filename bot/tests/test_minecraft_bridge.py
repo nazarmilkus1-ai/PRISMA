@@ -1,7 +1,7 @@
 import unittest
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 from bot.services.minecraft_bridge import _clean_text, _looks_like_group_command
 
 class TestMinecraftBridge(unittest.TestCase):
