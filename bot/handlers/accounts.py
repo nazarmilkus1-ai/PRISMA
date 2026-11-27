@@ -60,7 +60,7 @@ async def cmd_accounts(message: types.Message):
         return
     result = await bot_list_minecraft_accounts(message.from_user.id)
     if result.error or not isinstance(result.data, dict) or result.data.get("error"):
-        await message.answer("❌ Не удалось получить список аккаунтов. Попробуйте позже или свяжитесь с админом.")
+        await message.answer("❌ Не удалось получить список аккаунтов. Попробуйте позже, свяжитесь с админом или нажмите /start.")
         return
     primary = result.data.get("primary") or {}
     extra = result.data.get("extra") or []
