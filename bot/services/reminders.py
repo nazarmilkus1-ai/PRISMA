@@ -48,7 +48,7 @@ def parse(text: str, now: datetime | None = None) -> tuple[datetime, str] | None
             target = now.replace(hour=int(h), minute=int(mi), second=0, microsecond=0)
         except ValueError:
             return None
-        shift = {"завтра": 1, "послезавтра": 2}.get((day_word or "").lower(), 0)
+        shift = {"завтра": 1, "послезавтра": 2, "вчера": -1}.get((day_word or "").lower(), 0)
         target += timedelta(days=shift)
         if target <= now + timedelta(seconds=30) and not day_word:
             target += timedelta(days=1)  # "14:30" already passed today → tomorrow
