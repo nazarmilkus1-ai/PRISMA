@@ -202,7 +202,8 @@ async def reminders_tool(name: str, args: dict, tg_id: int) -> dict:
         elif args.get("at"):
             parsed = reminders.parse(f"{str(args['at']).strip()} x")
             when = parsed[0] if parsed else None
-    except (TypeError, ValueError, OverflowError):
+    except (TypeError, ValueError, OverflowError) as exc:
+        logger.warning("Failed to parse reminder time args: %s", exc)
         when = None
     if not text or when is None:
         return {"error": "need text and either in_minutes or at ('YYYY-MM-DD HH:MM', Kyiv time)"}
