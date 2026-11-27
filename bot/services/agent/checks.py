@@ -13,6 +13,35 @@ _DIRECT_CRUD = re.compile(r"supabase\.table\(|supabase\.from\(|\.insert\(|\.upda
 _CRUD_DIRS = ("bot/db/", "bot/services/")
 
 
+_LOG_NAMES = ("logger", "logging")
+
+
+def undefined_log_names(tree: ast.AST) -> list[str]:
+    """Names from _LOG_NAMES that a module uses but never defines (import, assignment, def, argument, ...).
+
+    The usual slip when the model adds `logger.error(...)` to a file that has no logger: it passes the syntax check and
+    the tests, then raises NameError in production inside the very `except` block it was meant to improve."""
+    bound: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            for alias in node.names:
+                if alias.name == "*":
+                    return []
+                bound.add((alias.asname or alias.name).split(".")[0])
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            bound.add(node.name)
+        elif isinstance(node, ast.arg):
+            bound.add(node.arg)
+        elif isinstance(node, ast.ExceptHandler) and node.name:
+            bound.add(node.name)
+        elif isinstance(node, (ast.Global, ast.Nonlocal)):
+            bound.update(node.names)
+        elif isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)):
+            bound.add(node.id)
+    used = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load)}
+    return [name for name in _LOG_NAMES if name in used and name not in bound]
+
+
 def precheck(files: list[dict]) -> str | None:
     """Return a short error for the model (Russian, one problem per line) or None when the files look sane."""
     problems: list[str] = []
@@ -22,10 +51,13 @@ def precheck(files: list[dict]) -> str | None:
         path, text = str(f.get("path") or ""), str(f.get("content") or "")
         if path.endswith(".py"):
             try:
-                ast.parse(text, filename=path)
+                tree = ast.parse(text, filename=path)
             except SyntaxError as exc:
                 problems.append(f"{path}: синтаксическая ошибка Python, строка {exc.lineno}: {exc.msg}")
                 continue
+            for name in undefined_log_names(tree):
+                problems.append(f"{path}: используется `{name}`, но в файле он не объявлен (будет NameError). "
+                                "Добавь `import logging` и `logger = logging.getLogger(__name__)` или не логируй.")
             if path.startswith(_CRUD_DIRS) and "/tests/" not in path and _DIRECT_CRUD.search(text):
                 problems.append(f"{path}: запрещено прямое обращение к базе и методы insert/update/delete в bot/db и bot/services "
                                 "(автопроверка архитектуры упадёт). Для словаря используй `d |= {...}`, для базы — готовые функции из db/rpc.py.")

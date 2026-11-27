@@ -2,6 +2,7 @@
 /addtg, /linktg, /removetg — a second Telegram account for the same profile."""
 from __future__ import annotations
 
+import logging
 from html import escape
 
 from aiogram import BaseMiddleware, Router, types
@@ -17,6 +18,7 @@ from db.rpc import (
 from services import accounts
 from utils.permissions import DENIED_MESSAGE, is_approved
 
+logger = logging.getLogger(__name__)
 router = Router(name="accounts")
 
 _PLATFORMS = {"java": "JAVA", "джава": "JAVA", "bedrock": "BEDROCK", "бедрок": "BEDROCK", "бэдрок": "BEDROCK"}
