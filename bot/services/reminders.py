@@ -57,6 +57,7 @@ def parse(text: str, now: datetime | None = None) -> tuple[datetime, str] | None
         return target, rest.strip()
     return None
     return None
+    return None
 
 
 ERRORS = {
