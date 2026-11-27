@@ -21,7 +21,8 @@ class DigestGatherTests(unittest.TestCase):
         with mock.patch('services.digest.live._online', return_value="Сервер: RUNNING · онлайн 5/20"), \
              mock.patch('services.digest.bot_chat_top') as mock_top, \
              mock.patch('services.digest.bot_chat_top_total') as mock_total, \
-             mock.patch('services.digest.bot_list_events') as mock_events:
+             mock.patch('services.digest.bot_list_events') as mock_events, \
+             mock.patch('services.digest.config.OWNER_TG_ID', 123456):
             
             mock_top.return_value.error = False
             mock_top.return_value.data = [
