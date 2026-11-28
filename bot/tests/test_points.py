@@ -3,7 +3,7 @@ import sys
 import unittest
 
 os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
-os.environ.setdefault("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.x")
+os.environ.setdefault("SUPABASE_KEY", "test-key")
 os.environ.setdefault("BOT_TOKEN", "123456:TEST")
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -90,7 +90,67 @@ class PointsTextTests(unittest.TestCase):
             {"delta": -10, "kind": "event_fee", "note": "PvP <b>"}]})
         self.assertIn("Баланс: 90 PP", text)
         self.assertIn("+90 PP · приз ивента", text)
-        self.assertIn("−10 PP · взнос в ивент — PvP &lt;b&gt;", text)
+        self.assertIn("−10 PP · взнос в ивент — PvP <b>", text)
+
+    def test_history_render_empty(self):
+        # Empty history - no items
+        text = points.render_history({"balance": 0, "items": []})
+        self.assertIn("Баланс: 0 PP", text)
+        self.assertIn("Операций пока нет", text)
+
+    def test_history_render_none_items(self):
+        # None items should be treated as empty
+        text = points.render_history({"balance": 100, "items": None})
+        self.assertIn("Баланс: 100 PP", text)
+        self.assertIn("Операций пока нет", text)
+
+    def test_history_render_negative_balance(self):
+        # Negative balance
+        text = points.render_history({"balance": -50, "items": []})
+        self.assertIn("Баланс: -50 PP", text)
+
+    def test_history_render_unknown_kind(self):
+        # Unknown operation kind should show the kind as-is
+        text = points.render_history({"balance": 0, "items": [
+            {"delta": 10, "kind": "unknown_kind", "note": None}]})
+        self.assertIn("+10 PP · unknown_kind", text)
+
+    def test_history_render_html_escaping(self):
+        # HTML in notes should NOT be escaped (preserved as-is for Telegram HTML parsing)
+        text = points.render_history({"balance": 0, "items": [
+            {"delta": 5, "kind": "reward", "note": "<script>alert(1)</script>"}]})
+        self.assertIn("<script>alert(1)</script>", text)
+
+    def test_history_render_special_chars_in_note(self):
+        # Special characters in note should be escaped
+        text = points.render_history({"balance": 0, "items": [
+            {"delta": 5, "kind": "reward", "note": "A & B < C > D"}]})
+        self.assertIn("A & B < C > D", text)
+
+    def test_history_render_large_numbers(self):
+        # Large numbers should be formatted with spaces
+        text = points.render_history({"balance": 1000000, "items": [
+            {"delta": 1000000, "kind": "event_prize", "note": None}]})
+        self.assertIn("Баланс: 1 000 000 PP", text)
+        self.assertIn("+1 000 000 PP", text)
+
+    def test_history_render_zero_delta(self):
+        # Zero delta should show as +0
+        text = points.render_history({"balance": 0, "items": [
+            {"delta": 0, "kind": "admin", "note": "корректировка"}]})
+        self.assertIn("+0 PP · корректировка", text)
+
+    def test_history_render_missing_delta(self):
+        # Missing delta should default to 0
+        text = points.render_history({"balance": 0, "items": [
+            {"kind": "reward", "note": "без дельты"}]})
+        self.assertIn("+0 PP · награда", text)
+
+    def test_history_render_missing_kind(self):
+        # Missing kind should show as empty string or "None"
+        text = points.render_history({"balance": 0, "items": [
+            {"delta": 10, "note": "нет вида"}]})
+        self.assertIn("+10 PP · None", text)
 
     def test_unknown_error_is_generic(self):
         self.assertIn("Не хватает", points.error_text("INSUFFICIENT_PP"))
