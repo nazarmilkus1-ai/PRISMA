@@ -22,7 +22,7 @@ from db.rpc import (
 from keyboards.admin_actions import application_actions, appeal_actions, report_actions
 from utils.errors import safe_rpc_error
 from utils.permissions import require_admin_mode, require_admin_mode_callback
-from bot.utils.validation import Validation
+from utils.validation import Validation
 import logging
 
 logger = logging.getLogger(__name__)
