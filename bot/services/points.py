@@ -65,19 +65,28 @@ def parse_amount(raw: str | None) -> int | None:
 
 
 def render_history(data: dict) -> str:
-    lines = [f"💎 <b>Баланс: {fmt(data.get('balance'))} PP</b>"]
-    items = data.get("items") or []
-    if not items:
-        lines.append("\nОпераций пока нет.")
-    else:
-        lines.append("\n<b>Последние операции</b>")
-        for row in items:
-            delta = int(row.get("delta") or 0)
-            sign = "+" if delta >= 0 else "−"
-            what = _KINDS.get(str(row.get("kind")), str(row.get("kind")))
-            note = f" — {str(row['note'])}" if row.get("note") else ""
-            lines.append(f"{sign}{fmt(abs(delta))} PP · {what}{note}")
-    return "\n".join(lines)
+    try:
+        balance = fmt(data.get('balance'))
+        lines = [f"💎 <b>Баланс: {balance} PP</b>"]
+        items = data.get("items") or []
+        if not items:
+            lines.append("\nОпераций пока нет.")
+        else:
+            lines.append("\n<b>Последние операции</b>")
+            for row in items:
+                try:
+                    delta = int(row.get("delta") or 0)
+                    sign = "+" if delta >= 0 else "−"
+                    what = _KINDS.get(str(row.get("kind")), str(row.get("kind")))
+                    note = f" — {str(row['note'])}" if row.get("note") else ""
+                    lines.append(f"{sign}{fmt(abs(delta))} PP · {what}{note}")
+                except (TypeError, ValueError):
+                    lines.append("⚠️ Ошибка в данных операции")
+        return "\n".join(lines)
+    except KeyError:
+        return "⚠️ Неправильный формат данных. Проверьте запрос."
+    except (TypeError, ValueError):
+        return "⚠️ Ошибка в данных операции. Попробуйте позже."
 
 
 HELP = (
