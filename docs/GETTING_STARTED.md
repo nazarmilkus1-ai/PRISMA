@@ -27,7 +27,7 @@ cd PRISMA
 
 ## 2. Prepare Supabase first
 
-All runtime components depend on one PRISMA Supabase project. Before applying migrations, identify the target database and take a backup if it is not empty.
+All runtime components depend on one PRISMA Supabase project. Before applying migrations, create a new Supabase project (or use an existing one) and identify the target database and take a backup if it is not empty.
 
 The migration chain begins with:
 - 20260807235959_rename_legacy_tables.sql: renames existing public.users and public.applications tables to users_legacy_v0 and applications_legacy_v0 when they exist.
@@ -51,7 +51,7 @@ Do not run these commands blindly against production. Confirm the linked project
 
 ## 3. Run Redis locally
 
-The root docker-compose.yml defines Redis only; it does not start the complete PRISMA stack.
+The root docker-compose.yml contains a service definition for Redis only; this command starts the Redis container in detached mode.
 
 ```powershell
 docker compose up -d redis

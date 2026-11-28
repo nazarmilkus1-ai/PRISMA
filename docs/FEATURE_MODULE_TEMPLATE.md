@@ -7,7 +7,7 @@ Copy this document when proposing a major PRISMA domain module.
 - Module ID:
 - Title:
 - Owner:
-- Status: planned / active / deprecated
+- Status: planned / active
 - Dependencies:
 
 ## Purpose
