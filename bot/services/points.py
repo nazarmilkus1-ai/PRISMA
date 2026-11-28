@@ -84,7 +84,7 @@ def render_history(data: dict) -> str:
                     lines.append("⚠️ Ошибка в данных операции")
         return "\n".join(lines)
     except KeyError:
-        return "⚠️ Неправильные данные. Проверьте запрос."
+        return "⚠️ Неправильный формат данных. Проверьте запрос."
     except (TypeError, ValueError):
         return "⚠️ Ошибка обработки данных. Попробуйте позже."
 
