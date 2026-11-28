@@ -53,6 +53,9 @@ async def require_perm(message: types.Message, permission: str) -> bool:
 async def admin_applications(callback: types.CallbackQuery):
     if not await require_callback_perm(callback, "application.view"):
         return
+    if not _valid_tg_id(callback.from_user.id):
+        await callback.message.answer("❌ Неправильный Telegram ID")
+        return
     await callback.answer()
     rows, err = await pending_applications(callback.from_user.id)
     if err:
