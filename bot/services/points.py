@@ -23,7 +23,7 @@ _ERRORS = {
 _KINDS = {
     "transfer_in": "перевод от игрока", "transfer_out": "перевод игроку", "event_fee": "взнос в ивент",
     "event_prize": "приз ивента", "shop": "магазин", "sell": "продажа ресурсов", "reward": "награда",
-    "admin": "корректировка", "refund": "возврат", "commission": "комиссия проекта",
+    "admin": "корректировка", "refund": "возврат", "commission": "комиссия проекта", "event_bonus": "бонус",
 }
 
 
