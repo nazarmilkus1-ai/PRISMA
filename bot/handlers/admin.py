@@ -23,6 +23,17 @@ from keyboards.admin_actions import application_actions, appeal_actions, report_
 from utils.errors import safe_rpc_error
 from utils.permissions import require_admin_mode, require_admin_mode_callback
 from bot.utils.validation import Validation
+import logging
+
+logger = logging.getLogger(__name__)
+
+async def _valid_tg_id(tg_id: int) -> bool:
+    valid, error = Validation.validate_telegram_id(tg_id, "Telegram ID")
+    if not valid:
+        logger.warning("_valid_tg_id: invalid tg_id %s - %s", tg_id, error)
+        return False
+    return True
+from bot.utils.validation import Validation
 from bot.utils.validation import Validation
 from bot.utils.validation import Validation
 
