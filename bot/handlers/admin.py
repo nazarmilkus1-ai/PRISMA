@@ -86,7 +86,7 @@ async def app_approve(message: types.Message):
     if result.error or not isinstance(result.data, dict) or not result.data.get("success"):
         await message.answer(f"❌ {safe_rpc_error(result, 'Не удалось одобрить заявку.')}", parse_mode="HTML")
         return
-    await message.answer("✅ Заявка успешно одобрена.")
+    await message.answer("✅ Заявка одобрена.")
 
 
 @router.message(Command("app_reject"))
