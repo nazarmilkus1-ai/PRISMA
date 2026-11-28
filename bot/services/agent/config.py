@@ -13,6 +13,10 @@ def _int(name: str, default: int) -> int:
         return default
 
 
+def _flag(name: str, default: str = "0") -> bool:
+    return _env(name, default).lower() in {"1", "true", "on", "yes"}
+
+
 def _ids(name: str) -> set[int]:
     out: set[int] = set()
     for part in _env(name).replace(";", ",").split(","):
@@ -25,6 +29,13 @@ def _ids(name: str) -> set[int]:
 # The agent exists only here: https://t.me/c/4365081749/1469
 CHAT_ID = _int("AGENT_CHAT_ID", -1004365081749)
 THREAD_ID = _int("AGENT_THREAD_ID", 1469)
+
+# Code access. Off (the default, owner's decision): the agent is an assistant of the admins. It reads code, logs and deploy states,
+# answers their questions and reports real problems on production, but never writes to the repository (no commit, PR, merge).
+CODE_ACCESS = _flag("AGENT_CODE_ACCESS")
+ASSISTANT_CYCLE_SECONDS = max(300, _int("AGENT_ASSISTANT_CYCLE_SECONDS", 1800))
+ASSISTANT_CHECK_SECONDS = max(900, _int("AGENT_ASSISTANT_CHECK_SECONDS", 3600))  # how often it looks at production on its own
+ASSISTANT_STEPS = max(4, _int("AGENT_ASSISTANT_STEPS", 8))
 
 ENABLED = _env("AGENT_ENABLED", "1").lower() not in {"0", "false", "off", "no"}
 CYCLE_SECONDS = max(120, _int("AGENT_CYCLE_SECONDS", 600))

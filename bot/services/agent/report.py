@@ -91,6 +91,10 @@ def live_text(ctx, total: int, status: str = "⚙️ Работаю") -> str:
     return "\n".join(lines)
 
 
+def help_text() -> str:
+    return HELP if config.CODE_ACCESS else ASSISTANT_HELP
+
+
 async def live_progress(ctx) -> None:
     if time.monotonic() - ctx.live_at < 4:
         return
@@ -231,6 +235,14 @@ async def ideas_view() -> tuple[str, InlineKeyboardMarkup]:
             [InlineKeyboardButton(text=f"✖ {i}", callback_data=f"agent:noidea:{m['id']}") for i, m in enumerate(items, 1)], back]
     return text, InlineKeyboardMarkup(inline_keyboard=rows)
 
+
+ASSISTANT_HELP = ("🤖 <b>Как пользоваться помощником</b>\n"
+                  "Я — ИИ-помощник админов PRISMA. Код проекта я <b>не меняю</b>: только читаю код, логи бота и деплои.\n\n"
+                  "💬 <b>Спросите меня</b> в этом топике: ответьте на моё сообщение, упомяните меня или задайте вопрос знаком «?» (если вы админ). "
+                  "Например: «что в логах за последний час?», «почему не работает /link?», «где в коде считаются очки?».\n"
+                  "🔎 Раз в час я сам смотрю продакшн и пишу сюда <b>только</b>, если нашёл новую реальную проблему.\n"
+                  "🛠 Если нужно что-то изменить в коде — опишу, что и где поправить, а менять будет разработчик.\n\n"
+                  "Команды: /agent — состояние, /agent_pause и /agent_resume — остановить и вернуть меня, /agent_help — эта справка.")
 
 HELP = ("🤖 <b>Как пользоваться агентом</b>\n"
         "Я — ИИ-разработчик PRISMA. Работаю сам, без перерывов: беру задачу, пишу код и проверяю его автотестами. "
