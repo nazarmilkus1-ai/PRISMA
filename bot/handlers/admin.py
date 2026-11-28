@@ -33,7 +33,7 @@ async def _valid_tg_id(tg_id: int) -> bool:
         logger.warning("_valid_tg_id: invalid tg_id %s - %s", tg_id, error)
         return False
     return True
-from ..utils.validation import Validation
+
 
 router = Router()
 
