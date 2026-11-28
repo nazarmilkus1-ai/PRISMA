@@ -128,7 +128,7 @@ class PointsTextTests(unittest.TestCase):
         })
         self.assertIn("Баланс: 0 PP", text)
         self.assertIn("+10 PP · бонус", text)
-        self.assertIn("−5 PP · штраф", text)
+        self.assertIn("−5 PP · event_penalty — Пенальти", text)
         self.assertIn(" — Бонус", text)
         self.assertIn(" — Пенальти", text)
         
