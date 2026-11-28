@@ -37,6 +37,9 @@ async def queued() -> list[dict]:
 
 async def add_task(text: str, who: str, source: str = "admin", title: str | None = None) -> tuple[dict | None, str]:
     """Queue a task. Returns (goal, note); goal is None when nothing was queued (note says why)."""
+    if not config.CODE_ACCESS:
+        return None, ("Я больше не меняю код: работаю помощником админов. Могу найти причину проблемы, посмотреть логи и код "
+                      "и подробно описать, что нужно поправить, — задачу на изменение передайте разработчику.")
     text = " ".join((text or "").split())[:1400]
     if len(text) < 6:
         return None, "Опишите задачу подробнее (хотя бы несколько слов)."

@@ -50,7 +50,7 @@ async def _task_reply(goal: dict, note: str) -> str:
 async def admin_commands(message: types.Message):
     cmd = (message.text or "").split()[0].lstrip("/").split("@")[0]
     if cmd == "agent_help":
-        await message.reply(report.HELP, parse_mode="HTML", disable_web_page_preview=True)
+        await message.reply(report.help_text(), parse_mode="HTML", disable_web_page_preview=True)
         return
     ctx = await staff_context(message.from_user.id)
     if not ctx.get("is_staff"):
@@ -65,6 +65,9 @@ async def admin_commands(message: types.Message):
         await jobs.wake()
         await message.reply("▶ Работаю дальше — следующий цикл начнётся в течение минуты.")
     elif cmd == "agent_auto":
+        if not config.CODE_ACCESS:
+            await message.reply("Автослияние не нужно: я больше не меняю код, работаю помощником админов.")
+            return
         arg = ((message.text or "").split(maxsplit=1) + [""])[1].strip().lower()
         state = (await rpc.bot_agent_state_get()).data or {}
         if arg and not merge.can_merge(message.from_user.id, ctx.get("permissions") or []):
@@ -119,13 +122,21 @@ async def ingest(message: types.Message):
         return
     _last_ack[user.id] = time.monotonic()
     out = await chat.answer(text.replace(f"@{me.username}", "").strip() if me.username else text, _who(user), staff)
+    if not out and not config.CODE_ACCESS:
+        if staff:
+            await jobs.wake()  # the question is in the inbox: the assistant answers it in the next cycle (within a minute)
+        await message.reply("👌 Принял, посмотрю и отвечу здесь в течение нескольких минут." if staff else "👌 Принял, передам админам.")
+        return
     if not out:
         who = "приоритетно" if staff else "как предложение"
         await message.reply(f"👌 Принял, учту {who} в ближайшем цикле (до {jobs.cycle_minutes()} минут).")
         return
     reply, task = out
     answer = html.escape(reply)
-    if task:
+    if task and not config.CODE_ACCESS:
+        await jobs.wake()  # the question is already in the inbox: the next cycle looks into code and logs and answers here
+        answer += "\n\n🔎 Посмотрю код и логи и отвечу здесь."
+    elif task:
         goal, note = await jobs.add_task(task, _who(user))
         if goal and not note:
             await jobs.wake()
@@ -190,7 +201,7 @@ async def buttons(callback: types.CallbackQuery):
         return
     if action == "help":
         await callback.answer()
-        await _show(callback, report.HELP, InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="← К списку", callback_data="agent:list")]]))
+        await _show(callback, report.help_text(), InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="← К списку", callback_data="agent:list")]]))
         return
     if action == "ideas":
         await callback.answer()

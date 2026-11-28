@@ -90,7 +90,7 @@ async def _announce(bot, goal: dict, merged_today: int) -> None:
 
 async def step(bot, state: dict) -> None:
     """One pass over finished PRs, oldest first: merge the first ready one, un-stick the conflicting ones. Never raises."""
-    if not enabled(state):
+    if not config.CODE_ACCESS or not enabled(state):
         return
     try:
         goals = (await rpc.bot_agent_goals_list("done", 30)).data or []

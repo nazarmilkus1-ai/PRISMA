@@ -49,6 +49,8 @@ def _s(name: str, desc: str, props: dict, required: list[str] | None = None) -> 
 
 _STR = {"type": "string"}
 READ_ONLY = {"repo_read", "repo_search", "web_fetch", "render_status", "render_logs", "vercel_status"}
+WRITE_TOOLS = {"commit", "edit", "goal_new", "goal_update", "step_done"}  # everything that changes the repository or the agent's goals
+ASSISTANT_TOOLS = READ_ONLY | {"memory_save", "memory_search", "memory_forget", "say", "finish_cycle"}
 SCHEMAS = [
     _s("repo_read", "Прочитать файл или список папки (по умолчанию из ветки PRISMA; ref — ветка цели). Большой файл читай кусками: "
                     "start и end — номера строк (до 400 строк за раз), строки приходят с номерами.",
@@ -94,6 +96,11 @@ _WORDS = re.compile(r"[\w]{4,}", re.U)
 def _similar(a: str, b: str) -> bool:
     wa, wb = set(_WORDS.findall(a.lower())), set(_WORDS.findall(b.lower()))
     return bool(wa and wb) and len(wa & wb) / min(len(wa), len(wb)) >= 0.6
+
+
+def assistant_schemas() -> list[dict]:
+    """Admins' assistant: read, remember, talk. Nothing that writes to the repository."""
+    return [t for t in SCHEMAS if t["function"]["name"] in ASSISTANT_TOOLS]
 
 
 def idea_schemas() -> list[dict]:
@@ -239,6 +246,8 @@ def label(name: str, a: dict) -> str:
 
 
 async def run_tool(ctx: Ctx, name: str, args: dict) -> str:
+    if name in WRITE_TOOLS and not config.CODE_ACCESS:
+        return _clip({"error": "Код менять нельзя: ты помощник админов и только читаешь. Опиши словами, что и где нужно поправить."})
     ctx.counts[name] = ctx.counts.get(name, 0) + 1
     ctx.actions.append(label(name, args if isinstance(args, dict) else {}))
     from .report import live_progress  # late import: report imports github, tools must stay importable without it

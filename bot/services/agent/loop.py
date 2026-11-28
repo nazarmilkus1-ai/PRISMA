@@ -13,6 +13,8 @@ logger = logging.getLogger(__name__)
 
 async def _cycle_seconds() -> int:
     """Back-to-back cycles while the agent has work (autonomous mode: always), the slow timer otherwise or on pause."""
+    if not config.CODE_ACCESS:
+        return config.ASSISTANT_CYCLE_SECONDS  # a question from an admin wakes the worker earlier (jobs.wake)
     try:
         state = (await rpc.bot_agent_state_get()).data or {}
         goals = (await rpc.bot_agent_goals_list(None, 50)).data or []
@@ -59,7 +61,7 @@ async def _work_loop(bot, stop: asyncio.Event) -> None:
             if (await rpc.bot_agent_claim("cycle", await _cycle_seconds())).data is True:
                 result = await brain.run_cycle(bot)
                 logger.info("agent cycle: %s", result.get("summary"))
-            if (await rpc.bot_agent_claim("report", config.REPORT_SECONDS)).data is True:
+            if config.CODE_ACCESS and (await rpc.bot_agent_claim("report", config.REPORT_SECONDS)).data is True:
                 await report.send_hourly(bot)
             if (await rpc.bot_agent_claim("consolidate", 86_400)).data is True:
                 await memory.consolidate()
