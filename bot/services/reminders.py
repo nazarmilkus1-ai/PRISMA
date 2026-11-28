@@ -17,7 +17,7 @@ TZ = ZoneInfo(os.getenv("REMINDER_TZ", "Europe/Kyiv"))
 _UNIT = {"м": 1, "мин": 1, "минут": 1, "минуты": 1, "минуту": 1, "m": 1, "min": 1,
          "ч": 60, "час": 60, "часа": 60, "часов": 60, "h": 60,
          "д": 1440, "дн": 1440, "день": 1440, "дня": 1440, "дней": 1440, "d": 1440}
-_REL = re.compile(r"^(?:через\s+|in\s+)?(\d{1,4})\s*([a-zа-я]+)\s*(\s+.+)?$", re.I | re.S)
+_REL = re.compile(r"^(?:через\s+|in\s+)?(\d{1,4})\s*([a-zа-я]+)\s+(.+)$", re.I | re.S)
 _CLOCK = re.compile(r"^(?:(сегодня|завтра|послезавтра)\s+)?(?:в\s+|at\s+)?(\d{1,2})[:.](\d{2})\s+(.+)$", re.I | re.S)
 _FULL = re.compile(r"^(\d{4})-(\d{2})-(\d{2})\s+(\d{1,2})[:.](\d{2})\s+(.+)$", re.S)
 
@@ -37,38 +37,30 @@ def parse(text: str, now: datetime | None = None) -> tuple[datetime, str] | None
             return datetime(int(y), int(mo), int(d), int(h), int(mi), tzinfo=TZ), rest.strip()
         except ValueError:
             return None
-    match = _CLOCK.match(text)
-    if match:
-        day_part, hour, minute, rest = match.groups()
-        try:
-            hour = int(hour)
-            minute = int(minute)
-            if not (0 <= hour <= 23 and 0 <= minute <= 59):
-                return None
-        except ValueError:
-            return None
-        target = datetime(now.year, now.month, now.day, hour, minute, tzinfo=TZ)
-        if day_part:
-            day_part = day_part.lower()
-            if day_part == "завтра":
-                target += timedelta(days=1)
-            elif day_part == "послезавтра":
-                target += timedelta(days=2)
-        elif target <= now:
-            target += timedelta(days=1)
-        return target, rest.strip()
     match = _REL.match(text)
-    if match and match.group(2).lower() in _UNIT and match.group(3) is not None and match.group(3).strip():
+    if match and match.group(2).lower() in _UNIT:
         minutes = int(match.group(1)) * _UNIT[match.group(2).lower()]
         return now + timedelta(minutes=minutes), match.group(3).strip()
+    match = _CLOCK.match(text)
+    if match:
+        day_word, h, mi, rest = match.groups()
+        try:
+            target = now.replace(hour=int(h), minute=int(mi), second=0, microsecond=0)
+        except ValueError:
+            return None
+        shift = {"завтра": 1, "послезавтра": 2}.get((day_word or "").lower(), 0)
+        target += timedelta(days=shift)
+        if target <= now + timedelta(seconds=30) and not day_word:
+            target += timedelta(days=1)  # "14:30" already passed today → tomorrow
+        return target, rest.strip()
     return None
 
 
 ERRORS = {
-    "REMINDER_TIME_PAST": "Это время уже прошло или слишком близко. Выберите позже.",
+    "REMINDER_TIME_PAST": "Это время уже прошло или слишком близко.",
     "REMINDER_TIME_TOO_FAR": "Напоминания можно ставить не дальше чем на год вперёд.",
-    "REMINDER_LIMIT": "У вас уже 20 напоминаний. Удалите лишние командой /reminders, чтобы добавить новое.",
-    "REMINDER_TEXT_INVALID": "Текст напоминания должен быть от 1 до 300 символов.",
+    "REMINDER_LIMIT": "Уже стоит 20 напоминаний — отмените лишние: /reminders",
+    "REMINDER_TEXT_INVALID": "Текст напоминания: от 1 до 300 символов.",
 }
 
 

@@ -7,15 +7,15 @@ import logging
 logger = logging.getLogger(__name__)
 
 _ERRORS = {
-    "USER_NOT_FOUND": "Ваш профиль не найден. Напишите @username или ник в игре, а затем нажмите /start.",
-    "TARGET_NOT_FOUND": "Игрок не найден. Укажите @username или ник в игре.",
-    "SELF_TRANSFER": "Себе переводить PP нельзя.",
-    "INVALID_AMOUNT": "Сумма — целое число от 1 до 100 000.",
+    "USER_NOT_FOUND": "Профиль не найден. Сначала /start.",
+    "TARGET_NOT_FOUND": "Не нашёл такого игрока (укажи @username или ник в игре).",
+    "SELF_TRANSFER": "Себе переводить нельзя.",
+    "INVALID_AMOUNT": "Сумма должна быть целым числом от 1 до 100 000.",
     "NOT_A_MEMBER": "Переводить PP могут только участники с одобренной заявкой.",
-    "INSUFFICIENT_PP": "Не хватает PP для перевода.",
-    "PERMISSION_DENIED": "Нет прав для управления PP.",
-    "EVENT_NOT_FOUND": "Событие не найдено. Укажите правильный slug или id.",
-    "FEES_ALREADY_PAID": "Взносы уже оплачены — изменить нельзя.",
+    "INSUFFICIENT_PP": "Не хватает PP.",
+    "PERMISSION_DENIED": "Нет права управлять PP.",
+    "EVENT_NOT_FOUND": "Событие не найдено (укажи slug или id).",
+    "FEES_ALREADY_PAID": "Взносы уже оплачены по другой цене — менять нельзя.",
     "ALREADY_PAID": "Приз за это событие уже выплачен.",
     "WINNER_NOT_PARTICIPANT": "Победитель должен быть участником события.",
 }
@@ -65,28 +65,19 @@ def parse_amount(raw: str | None) -> int | None:
 
 
 def render_history(data: dict) -> str:
-    try:
-        balance = fmt(data.get('balance'))
-        lines = [f"💎 <b>Баланс: {balance} PP</b>"]
-        items = data.get("items") or []
-        if not items:
-            lines.append("\nОпераций пока нет.")
-        else:
-            lines.append("\n<b>Последние операции</b>")
-            for row in items:
-                try:
-                    delta = int(row.get("delta") or 0)
-                    sign = "+" if delta >= 0 else "−"
-                    what = _KINDS.get(str(row.get("kind")), str(row.get("kind")))
-                    note = f" — {str(row['note'])}" if row.get("note") else ""
-                    lines.append(f"{sign}{fmt(abs(delta))} PP · {what}{note}")
-                except (TypeError, ValueError):
-                    lines.append("⚠️ Ошибка в данных операции")
-        return "\n".join(lines)
-    except KeyError:
-        return "⚠️ Неправильный формат данных. Проверьте запрос."
-    except (TypeError, ValueError):
-        return "⚠️ Ошибка в данных операции. Попробуйте позже."
+    lines = [f"💎 <b>Баланс: {fmt(data.get('balance'))} PP</b>"]
+    items = data.get("items") or []
+    if not items:
+        lines.append("\nОпераций пока нет.")
+    else:
+        lines.append("\n<b>Последние операции</b>")
+        for row in items:
+            delta = int(row.get("delta") or 0)
+            sign = "+" if delta > 0 else "−"
+            what = _KINDS.get(str(row.get("kind")), str(row.get("kind")))
+            note = f" — {html.escape(str(row['note']))}" if row.get("note") else ""
+            lines.append(f"{sign}{fmt(abs(delta))} PP · {what}{note}")
+    return "\n".join(lines)
 
 
 HELP = (

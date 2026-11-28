@@ -1,8 +1,6 @@
 import re
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from html import escape
-
-NOW = datetime.now()
 
 MAX_TEXT = 1000
 

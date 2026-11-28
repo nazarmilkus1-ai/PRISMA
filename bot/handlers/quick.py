@@ -33,7 +33,7 @@ async def quick_command(message: types.Message):
         await send_dashboard(message)
         return
     if await get_application_status(tg_id) != "ACCEPTED":
-        await message.answer("🔒 Быстрые действия станут доступны после одобрения заявки. Пока можете узнать больше: /guide")
+        await message.answer("🔒 Быстрые действия открываются после одобрения заявки: /guide")
         return
     await _show(message, tg_id)
 
