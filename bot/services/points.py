@@ -76,10 +76,10 @@ def render_history(data: dict) -> str:
             for row in items:
                 try:
                     delta = int(row.get("delta") or 0)
-                    sign = "+" if delta >= 0 else "−"
+                    sign = " + " if delta >= 0 else "−"
                     what = _KINDS.get(str(row.get("kind")), str(row.get("kind")))
                     note = f" — {str(row['note'])}" if row.get("note") else ""
-                    lines.append(f"{fmt(delta)} PP · {what}{note}")
+                    lines.append(f"{sign}{fmt(delta)} PP · {what}{note}")
                 except (TypeError, ValueError):
                     lines.append("⚠️ Ошибка в данных операции")
         return "\n".join(lines)
