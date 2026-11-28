@@ -44,8 +44,8 @@ def fee_label(row: dict) -> str:
         logger.error("Failed to parse fee: %s", exc)
         fee = 0
     if fee == 0:
-        return "0 PP"
-    return f"{fee:,} PP".replace(",", " ")
+        return "бесплатно"
+    return f"{fee:,}".replace(",", " ")
 
 
 def fmt(value: object) -> str:
