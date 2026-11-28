@@ -69,7 +69,7 @@ async def support_message(message: types.Message, state: FSMContext):
 
     if result.error or not data.get("success"):
         if code == "DAILY_LIMIT":
-            await message.answer("⏳ Дневной лимит обращений уже использован. Осталось сегодня: {remaining}. Попробуйте снова завтра!")
+            await message.answer("⏳ Дневной лимит обращений уже использован.")
         elif code == "INVALID_MESSAGE":
             await message.answer("❌ Некорректное сообщение.")
         else:

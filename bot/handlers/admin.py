@@ -22,18 +22,6 @@ from db.rpc import (
 from keyboards.admin_actions import application_actions, appeal_actions, report_actions
 from utils.errors import safe_rpc_error
 from utils.permissions import require_admin_mode, require_admin_mode_callback
-from utils.validation import Validation
-import logging
-
-logger = logging.getLogger(__name__)
-
-async def _valid_tg_id(tg_id: int) -> bool:
-    valid, error = Validation.validate_telegram_id(tg_id, "Telegram ID")
-    if not valid:
-        logger.warning("_valid_tg_id: invalid tg_id %s - %s", tg_id, error)
-        return False
-    return True
-
 
 router = Router()
 
@@ -50,9 +38,6 @@ async def require_perm(message: types.Message, permission: str) -> bool:
 @router.callback_query(F.data == "admin:applications")
 async def admin_applications(callback: types.CallbackQuery):
     if not await require_callback_perm(callback, "application.view"):
-        return
-    if not _valid_tg_id(callback.from_user.id):
-        await callback.message.answer("❌ Неправильный Telegram ID")
         return
     await callback.answer()
     rows, err = await pending_applications(callback.from_user.id)
@@ -86,7 +71,7 @@ async def app_approve(message: types.Message):
     if result.error or not isinstance(result.data, dict) or not result.data.get("success"):
         await message.answer(f"❌ {safe_rpc_error(result, 'Не удалось одобрить заявку.')}", parse_mode="HTML")
         return
-    await message.answer("✅ Заявка успешно одобрена.")
+    await message.answer("✅ Заявка одобрена.")
 
 
 @router.message(Command("app_reject"))
