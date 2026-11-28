@@ -116,6 +116,12 @@ class PointsTextTests(unittest.TestCase):
         self.assertIn("Операций пока нет", text)
 
     def test_history_render_unknown_kind(self):
+        # Zero balance with no operations
+        text = points.render_history({"balance": 0, "items": []})
+        self.assertIn("Баланс: 0 PP", text)
+        self.assertIn("Операций пока нет", text)
+
+    def test_history_render_unknown_kind(self):
         # Unknown operation kind should show the kind as-is
         text = points.render_history({"balance": 0, "items": [
             {"delta": 10, "kind": "unknown_kind", "note": None}]})
