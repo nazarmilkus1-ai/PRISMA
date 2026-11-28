@@ -1,5 +1,9 @@
-import pytest
-from bot.services.reminders import parse
+import unittest
+from services import reminders
 
-def test_parse_30m_returns_none():
-    assert parse("30m") is None
+class TestParseRemindersInvalid(unittest.TestCase):
+    def test_invalid_30m(self):
+        self.assertIsNone(reminders.parse("30m"))
+
+if __name__ == '__main__':
+    unittest.main()
