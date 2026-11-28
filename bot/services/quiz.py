@@ -48,6 +48,8 @@ def parse(raw: str) -> dict | None:
     except ValueError:
         return None
     question = str(data.get("question") or "").strip()
+    if not question:
+        return None
     options = [str(o).strip() for o in (data.get("options") or [])]
     correct = data.get("correct")
     if not isinstance(correct, int) or isinstance(correct, bool) or len(options) != 4 or not 0 <= correct <= 3:
