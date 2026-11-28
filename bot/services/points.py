@@ -45,7 +45,7 @@ def fee_label(row: dict) -> str:
         fee = 0
     if fee == 0:
         return "бесплатно"
-    return f"{fee:,}".replace(",", " ")
+    return f"{fee:,} PP".replace(",", " ")
 
 
 def fmt(value: object) -> str:
