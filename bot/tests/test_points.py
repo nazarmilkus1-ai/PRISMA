@@ -98,6 +98,56 @@ class PointsTextTests(unittest.TestCase):
         self.assertIn("Баланс: 0 PP", text)
         self.assertIn("Операций пока нет", text)
 
+    def test_history_render_various_formats(self):
+        # Test various balance and item formats
+        # Positive balance with positive delta
+        text = points.render_history({
+            "balance": 100,
+            "items": [{"delta": 50, "kind": "event_prize", "note": "За победу"}]
+        })
+        self.assertIn("Баланс: 100 PP", text)
+        self.assertIn("+50 PP · приз ивента", text)
+        self.assertIn(" — За победу", text)
+        
+        # Negative balance with negative delta
+        text = points.render_history({
+            "balance": -50,
+            "items": [{"delta": -30, "kind": "event_fee", "note": "Штраф"}]
+        })
+        self.assertIn("Баланс: -50 PP", text)
+        self.assertIn("−30 PP · взнос в ивент", text)
+        self.assertIn(" — Штраф", text)
+        
+        # Zero balance with mixed items
+        text = points.render_history({
+            "balance": 0,
+            "items": [
+                {"delta": 10, "kind": "event_bonus", "note": "Бонус"},
+                {"delta": -5, "kind": "event_penalty", "note": "Пенальти"}
+            ]
+        })
+        self.assertIn("Баланс: 0 PP", text)
+        self.assertIn("+10 PP · бонус", text)
+        self.assertIn("−5 PP · штраф", text)
+        self.assertIn(" — Бонус", text)
+        self.assertIn(" — Пенальти", text)
+        
+        # Balance with None items (empty list)
+        text = points.render_history({
+            "balance": 75,
+            "items": None
+        })
+        self.assertIn("Баланс: 75 PP", text)
+        self.assertIn("Операций пока нет", text)
+        
+        # Balance with empty items list
+        text = points.render_history({
+            "balance": 75,
+            "items": []
+        })
+        self.assertIn("Баланс: 75 PP", text)
+        self.assertIn("Операций пока нет", text)
+
     def test_history_render_none_items(self):
         # None items should be treated as empty
         text = points.render_history({"balance": 100, "items": None})
